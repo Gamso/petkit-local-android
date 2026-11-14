@@ -166,8 +166,7 @@ screen).
 2. **Distribution: GitHub releases.**
    - Signed APKs are attached to each `v*` release; the signing key lives in GitHub Actions
      secrets.
-   - Updates are manual, or automatic with an updater such as Obtainium pointed at the
-     repository.
+   - Updates are installed by hand from the releases page.
 3. **Minimum Android: 10 (API 29).** Nothing in the plan needs a higher floor.
    - Compose, Media3, Room, Keystore and UnifiedPush all work there.
    - The per-app language picker uses AppCompat's backport below Android 13.
