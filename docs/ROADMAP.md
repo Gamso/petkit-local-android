@@ -84,6 +84,6 @@ tested build.
 - Signed release on tag; distribution channel decided (spec, open question 2).
 
 ## Server-side follow-ups (petkit-local)
-- A route for the app to register its UnifiedPush endpoint, so the topic need not be pasted into
-  the panel.
+- **Needed before M5**: `PUT/DELETE /app/v1/push` to register the app's UnifiedPush endpoint per
+  session, and the notifier posting structured JSON to every registered endpoint (spec, decision 4).
 - Stable keys or translations for event labels, if keying them in the app proves brittle.

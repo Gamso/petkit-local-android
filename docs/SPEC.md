@@ -134,8 +134,10 @@ screen).
   - Device cards show "offline" from the API's `online` flag.
   - Every action reports success (`delivered`: mqtt, queued or local) or the server's error message.
   - A command queued for a device that polls over HTTP says it will arrive within ~10 s.
-- **Notifications.** UnifiedPush through the ntfy app; one Android notification channel per kind
-  (visit, meal, consumable/error, offline), so the user can mute them in system settings too.
+- **Notifications.** UnifiedPush through the ntfy app. The app registers its endpoint with the
+  server itself (section 9, decision 4) and writes the notification text in the phone's language.
+  One Android notification channel per kind (visit, meal, consumable/error, offline), so the user
+  can mute them in system settings too.
 - **Accessibility.** Contrast ≥ 4.5:1, touch targets ≥ 48 dp, TalkBack labels on every
   icon-only control, dynamic font size, no information carried by colour alone.
 - **Dark theme** from the same tokens.
@@ -156,13 +158,31 @@ screen).
 - The token travels only in the `Authorization` header, never in a URL (media and video included).
 - Screenshots of the video screen are allowed (it is the user's own camera).
 
-## 9. Open questions
+## 9. Decisions
 
-1. **App name and icon.** "PetKit" is a trademark: the store name must not use it ("Petkit Local"
-   is a working name only).
-2. **Distribution.** GitHub releases (sideload), F-Droid, or Play Store — this decides signing and
-   whether FCM-free push matters for review.
-3. **UnifiedPush registration.** Today the user pastes the app's ntfy topic into the panel. A
-   server route letting the app register its endpoint would remove that step (server change).
-4. **Minimum Android version.** Proposed: Android 9 (API 28).
+1. **Name: "Petkit Local".** The app is distributed on GitHub only, not on a store. The README and
+   the app's About screen state that it is not affiliated with PetKit, and no PetKit logo, image
+   or colour is used. If it ever goes to a store, rename it then.
+2. **Distribution: GitHub releases.**
+   - Signed APKs are attached to each `v*` release; the signing key lives in GitHub Actions
+     secrets.
+   - Updates are manual, or automatic with an updater such as Obtainium pointed at the
+     repository.
+3. **Minimum Android: 10 (API 29).** Nothing in the plan needs a higher floor.
+   - Compose, Media3, Room, Keystore and UnifiedPush all work there.
+   - The per-app language picker uses AppCompat's backport below Android 13.
+   - Notification permission is asked at runtime from Android 13.
+   - Raise the floor only if a library drops 29.
+4. **Push: the app registers its own UnifiedPush endpoint with the server** (needs a petkit-local
+   change).
+   - After sign-in, and whenever the distributor hands it a new endpoint, the app sends the
+     endpoint URL to the server: `PUT /app/v1/push`, tied to its session. Logout, revocation or
+     expiry of that session removes it.
+   - The server POSTs each notification straight to every registered endpoint, as a small JSON
+     message: kind, device id, pet, event code, time.
+   - The app builds the notification text itself, in the phone's language.
+   - Nothing is pasted into the panel. Every signed-in phone gets notifications, and a revoked
+     phone stops getting them.
+   - The panel's ntfy topic setting stays for people who want plain ntfy notifications without the
+     app.
 5. **Two-way talk from outside** (WebRTC + TURN): a later version.

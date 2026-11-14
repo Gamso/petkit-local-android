@@ -123,10 +123,16 @@ in CI fails the build if a feature imports a data-layer package.
 
 ## 5. Push notifications
 
-- **Registration**: the `:push` module registers with UnifiedPush and stores its endpoint. Today the user copies the
-  topic into the panel; a server route can automate it later (spec, open question 3).
-- **Delivery**: the receiver turns each message into a notification on the channel for its kind (title, body,
-  tags from ntfy). Tapping it opens the device or History deep link.
+- **Registration**:
+  - The `:push` module registers with UnifiedPush and sends the endpoint to the server
+    (`PUT /app/v1/push`) after sign-in and whenever the distributor rotates it.
+  - The server ties it to the session, so logout, revocation and expiry unregister it.
+  - This needs a petkit-local change (spec, decision 4).
+- **Delivery**:
+  - Messages are small JSON documents: kind, device id, pet id, event code, timestamp.
+  - The receiver maps them through the same keyed translations as the UI and posts a notification on the channel for
+    its kind, in the phone's language.
+  - Tapping it opens the device or the History entry by deep link.
 
 ## 6. Testing
 

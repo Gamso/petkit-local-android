@@ -13,4 +13,8 @@ authenticated phone-app API (`/app/v1`): no PetKit cloud and no Home Assistant n
 
 Languages: English and French.
 
-This project is not affiliated with PetKit. "Petkit Local" is a working name.
+Distributed as signed APKs on [GitHub releases](https://github.com/Gamso/petkit-local-android/releases).
+Requires Android 10 or later.
+
+This project is not affiliated with, endorsed by or connected to PetKit. "PetKit" is a trademark
+of its owner and is used here only to say which devices the app works with.
