@@ -1,0 +1,168 @@
+# Product specification — v1
+
+The Android client for [petkit-local](https://github.com/Gamso/petkit-local): it talks only to
+the user's own petkit-local server, through the authenticated phone-app API (`/app/v1`), and
+never to PetKit's cloud or to Home Assistant.
+
+Mockups: the design canvas "Android app mockups" (eight screens, French copy). Screens below are
+numbered as on the canvas.
+
+## 1. Goals
+
+- Give a household the day-to-day experience of PetKit's own app — see each device at a glance,
+  act on it, follow what the pets did — against a server they run themselves.
+- Work from anywhere: the server is reached through the user's own domain (Cloudflare tunnel,
+  reverse proxy). No VPN.
+- Two languages from day one: English and French, following the phone's language, switchable in
+  the app.
+
+## 2. Non-goals for v1
+
+- Adding a device, Wi-Fi/Bluetooth provisioning, firmware patching or flashing — the panel does
+  that, on the LAN.
+- Anything Home Assistant does: automations, dashboards, other brands.
+- Two-way talk from the camera (needs WebRTC through a TURN relay; see section 9).
+- Several servers or several accounts in one app.
+- iOS.
+
+## 3. Users and access
+
+- **One account per server.** The server holds one password (issue 71); every phone signs in
+  with it and receives its own session token. There are no user roles.
+- A session dies after **90 days without use**, on logout, when revoked from the panel, or when the
+  password changes. The app then returns to sign-in and says why.
+- The server can be anywhere the phone can reach over **HTTPS**. Plain HTTP is accepted only for a
+  private LAN address, with a warning.
+
+## 4. Devices in scope
+
+The API exposes every device the server knows. The app renders three families with a dedicated
+screen and everything else with a generic one.
+
+| Family | Models | v1 screen |
+|---|---|---|
+| Litter box | Pura Max (T4, confirmed on hardware), Pura X (T3), Purobot Max Pro 2 (T5), Purobot Ultra (T6), Crystal Duo (T7) | Dedicated (3) |
+| Feeder | Fresh Element Solo (D4), Gemini (D4S), YumShare Solo (D4H), YumShare Dual-Hopper (D4SH), older feeders | Dedicated (6) |
+| Fountain and others | EverSweet (W5, W7H, CTW3…), Pura Air (K2/K3) | Generic: status, entities, actions |
+
+Capabilities are read from the API (`DeviceDetail.actions`, entity `settable`, `is_camera`),
+never hard-coded per model, except for layout choices (which entity goes where on a dedicated
+screen).
+
+## 5. Screens
+
+### 1 · Sign-in
+- Fields: server address, password, this phone's name (prefilled with the phone model).
+- On submit: normalise the address, call `GET /info`, then `POST /auth/login`.
+- Errors in place:
+  - not a petkit-local server;
+  - no password set on the server, which tells the user to set it in the panel's "Phone app access" card;
+  - wrong password;
+  - locked out for N seconds (HTTP 429 `Retry-After`);
+  - unreachable server.
+- The language switch is reachable before signing in.
+
+### 2 · Home
+- Title (the household; single, not switchable in v1), notification bell, alert banners for
+  anything needing attention (consumable, error, offline device).
+- **Device grid**, two columns, one card per device:
+  - name and small device glyph;
+  - the family's headline figure: visits today for a litter box, portions served for a feeder, water level for a fountain;
+  - a 24-hour strip of the day's events;
+  - a status band at the bottom: idle, busy, offline, error.
+- **Pets** row: avatar, weight, visits today.
+- Pull to refresh. Live updates while open.
+
+### 3 · Litter box
+- Header: name, settings shortcut, **mode chips** (auto clean, auto deodorize — from switches).
+- **Hero**: a device illustration with **hotspot pills** on its parts:
+  - litter level;
+  - waste bin;
+  - deodorizer liquid or N50;
+  - any other consumable the model reports.
+
+  Each pill opens the matching setting or explanation, and its colour follows its state.
+- Live status line: idle, cleaning, pet inside, error with its label.
+- **Today** card: visits and average duration, each with the difference from yesterday.
+- **24-hour chart**: one dot per visit (time × duration), coloured per pet, with a pet filter.
+- **Activity**: the day's timeline for this device, linking to History.
+- **Bottom action sheet**: the model's actions (clean, level, deodorize…), from
+  `DeviceDetail.actions`. Destructive ones ask for confirmation and send `confirm: true`.
+- Settings (gear): every settable entity, grouped, with the type-appropriate control.
+
+### 4 · History
+- Week strip to pick a local day; filter chips: all, visits, meals, cleanings, alerts.
+- Timeline of cards, newest first, cursor-paginated (`GET /timeline`), each with time, pet,
+  device, weight, duration and media thumbnails.
+- A card opens a detail sheet: decoded fields, photos, clips (played in-app, seekable).
+
+### 5 · Pet
+- Switch between pets at the top; avatar (`GET /pets/{id}/photo`), name, how it is recognised.
+- Tiles: weight (median of the last weighed visits), visits today, last visit.
+- Weight chart over 30 days / 6 months; recent visits linking to History.
+
+### 6 · Feeder
+- Header and hero as for the litter box (hotspots: food level, desiccant, hoppers on dual feeders).
+- Next meal card with a **feed now** control (portions; per hopper on dual feeders).
+- **Feeding plan**: today's meals with their state (served, skipped, upcoming), an active/paused
+  switch, edit sheet for the weekly plan.
+- One-off feeds ("later"): list, add, cancel.
+- Bottom action sheet: feed, plan, later, history.
+
+### 7 · Live video (camera models only)
+- Full-width player, "live" badge and measured delay, fullscreen, mute, snapshot.
+- Plays the fMP4-over-WebSocket stream (`/devices/{id}/live`); falls back to HLS automatically on
+  close code `1013` or repeated failures.
+- Recent clips below.
+- "Talk" is shown disabled with an explanation (non-goal).
+
+### 8 · Settings
+- Server: address, connection state, server version.
+- Notifications: distributor state (ntfy via UnifiedPush) and the kinds to show.
+- App: language (system, English, French), theme (system, light, dark), this phone's name.
+- Change password (needs the current one; signs out every other phone), sign out.
+
+## 6. Cross-cutting behaviour
+
+- **Live updates.** While a screen that shows devices is visible, the app keeps one `GET /ws`
+  socket open:
+  - the `hello` message replaces local state; `state`, `device`, `device_removed` and `timeline` messages patch it;
+  - on close, it reconnects with backoff, except on code `4401`, which ends the session;
+  - it is closed in the background, so no battery is spent.
+- **Offline and errors.**
+  - Last known data stays visible, with a banner when the server is unreachable.
+  - Device cards show "offline" from the API's `online` flag.
+  - Every action reports success (`delivered`: mqtt, queued or local) or the server's error message.
+  - A command queued for a device that polls over HTTP says it will arrive within ~10 s.
+- **Notifications.** UnifiedPush through the ntfy app; one Android notification channel per kind
+  (visit, meal, consumable/error, offline), so the user can mute them in system settings too.
+- **Accessibility.** Contrast ≥ 4.5:1, touch targets ≥ 48 dp, TalkBack labels on every
+  icon-only control, dynamic font size, no information carried by colour alone.
+- **Dark theme** from the same tokens.
+
+## 7. Languages
+
+- English and French string resources; plurals and number/date formats from the locale; weights in
+  kg, durations in m:ss.
+- Per-app language (Android 13+ system setting, in-app switch everywhere).
+- **Server-provided labels are English** (entity names, event labels). The app translates by
+  **stable keys** (entity `key`, event kind and code) and falls back to the server's text for
+  anything it does not know. A missing translation is a bug report, never a crash.
+
+## 8. Security
+
+- The session token is stored encrypted (Android Keystore); the password is never stored.
+- HTTPS required off the LAN; no certificate pinning (the user's proxy or Cloudflare terminate TLS).
+- The token travels only in the `Authorization` header, never in a URL (media and video included).
+- Screenshots of the video screen are allowed (it is the user's own camera).
+
+## 9. Open questions
+
+1. **App name and icon.** "PetKit" is a trademark: the store name must not use it ("Petkit Local"
+   is a working name only).
+2. **Distribution.** GitHub releases (sideload), F-Droid, or Play Store — this decides signing and
+   whether FCM-free push matters for review.
+3. **UnifiedPush registration.** Today the user pastes the app's ntfy topic into the panel. A
+   server route letting the app register its endpoint would remove that step (server change).
+4. **Minimum Android version.** Proposed: Android 9 (API 28).
+5. **Two-way talk from outside** (WebRTC + TURN): a later version.
