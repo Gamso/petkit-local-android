@@ -130,24 +130,41 @@ in CI fails the build if a feature imports a data-layer package.
 
 ## 6. Testing
 
-| Layer | What | Tools |
-|---|---|---|
-| Domain | Every use case and rule | JUnit 5, Turbine, fakes from `core:testing` |
-| Data | Mappers, repositories against a fake server (MockWebServer), Room DAOs, WebSocket message handling, DTO contract tests | JUnit 5, MockWebServer, Robolectric for Room |
-| Presentation | ViewModels with fake repositories (state sequences, effects) | Turbine, coroutines-test |
-| UI | Screens in both languages and both themes | Compose UI tests, screenshot tests |
-| End to end | Sign in, home, run an action, history against a petkit-local container | Instrumented test on CI emulator, petkit-local image started with `--no-ha` |
+Six kinds of test, from fast and many to slow and few. Each has one job; a bug should be caught by
+the cheapest kind able to see it.
 
-Coverage targets: domain 90 %, data 80 %, ViewModels 80 %.
+| Kind | Runs on | What it proves | Tools |
+|---|---|---|---|
+| **Unit** | JVM | Domain use cases and rules, ViewModel state sequences and effects, mappers, formatting, WebSocket message handling | JUnit 5, MockK, Turbine, kotlinx-coroutines-test, fakes from `core:testing` |
+| **Integration (data)** | JVM | Repositories against a scripted server (MockWebServer, incl. 401/429/5xx and a WebSocket), Room DAOs and migrations, Keystore-backed session store | MockWebServer, Robolectric, Room testing |
+| **Contract** | JVM | Every DTO parses the examples and schemas of the server's `openapi.yaml`; every route the app calls exists in it | kotlinx.serialization, a small OpenAPI reader; the YAML is fetched from a pinned petkit-local release by a script and committed |
+| **Compose UI** | JVM (Robolectric), and emulator for the few that need a real device | Each screen's stateless composable: content for each UiState, clicks reach the right callbacks, confirmation dialogs, TalkBack labels, EN and FR | Compose UI test, Robolectric; Gradle Managed Devices (ATD image) on the emulator |
+| **Screenshot** | JVM | Every component and screen in light/dark × EN/FR × font scale 100 %/130 % renders as recorded; a visual change shows up in review as an image diff | Roborazzi on Robolectric |
+| **End to end** | Emulator + petkit-local container | Real flows against a real server: sign in, home lists the devices, run an action and see the state change arrive by WebSocket, history paging, pet detail, session revoked from the panel sends the app back to sign-in | Gradle Managed Device; `ghcr.io/gamso/petkit-local` started with `--no-ha`, seeded with fake devices by the server's own smoke-test script (fake T5/T4 registration and MQTT session) |
+| **Smoke** | Emulator | The **release** build — minified, shrunk, signed with the CI key — installs, starts, signs in to the container and draws Home without a crash or an ANR. Catches what only R8 and release config break | Same emulator and container; one short instrumented test run against the release APK |
+
+Rules:
+- No test reaches the internet; the only server is MockWebServer or the local container.
+- Fakes, not mocks, for repositories (`core:testing`), so ViewModel tests read like the app.
+- Coverage targets: domain 90 %, data 80 %, ViewModels 80 %, measured with Kover and reported on
+  each pull request (not a gate at first).
 
 ## 7. CI (GitHub Actions)
 
-- **Every pull request**: ktlint, detekt, Android lint, unit tests, screenshot tests,
-  `assembleDebug`.
-- **Main**: the same, plus the end-to-end test against the current `ghcr.io/gamso/petkit-local` image.
-- **Tag `v*`**: signed release APK (and AAB if the Play Store is chosen) attached to a GitHub
-  release.
-- **Supply chain**: actions pinned by SHA and Dependabot for Gradle and actions, as on the server.
+| Workflow | Trigger | Jobs (in parallel unless noted) | Target time |
+|---|---|---|---|
+| `ci.yml` | every pull request and push to `main` | **static**: ktlint, detekt, Android lint · **unit**: unit + integration + contract tests, Kover report · **compose**: Robolectric Compose UI tests + Roborazzi verify (diffs uploaded as artifacts) · **build**: `assembleDebug` and `assembleRelease` with R8 | < 10 min |
+| `e2e.yml` | pull requests touching `app/`, `core/`, `feature/`, `push/` or the workflow; push to `main`; nightly | **e2e**: emulator (Gradle Managed Device, KVM) + petkit-local container, end-to-end suite · then **smoke**: release APK on the same emulator | < 25 min |
+| `release.yml` | tag `v*` | static + unit + compose + e2e + smoke must pass, **then** sign and attach the APK (and AAB if the Play Store is chosen) to a GitHub release | — |
+| `contract-refresh.yml` | weekly and on demand | fetch `openapi.yaml` from the latest petkit-local release; if it changed, open a pull request so the contract tests run against it | — |
+
+- **The server version is pinned** for e2e and smoke (an image tag in one file) and bumped by
+  Dependabot's `docker` updater, so a server change reaches the app as a reviewed, tested PR, like
+  the contract refresh.
+- **Supply chain**: actions pinned by SHA; Dependabot for Gradle (version catalog), GitHub
+  Actions and the pinned server image (`.github/dependabot.yml`); dependency verification
+  (`gradle/verification-metadata.xml`) so Gradle refuses an artifact whose checksum changed.
+- **Required checks** on `main`: static, unit, compose, build, e2e, smoke.
 
 ## 8. ADRs to write at project start
 

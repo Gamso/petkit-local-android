@@ -1,0 +1,36 @@
+# Weekly update pull requests. Each one runs the full CI (static, unit, compose, build, e2e,
+# smoke) before it can be merged, so an upgrade that breaks the app is caught in its own PR.
+# Nothing here is scanned until the files it watches exist; the Gradle project and the e2e
+# compose file arrive with milestone M0 (docs/ROADMAP.md).
+version: 2
+updates:
+  # Libraries and plugins, from the version catalog (gradle/libs.versions.toml).
+  - package-ecosystem: gradle
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      # AndroidX and Compose move together; one PR is easier to test than ten.
+      androidx:
+        patterns: ["androidx.*", "com.google.android.material*"]
+      kotlin:
+        patterns: ["org.jetbrains.kotlin*", "org.jetbrains.kotlinx*", "com.google.devtools.ksp*"]
+      test:
+        patterns: ["junit*", "org.junit*", "io.mockk*", "app.cash.turbine*", "org.robolectric*", "io.github.takahirom.roborazzi*"]
+
+  # Workflow actions, pinned by SHA in .github/workflows.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # The petkit-local server image the e2e and smoke tests run against (e2e/docker-compose.yml),
+  # so a new server release reaches the app as a reviewed, tested PR.
+  - package-ecosystem: docker-compose
+    directory: /e2e
+    schedule:
+      interval: weekly

@@ -9,7 +9,17 @@ tested build.
   - convention plugins;
   - version catalog;
   - minimum and target SDK.
-- CI: ktlint, detekt, lint, unit tests, `assembleDebug`; Dependabot; actions pinned by SHA.
+- CI (ARCHITECTURE.md, section 7), built before the first feature so every feature lands tested:
+  - `ci.yml`: static analysis, unit + integration + contract tests, Robolectric Compose UI and
+    Roborazzi screenshot tests, debug and release (R8) builds;
+  - `e2e.yml`: Gradle Managed Device emulator + petkit-local container (pinned image in
+    `e2e/docker-compose.yml`, seeded with fake devices), end-to-end suite, then the smoke test on
+    the release APK;
+  - `release.yml` gated on all of them; `contract-refresh.yml` for the server's `openapi.yaml`;
+  - required checks on `main`; Dependabot (already configured) for Gradle, actions and the
+    server image; actions pinned by SHA; Gradle dependency verification.
+- One placeholder test of each kind (unit, integration, contract, Compose UI, screenshot, e2e,
+  smoke), so each job proves it runs before real tests arrive.
 - Design system:
   - tokens (light and dark);
   - bundled fonts;
