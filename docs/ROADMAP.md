@@ -81,7 +81,8 @@ tested build.
   - theme;
   - change password.
 - End-to-end test against a petkit-local container in CI.
-- Signed release on tag; distribution channel decided (spec, open question 2).
+- Signed APK attached to a GitHub release on each `v*` tag (spec, decision 2); About screen with
+  the non-affiliation notice.
 
 ## Server-side follow-ups (petkit-local)
 - **Needed before M5**: `PUT/DELETE /app/v1/push` to register the app's UnifiedPush endpoint per
