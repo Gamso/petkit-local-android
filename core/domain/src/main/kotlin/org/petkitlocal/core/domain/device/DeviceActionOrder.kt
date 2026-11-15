@@ -64,15 +64,37 @@ object DeviceActionOrder {
     fun isMaintenance(action: DeviceAction): Boolean =
         action.key in MAINTENANCE_KEYS || MAINTENANCE_PREFIXES.any { action.key.startsWith(it) }
 
-    /** [actions] in the server's order, laid out for the sheet. */
-    fun layout(actions: List<DeviceAction>, visible: Int = VISIBLE): ActionLayout {
+    /**
+     * [actions] in the server's order, laid out for the sheet. [pinned] is the user's own choice
+     * for this device ([QuickActionRow]), null when they made none: then the app chooses.
+     *
+     * A pinned key keeps its slot while the device lists it; when the server no longer does, that
+     * slot falls back to the app's own ranking (the best everyday action not already in view),
+     * and nothing else changes. Pinned, a maintenance or destructive action is in view like any
+     * other, and a destructive one is still confirmed when pressed. [ActionLayout.more] holds
+     * every action not in view, in the app's order, whoever chose the row.
+     */
+    fun layout(actions: List<DeviceAction>, pinned: List<String>? = null, visible: Int = VISIBLE): ActionLayout {
         val (destructive, safe) = actions.partition { it.destructive }
         val (maintenance, everyday) = safe.partition(::isMaintenance)
         // sortedBy is stable: equal ranks keep the server's order.
         val ranked = everyday.sortedBy { RANKS[it.key] ?: DEFAULT_RANK }
+        if (pinned == null) {
+            return ActionLayout(
+                main = ranked.take(visible),
+                more = ranked.drop(visible) + maintenance + destructive,
+            )
+        }
+        val byKey = actions.associateBy { it.key }
+        val slots = pinned.distinct().take(visible)
+        val fallbacks = ranked.filter { it.key !in slots }.iterator()
+        val main = slots.mapNotNull { key -> byKey[key] ?: fallbacks.nextOrNull() }
+        val inView = main.mapTo(HashSet()) { it.key }
         return ActionLayout(
-            main = ranked.take(visible),
-            more = ranked.drop(visible) + maintenance + destructive,
+            main = main,
+            more = (ranked + maintenance + destructive).filterNot { it.key in inView },
         )
     }
+
+    private fun <T> Iterator<T>.nextOrNull(): T? = if (hasNext()) next() else null
 }
