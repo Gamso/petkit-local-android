@@ -39,11 +39,44 @@ exposed through a `PkTheme` composition local; screens never use raw values.
 Device pages use a soft vertical gradient behind the hero, tinted per family: litter
 `#E3F1EF`, feeder `#E8EEF7`, pet `#F6EBDF`, each fading into `background`.
 
-A dark palette mirrors every token (to be drawn and checked for contrast at project start); the
-live-video screen is always dark.
+Three "on" tokens complete the table for text and icons on filled colours: `onAccent`
+`#FFFFFF` (5.2:1), `onSecondary` `#FFFFFF` (8.7:1), `onDanger` `#FFFFFF` (6.6:1).
 
-Pets get colours in a fixed order (accent, secondary, then two more to define) so charts and
-avatars agree everywhere. Every coloured state also has a label or a shape, never colour alone.
+### Colour (dark)
+
+Every token has a dark value. Text tokens keep at least 4.5:1 on the surfaces they are drawn on:
+`PkColorsContrastTest` (core:designsystem) computes the WCAG ratio of every such pair in both
+palettes and fails the build below 4.5:1. Ratios are against `surface` unless stated.
+
+| Token | Value | Contrast |
+|---|---|---|
+| `background` | `#101316` | — |
+| `surface` | `#1A1E23` | — |
+| `surfaceMuted` | `#252B32` | — |
+| `onSurface` | `#E6E9ED` | 13.8:1 (15.3:1 on `background`, 11.7:1 on `surfaceMuted`) |
+| `onSurfaceMuted` | `#A4ADB9` | 7.4:1 (6.3:1 on `surfaceMuted`) |
+| `accent` | `#5CC8BD` | 8.3:1 |
+| `onAccent` | `#00211E` | 8.5:1 on `accent` |
+| `accentContainer` | `#123A36` | — |
+| `onAccentContainer` | `#A6E6DE` | 8.9:1 on `accentContainer` |
+| `secondary` | `#9DB8E3` | 8.3:1 |
+| `onSecondary` | `#0D1B30` | 8.6:1 on `secondary` |
+| `warning` | `#F2A65A` | 8.3:1 |
+| `warningContainer` | `#3A2810` | — |
+| `onWarningContainer` | `#FFD8A8` | 10.5:1 on `warningContainer` |
+| `success` | `#74CF8F` | 8.8:1 |
+| `danger` | `#FF8B7E` | 7.4:1 |
+| `onDanger` | `#3A0904` | 7.6:1 on `danger` |
+| `outline` | `#3A424C` | Separators only, like its light value |
+
+Hero tints in dark: litter `#16302D`, feeder `#1B2433`, pet `#33281C`. In dark, filled colours
+are light and their "on" colours dark, the reverse of the light palette. The live-video screen
+is always dark.
+
+Pets get colours in a fixed order so charts and avatars agree everywhere: accent, secondary,
+then purple (`#7B4FA8` light, `#C8A2EC` dark) and rose (`#A8436A` light, `#F291B3` dark), each
+at least 5.7:1 on `surface`. Every coloured state also has a label or a shape, never colour
+alone: a selected filter chip carries a check mark, a mode chip says "On" or "Off".
 
 ### Type
 
@@ -55,8 +88,10 @@ avatars agree everywhere. Every coloured state also has a label or a shape, neve
 | Body | Inter | 14–15 / 400–500 |
 | Label | Inter | 11–13 / 500–600 |
 
-Both fonts are SIL OFL and bundled (no network font loading). Sizes are in `sp` and follow the
-user's font scale; layouts are checked at 130 %.
+Both fonts are SIL OFL and bundled (no network font loading): the variable files from Google
+Fonts (`google/fonts`, `ofl/inter` and `ofl/plusjakartasans`), each weight an instance of the
+`wght` axis, with their licences in `core/designsystem/licenses/`. Sizes are in `sp` and follow
+the user's font scale; layouts are checked at 130 %.
 
 ### Shape and spacing
 
