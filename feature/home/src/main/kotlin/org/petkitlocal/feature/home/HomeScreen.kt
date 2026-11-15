@@ -56,6 +56,7 @@ import org.petkitlocal.core.domain.home.HomeOverview
 data class HomeNavigation(
     val onDeviceClick: (deviceId: Long) -> Unit = {},
     val onOpenPets: () -> Unit = {},
+    val onOpenPet: (petId: Long) -> Unit = {},
     val onOpenHistory: () -> Unit = {},
     val onOpenSettings: () -> Unit = {},
 )
@@ -212,13 +213,23 @@ private fun PetsRow(overview: HomeOverview, navigation: HomeNavigation) {
     if (pets.size <= 2) {
         // Two pets share the width, as on the mockup.
         Row(horizontalArrangement = Arrangement.spacedBy(PkTheme.spacing.cardGap)) {
-            pets.forEach { pet -> PetChip(pet, onClick = navigation.onOpenPets, modifier = Modifier.weight(1f)) }
+            pets.forEach { pet ->
+                PetChip(
+                    pet,
+                    onClick = { navigation.onOpenPet(pet.pet.id) },
+                    modifier = Modifier.weight(1f).testTag(HomeTestTags.pet(pet.pet.id)),
+                )
+            }
             if (pets.size == 1) Spacer(Modifier.weight(1f))
         }
     } else {
         LazyRow(horizontalArrangement = Arrangement.spacedBy(PkTheme.spacing.cardGap)) {
             items(pets, key = { it.pet.id }) { pet ->
-                PetChip(pet, onClick = navigation.onOpenPets, modifier = Modifier.width(PET_CHIP_WIDTH))
+                PetChip(
+                    pet,
+                    onClick = { navigation.onOpenPet(pet.pet.id) },
+                    modifier = Modifier.width(PET_CHIP_WIDTH).testTag(HomeTestTags.pet(pet.pet.id)),
+                )
             }
         }
     }
@@ -248,4 +259,6 @@ object HomeTestTags {
     const val LIST = "home:list"
 
     fun device(id: Long): String = "home:device:$id"
+
+    fun pet(id: Long): String = "home:pet:$id"
 }
