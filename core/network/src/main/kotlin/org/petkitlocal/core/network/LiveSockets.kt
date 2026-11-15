@@ -9,8 +9,8 @@ import org.petkitlocal.core.network.dto.UpdateMessageDto
 
 /*
  * The routes that are not REST: the two WebSockets and the live HLS files. Their message DTOs
- * exist now (dto/UpdateDtos.kt) so the contract tests cover them; the clients arrive with the
- * milestones that use them, on the shared OkHttp client of PetkitHttpClient.
+ * are in dto/UpdateDtos.kt, covered by the contract tests; each client runs on the shared OkHttp
+ * client of PetkitHttpClient ([LiveUpdatesClient] for `/ws`; the video ones arrive with M4).
  */
 
 /** What the `/ws` live-updates socket yields while it is collected. */
@@ -22,11 +22,8 @@ sealed interface LiveUpdate {
 }
 
 /**
- * `GET /ws`: live updates (ARCHITECTURE.md §4).
- *
- * TODO(M2): implement on the shared OkHttp client: open on first collector, decode each frame
- *  with [decodeUpdateMessage], close `WhileSubscribed(5s)`, reconnect with exponential backoff
- *  and jitter capped at 30 s, except after close code 4401 ([closeCodeToDomainError]).
+ * `GET /ws`: live updates (ARCHITECTURE.md §4), one socket per collection ([LiveUpdatesClient]).
+ * Sharing it, closing it in the background and reconnecting are the data layer's.
  */
 interface LiveUpdatesSocket {
     fun updates(): Flow<LiveUpdate>
