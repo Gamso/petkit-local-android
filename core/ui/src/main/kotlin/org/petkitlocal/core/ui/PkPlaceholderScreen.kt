@@ -16,8 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import org.petkitlocal.core.designsystem.component.PkButton
-import org.petkitlocal.core.designsystem.component.PkButtonStyle
+import org.petkitlocal.core.designsystem.component.PkBackButton
 import org.petkitlocal.core.designsystem.component.PkCard
 import org.petkitlocal.core.designsystem.component.PkLoadingView
 import org.petkitlocal.core.designsystem.theme.PkTheme
@@ -44,7 +43,7 @@ fun PkPlaceholderScreen(
             .padding(PkTheme.spacing.gutter),
     ) {
         if (onBack != null) {
-            PkButton(stringResource(R.string.core_ui_back), onClick = onBack, style = PkButtonStyle.Text)
+            PkBackButton(onClick = onBack)
         }
         Text(
             title,

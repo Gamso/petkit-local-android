@@ -7,7 +7,8 @@ PetKit's own app:
 - a bottom action sheet;
 - big daily figures compared with yesterday.
 
-The identity itself is original: palette, type, icons and illustrations. **No PetKit image, logo,
+The identity itself is original: palette, type and illustrations. Icons are Material Symbols
+(below). **No PetKit image, logo,
 colour or product photo is used anywhere**, and device illustrations are our own simplified
 drawings.
 
@@ -92,6 +93,16 @@ Both fonts are SIL OFL and bundled (no network font loading): the variable files
 Fonts (`google/fonts`, `ofl/inter` and `ofl/plusjakartasans`), each weight an instance of the
 `wght` axis, with their licences in `core/designsystem/licenses/`. Sizes are in `sp` and follow
 the user's font scale; layouts are checked at 130 %.
+
+### Icons
+
+Material Symbols first: Google's Material 3 icon set, Rounded style, weight 400, unfilled, 24 dp,
+under the Apache License 2.0 (`core/designsystem/licenses/`). They live in `PkIcons` as path data
+copied from `google/material-design-icons` (the source commit and each symbol's name are in the
+file), not through the Compose material-icons libraries, which stopped at 1.7.8. An icon is drawn
+for the project only where no symbol fits. Icon-only controls are `PkIconButton` (48 dp, round, on
+the surface colour) with a TalkBack label; the way back from a screen is `PkBackButton`, a left
+arrow mirrored in right-to-left languages.
 
 ### Shape and spacing
 

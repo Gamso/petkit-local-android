@@ -24,4 +24,5 @@
     <string name="sample_confirm_title">Empty the litter?</string>
     <string name="sample_confirm_message">The box tips all of its litter into the bin. This cannot be undone.</string>
     <string name="sample_confirm_action">Empty</string>
+    <string name="sample_settings">Settings</string>
 </resources>
