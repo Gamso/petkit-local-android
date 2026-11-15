@@ -27,6 +27,7 @@ import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.device.ObserveDeviceUseCase
 import org.petkitlocal.core.domain.model.DeviceFamily
 import org.petkitlocal.feature.device.common.DeviceGoneView
+import org.petkitlocal.feature.device.feeder.FeederRoute
 import org.petkitlocal.feature.device.generic.GenericDeviceRoute
 import org.petkitlocal.feature.device.litter.LitterRoute
 
@@ -59,8 +60,8 @@ class DeviceRouteViewModel @Inject constructor(
 }
 
 /**
- * The device destination: the screen of the device's family. Litter boxes have their own page
- * (SPEC.md §5.3); every other family shows the generic screen for now.
+ * The device destination: the screen of the device's family. Litter boxes and feeders have their
+ * own pages (SPEC.md §5.3, §5.6); every other family shows the generic screen.
  */
 @Composable
 internal fun DeviceRoute(navigation: DeviceNavigation, viewModel: DeviceRouteViewModel = hiltViewModel()) {
@@ -71,7 +72,8 @@ internal fun DeviceRoute(navigation: DeviceNavigation, viewModel: DeviceRouteVie
         is DeviceKindState.Known -> when (state.family) {
             DeviceFamily.LitterBox -> LitterRoute(navigation)
 
-            DeviceFamily.Feeder,
+            DeviceFamily.Feeder -> FeederRoute(navigation)
+
             DeviceFamily.Fountain,
             DeviceFamily.Purifier,
             DeviceFamily.Other,

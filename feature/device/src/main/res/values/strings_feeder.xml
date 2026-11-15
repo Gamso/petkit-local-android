@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Feeder page (SPEC.md §5.6). The changes the command banner names. -->
+    <string name="feeder_change_plan_saved">Feeding plan</string>
+    <string name="feeder_change_plan_paused">Plan paused</string>
+    <string name="feeder_change_plan_resumed">Plan resumed</string>
+    <string name="feeder_change_feed_added">One-off feed</string>
+    <string name="feeder_change_feed_cancelled">One-off feed cancelled</string>
+
+    <string name="feeder_next_meal">Next meal</string>
+    <string name="feeder_next_one_off">Next: a one-off feed</string>
+    <string name="feeder_no_next_meal">No meal planned</string>
+    <string name="feeder_plan_paused_note">The plan is paused: no meal is served until it is resumed.</string>
+    <string name="feeder_today_at">Today, %1$s</string>
+    <string name="feeder_tomorrow_at">Tomorrow, %1$s</string>
+    <string name="feeder_day_at">%1$s, %2$s</string>
+    <plurals name="feeder_portions">
+        <item quantity="one">%1$d portion</item>
+        <item quantity="other">%1$d portions</item>
+    </plurals>
+    <string name="feeder_hoppers">Hopper 1: %1$d · Hopper 2: %2$d</string>
+    <string name="feeder_served_today">Served today: %1$s</string>
+    <plurals name="feeder_meals_today">
+        <item quantity="one">%1$d meal</item>
+        <item quantity="other">%1$d meals</item>
+    </plurals>
+    <string name="feeder_feed_now">Feed now</string>
+    <string name="feeder_feed_now_single">Gives the feeder\'s own manual portion.</string>
+    <string name="feeder_portions_label">Portions</string>
+    <string name="feeder_hopper">Hopper %1$d</string>
+    <string name="feeder_nothing_chosen">Choose at least one portion.</string>
+    <string name="feeder_less">%1$s: one portion less</string>
+    <string name="feeder_more">%1$s: one portion more</string>
+    <string name="feeder_stepper_value">%1$s: %2$d</string>
+
+    <string name="feeder_plan">Feeding plan</string>
+    <string name="feeder_plan_active">Active</string>
+    <string name="feeder_plan_paused">Paused</string>
+    <string name="feeder_plan_today">Today</string>
+    <string name="feeder_no_meal_today">No meal today.</string>
+    <string name="feeder_plan_loading">Reading the plan…</string>
+    <string name="feeder_plan_failed">The plan could not be read.</string>
+    <string name="feeder_retry">Try again</string>
+    <string name="feeder_edit_plan">Edit the weekly plan</string>
+    <string name="feeder_meal_served">Served</string>
+    <string name="feeder_meal_skipped">Skipped</string>
+    <string name="feeder_meal_upcoming">To come</string>
+    <string name="feeder_meal_paused">Paused</string>
+
+    <string name="feeder_one_off">One-off feeds</string>
+    <string name="feeder_no_one_off">None planned.</string>
+    <string name="feeder_add_one_off">Add a one-off feed</string>
+    <string name="feeder_cancel_feed">Cancel the feed of %1$s</string>
+
+    <string name="feeder_sheet_plan">Plan</string>
+    <string name="feeder_sheet_later">Later</string>
+    <string name="feeder_sheet_history">History</string>
+
+    <string name="feeder_editor_title">Weekly plan</string>
+    <string name="feeder_editor_save">Save</string>
+    <string name="feeder_editor_close">Close without saving</string>
+    <string name="feeder_editor_days">Days</string>
+    <string name="feeder_editor_add_meal">Add a meal</string>
+    <string name="feeder_editor_remove_meal">Remove the meal of %1$s</string>
+    <string name="feeder_editor_remove_group">Remove these days</string>
+    <string name="feeder_editor_add_group">Add other days</string>
+    <string name="feeder_editor_meal_time">Meal time: %1$s. Change it</string>
+    <string name="feeder_editor_empty">No day has meals yet. Add some days.</string>
+    <string name="feeder_problem_no_days">Pick at least one day.</string>
+    <string name="feeder_problem_day_twice">%1$s already has meals above.</string>
+    <string name="feeder_problem_same_time">Two meals at %1$s.</string>
+    <string name="feeder_problem_nothing">This meal gives nothing: add a portion.</string>
+    <string name="feeder_problem_too_many">At most 24 meals a day.</string>
+
+    <string name="feeder_feed_title">One-off feed</string>
+    <string name="feeder_feed_day">Day</string>
+    <string name="feeder_feed_time">Time</string>
+    <string name="feeder_feed_add">Add</string>
+    <string name="feeder_problem_past">This time has passed: pick a later one.</string>
+    <string name="feeder_ok">OK</string>
+    <string name="feeder_cancel">Cancel</string>
+</resources>

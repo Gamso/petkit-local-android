@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feeder_change_plan_saved">Programme des repas</string>
+    <string name="feeder_change_plan_paused">Programme en pause</string>
+    <string name="feeder_change_plan_resumed">Programme repris</string>
+    <string name="feeder_change_feed_added">Repas ponctuel</string>
+    <string name="feeder_change_feed_cancelled">Repas ponctuel annulé</string>
+
+    <string name="feeder_next_meal">Prochain repas</string>
+    <string name="feeder_next_one_off">Prochain : un repas ponctuel</string>
+    <string name="feeder_no_next_meal">Aucun repas prévu</string>
+    <string name="feeder_plan_paused_note">Le programme est en pause : aucun repas n\'est servi tant qu\'il n\'est pas repris.</string>
+    <string name="feeder_today_at">Aujourd\'hui, %1$s</string>
+    <string name="feeder_tomorrow_at">Demain, %1$s</string>
+    <string name="feeder_day_at">%1$s, %2$s</string>
+    <plurals name="feeder_portions">
+        <item quantity="one">%1$d portion</item>
+        <item quantity="many">%1$d portions</item>
+        <item quantity="other">%1$d portions</item>
+    </plurals>
+    <string name="feeder_hoppers">Réservoir 1 : %1$d · Réservoir 2 : %2$d</string>
+    <string name="feeder_served_today">Servi aujourd\'hui : %1$s</string>
+    <plurals name="feeder_meals_today">
+        <item quantity="one">%1$d repas</item>
+        <item quantity="many">%1$d repas</item>
+        <item quantity="other">%1$d repas</item>
+    </plurals>
+    <string name="feeder_feed_now">Servir maintenant</string>
+    <string name="feeder_feed_now_single">Sert la portion manuelle réglée sur le distributeur.</string>
+    <string name="feeder_portions_label">Portions</string>
+    <string name="feeder_hopper">Réservoir %1$d</string>
+    <string name="feeder_nothing_chosen">Choisissez au moins une portion.</string>
+    <string name="feeder_less">%1$s : une portion de moins</string>
+    <string name="feeder_more">%1$s : une portion de plus</string>
+    <string name="feeder_stepper_value">%1$s : %2$d</string>
+
+    <string name="feeder_plan">Programme des repas</string>
+    <string name="feeder_plan_active">Actif</string>
+    <string name="feeder_plan_paused">En pause</string>
+    <string name="feeder_plan_today">Aujourd\'hui</string>
+    <string name="feeder_no_meal_today">Aucun repas aujourd\'hui.</string>
+    <string name="feeder_plan_loading">Lecture du programme…</string>
+    <string name="feeder_plan_failed">Le programme n\'a pas pu être lu.</string>
+    <string name="feeder_retry">Réessayer</string>
+    <string name="feeder_edit_plan">Modifier le programme de la semaine</string>
+    <string name="feeder_meal_served">Servi</string>
+    <string name="feeder_meal_skipped">Manqué</string>
+    <string name="feeder_meal_upcoming">À venir</string>
+    <string name="feeder_meal_paused">En pause</string>
+
+    <string name="feeder_one_off">Repas ponctuels</string>
+    <string name="feeder_no_one_off">Aucun de prévu.</string>
+    <string name="feeder_add_one_off">Ajouter un repas ponctuel</string>
+    <string name="feeder_cancel_feed">Annuler le repas de %1$s</string>
+
+    <string name="feeder_sheet_plan">Repas</string>
+    <string name="feeder_sheet_later">Plus tard</string>
+    <string name="feeder_sheet_history">Historique</string>
+
+    <string name="feeder_editor_title">Programme de la semaine</string>
+    <string name="feeder_editor_save">Enregistrer</string>
+    <string name="feeder_editor_close">Fermer sans enregistrer</string>
+    <string name="feeder_editor_days">Jours</string>
+    <string name="feeder_editor_add_meal">Ajouter un repas</string>
+    <string name="feeder_editor_remove_meal">Retirer le repas de %1$s</string>
+    <string name="feeder_editor_remove_group">Retirer ces jours</string>
+    <string name="feeder_editor_add_group">Ajouter d\'autres jours</string>
+    <string name="feeder_editor_meal_time">Heure du repas : %1$s. La changer</string>
+    <string name="feeder_editor_empty">Aucun jour n\'a de repas. Ajoutez des jours.</string>
+    <string name="feeder_problem_no_days">Choisissez au moins un jour.</string>
+    <string name="feeder_problem_day_twice">%1$s a déjà des repas plus haut.</string>
+    <string name="feeder_problem_same_time">Deux repas à %1$s.</string>
+    <string name="feeder_problem_nothing">Ce repas ne sert rien : ajoutez une portion.</string>
+    <string name="feeder_problem_too_many">24 repas par jour au plus.</string>
+
+    <string name="feeder_feed_title">Repas ponctuel</string>
+    <string name="feeder_feed_day">Jour</string>
+    <string name="feeder_feed_time">Heure</string>
+    <string name="feeder_feed_add">Ajouter</string>
+    <string name="feeder_problem_past">Cette heure est passée : choisissez-en une plus tard.</string>
+    <string name="feeder_ok">OK</string>
+    <string name="feeder_cancel">Annuler</string>
+</resources>
