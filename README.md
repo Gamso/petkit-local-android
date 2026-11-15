@@ -48,6 +48,44 @@ OpenAPI document, vendored in `api/openapi.yaml`. Refresh it with
 `scripts/update-openapi.sh <petkit-local tag or commit>`; the `contract-refresh` workflow does it
 weekly from the latest release and opens a pull request.
 
+## End-to-end and smoke tests
+
+These run on an Android emulator, against the [mock server](mock-server/README.md) (a fake
+petkit-local) started with Docker on your machine. The emulator reaches your machine as
+`10.0.2.2`, and only the debug build allows plain HTTP to it. CI runs both in
+`.github/workflows/e2e.yml`.
+
+**End to end** (`app/src/androidTest`): the instrumented tests, run by Gradle on a managed
+emulator that it downloads, creates and boots by itself (hardware acceleration needed: KVM on
+Linux, WHPX or the Android Emulator hypervisor driver on Windows).
+
+```sh
+docker compose -f e2e/docker-compose.yml up --build   # the mock on port 8097; leave it running
+./gradlew :app:pixel6Api37DebugAndroidTest            # API 37, Automated Test Device image, as CI
+./gradlew :app:pixel6Api29DebugAndroidTest            # API 29, the minimum SDK (nightly in CI)
+./gradlew :app:connectedDebugAndroidTest              # or on an emulator or phone you started
+```
+
+Reports: `app/build/reports/androidTests/`. The tests look for the mock at
+`http://10.0.2.2:8097`; point them elsewhere with
+`-Pandroid.testInstrumentationRunnerArguments.petkitMockUrl=http://10.0.2.2:<port>`. Shared
+helpers for these tests (the mock's address and control API, a signed-in API client, a rule that
+resets the mock before each test) are in `core/e2e`; a module uses them with
+`androidTestImplementation(projects.core.e2e)`.
+
+**Smoke** (`scripts/smoke-test.sh`): the release build, minified by R8, on a running emulator. It
+installs, starts and shows its first screen, with no crash and no ANR in the log. It writes the
+log, a screenshot and the UI hierarchy to `build/smoke/`.
+
+```sh
+./gradlew assembleRelease                 # signed with the debug key unless signing is injected
+scripts/smoke-test.sh app/build/outputs/apk/release/app-release.apk
+```
+
+CI signs that APK with its own key, passed to Gradle as Android Studio does
+(`-Pandroid.injected.signing.store.file=...`, see the workflow); without the key it makes a
+throwaway one.
+
 ## Screenshots
 
 Every design-system component is rendered by Roborazzi on Robolectric in light/dark × English/
