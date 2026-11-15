@@ -118,7 +118,8 @@ screen).
 
 ### 8 · Settings
 - Server: address, connection state, server version.
-- Notifications: distributor state (ntfy via UnifiedPush) and the kinds to show.
+- Notifications: on/off, connection state (connected, reconnecting, battery optimisation still
+  on, notification permission refused, each with the action that fixes it) and the kinds to show.
 - App: language (system, English, French), theme (system, light, dark), this phone's name.
 - Change password (needs the current one; signs out every other phone), sign out.
 
@@ -134,10 +135,15 @@ screen).
   - Device cards show "offline" from the API's `online` flag.
   - Every action reports success (`delivered`: mqtt, queued or local) or the server's error message.
   - A command queued for a device that polls over HTTP says it will arrive within ~10 s.
-- **Notifications.** UnifiedPush through the ntfy app. The app registers its endpoint with the
-  server itself (section 9, decision 4) and writes the notification text in the phone's language.
-  One Android notification channel per kind (visit, meal, consumable/error, offline), so the user
-  can mute them in system settings too.
+- **Notifications.** The app keeps its own connection to the server for them (section 9,
+  decision 4): no other app or server is needed.
+  - The server sends structured messages only; the app writes the notification text in the
+    phone's language.
+  - One Android notification channel per kind (visit, meal, consumable/error, offline), so the
+    user can mute them in system settings too.
+  - A low-importance ongoing notification, on its own channel, shows that the connection is up;
+    Android requires it, and the user can hide that channel.
+  - After a network loss or a reboot, the alerts missed meanwhile are delivered on reconnection.
 - **Accessibility.** Contrast ≥ 4.5:1, touch targets ≥ 48 dp, TalkBack labels on every
   icon-only control, dynamic font size, no information carried by colour alone.
 - **Dark theme** from the same tokens.
@@ -168,20 +174,25 @@ screen).
      secrets.
    - Updates are installed by hand from the releases page.
 3. **Minimum Android: 10 (API 29).** Nothing in the plan needs a higher floor.
-   - Compose, Media3, Room, Keystore and UnifiedPush all work there.
+   - Compose, Media3, Room, Keystore and foreground services all work there.
    - The per-app language picker uses AppCompat's backport below Android 13.
    - Notification permission is asked at runtime from Android 13.
    - Raise the floor only if a library drops 29.
-4. **Push: the app registers its own UnifiedPush endpoint with the server** (needs a petkit-local
-   change).
-   - After sign-in, and whenever the distributor hands it a new endpoint, the app sends the
-     endpoint URL to the server: `PUT /app/v1/push`, tied to its session. Logout, revocation or
-     expiry of that session removes it.
-   - The server POSTs each notification straight to every registered endpoint, as a small JSON
-     message: kind, device id, pet, event code, time.
+4. **Notifications: all in one, over the app's own connection to petkit-local** (ADR 0007; needs
+   petkit-local issue 89).
+   - While the user is signed in and notifications are on, a foreground service keeps one
+     WebSocket open to the server's notification channel. It is the only thing that runs in the
+     background, and it carries nothing but notifications.
+   - No ntfy server, no ntfy app, no Google services: petkit-local and this app are enough.
+   - The server sends a small JSON message: kind, device id, pet, event code, time, and an id the
+     app passes back on reconnection to get what it missed.
    - The app builds the notification text itself, in the phone's language.
-   - Nothing is pasted into the panel. Every signed-in phone gets notifications, and a revoked
-     phone stops getting them.
-   - The panel's ntfy topic setting stays for people who want plain ntfy notifications without the
-     app.
+   - Every signed-in phone can get notifications; logout, revocation, expiry or a password change
+     closes the connection.
+   - The app asks to be exempted from battery optimisation, as ntfy does, or alerts arrive late
+     while the phone sleeps. Battery use is that of one idle WebSocket kept alive by pings.
+   - The server also keeps UnifiedPush endpoint registration (`PUT /app/v1/push`) and its ntfy
+     topic setting, for people who already run ntfy. The app does not use them in v1.
+   - Changed on 2026-11-15: the first version of this decision used UnifiedPush with the ntfy app
+     as distributor, which needed a self-hosted ntfy server and a second app on the phone.
 5. **Two-way talk from outside** (WebRTC + TURN): a later version.

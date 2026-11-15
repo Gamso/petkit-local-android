@@ -12,7 +12,7 @@ caching, error mapping and tests end up in every ViewModel.
 
 - Modules as in ARCHITECTURE.md §2: `:app`; `core:domain`, `data`, `network`, `database`,
   `datastore`, `designsystem`, `ui`, `testing`; `feature:auth`, `home`, `device`, `history`,
-  `pets`, `live`, `settings`; `:push`.
+  `pets`, `live`, `settings`; `:push` (notifications, ADR 0007).
 - A `feature:*` module sees `core:domain`, `core:designsystem` and `core:ui`, never `core:data`,
   `core:network`, `core:database` or `core:datastore`. `core:domain` sees no other module and
   has no Android dependency (it is a Kotlin/JVM module). Only `:app` sees everything and binds
