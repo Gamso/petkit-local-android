@@ -15,6 +15,8 @@ internal fun Project.configureAndroidCommon(extension: CommonExtension) {
     extension.apply {
         compileSdk = libs.version("compileSdk").toInt()
         defaultConfig.minSdk = libs.version("minSdk").toInt()
+        // Instrumented tests (src/androidTest) run on an emulator: Gradle Managed Devices in CI.
+        defaultConfig.testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         compileOptions.sourceCompatibility = JavaVersion.VERSION_17
         compileOptions.targetCompatibility = JavaVersion.VERSION_17
         configureLint(lint)
@@ -56,7 +58,7 @@ internal fun Project.configureKotlinCompile() {
  * Robolectric and Roborazzi need, so both kinds run in the same `test` task.
  */
 internal fun Project.configureUnitTests() {
-    // The two engines are the two kinds of host test (ARCHITECTURE.md ง6): Jupiter runs the plain
+    // The two engines are the two kinds of host test (ARCHITECTURE.md ยง6): Jupiter runs the plain
     // JVM ones (unit, integration, contract), Vintage the JUnit 4 ones Robolectric needs (Compose
     // UI, screenshots). CI runs them in separate jobs with -Ppetkit.testEngines=<engine id>;
     // locally, and in `check`, both run.

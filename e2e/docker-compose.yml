@@ -1,0 +1,41 @@
+# The server the end-to-end tests run against (docs/ARCHITECTURE.md §6, .github/workflows/e2e.yml).
+#
+#   docker compose -f e2e/docker-compose.yml up --build      # from the repo root, or anywhere
+#   ./gradlew :app:pixel6Api37DebugAndroidTest               # in another terminal
+#
+# The emulator reaches the host's port 8097 as http://10.0.2.2:8097, which is where the tests look
+# (core:e2e MockServer). Dependabot (docker-compose, /e2e) raises the pinned images below.
+name: petkit-e2e
+
+services:
+  # The mock server (mock-server/), built from this checkout: it serves api/openapi.yaml, so the
+  # build context is the repo root. CI builds the same Dockerfile with its layer cache and tags it
+  # petkit-e2e-mock, the name compose gives this image, so `up` finds it already built.
+  mock:
+    build:
+      context: ..
+      dockerfile: mock-server/Dockerfile
+    ports:
+      - "8097:8097"
+    environment:
+      PETKIT_MOCK_PASSWORD: demo
+      # No scenario events: the tests see the seeded household and only what they change
+      # through the control API (/mock).
+      PETKIT_MOCK_SCENARIO_INTERVAL: "0"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8097/app/v1/info"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+      start_period: 5s
+
+  # M5: the nightly run also tests against the real server, the released petkit-local image
+  # started without Home Assistant and seeded with fake devices by its own smoke-test script.
+  # Pinned here so Dependabot raises it in a reviewed, tested PR (docs/ARCHITECTURE.md §7).
+  #
+  # petkit-local:
+  #   image: ghcr.io/gamso/petkit-local:<version>
+  #   command: ["--no-ha"]
+  #   ports:
+  #     - "8097:8097"
+  #   profiles: ["server"]

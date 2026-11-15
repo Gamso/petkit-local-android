@@ -2,6 +2,7 @@ package org.petkitlocal.buildlogic
 
 import com.android.build.api.dsl.CommonExtension
 import com.android.build.api.variant.AndroidComponentsExtension
+import com.android.build.api.variant.HasDeviceTestsBuilder
 import com.android.build.api.variant.HasHostTestsBuilder
 import org.gradle.api.Project
 import org.gradle.kotlin.dsl.dependencies
@@ -31,5 +32,17 @@ internal fun Project.configureCompose(extension: CommonExtension) {
 internal fun AndroidComponentsExtension<*, *, *>.disableReleaseHostTests() {
     beforeVariants(selector().withBuildType("release")) { variant ->
         (variant as? HasHostTestsBuilder)?.hostTests?.values?.forEach { it.enable = false }
+    }
+}
+
+/**
+ * Device tests (src/androidTest) only in the modules that have some. The others would build an
+ * empty test APK and install it on every `connectedAndroidTest`, and core:testing's JUnit 5 jars
+ * cannot even be packaged into one (each brings its own META-INF/LICENSE-notice.md).
+ */
+internal fun AndroidComponentsExtension<*, *, *>.disableDeviceTestsWithoutSources(project: Project) {
+    val hasDeviceTests = project.file("src/androidTest").exists()
+    beforeVariants { variant ->
+        if (!hasDeviceTests) (variant as? HasDeviceTestsBuilder)?.deviceTests?.values?.forEach { it.enable = false }
     }
 }

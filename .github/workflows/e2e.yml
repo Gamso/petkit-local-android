@@ -1,0 +1,267 @@
+# End-to-end and smoke tests on an Android emulator (docs/ARCHITECTURE.md §6 and §7).
+#
+# - e2e: the instrumented tests (app/src/androidTest) on a Gradle Managed Device, against the mock
+#   server (e2e/docker-compose.yml) running on the runner. The emulator reaches it as 10.0.2.2.
+# - smoke: then the release APK (R8), signed with the CI key, on an emulator of the same image:
+#   it installs, starts and shows its first screen without a crash or an ANR
+#   (scripts/smoke-test.sh).
+#
+# Locally: README.md, "End-to-end and smoke tests".
+name: e2e
+
+on:
+  pull_request:
+    paths:
+      - "app/**"
+      - "core/**"
+      - "feature/**"
+      - "push/**"
+      - "build-logic/**"
+      - "gradle/**"
+      - "mock-server/**"
+      - "api/**"
+      - "e2e/**"
+      - "*.gradle.kts"
+      - "gradle.properties"
+      - "scripts/smoke-test.sh"
+      - ".github/workflows/e2e.yml"
+  push:
+    branches: [main]
+  schedule:
+    # Nightly, which also runs the suite on the minimum SDK (API 29).
+    - cron: "23 2 * * *"
+  workflow_dispatch:
+    inputs:
+      min-sdk:
+        description: Also run the e2e suite on the minimum SDK (API 29)
+        type: boolean
+        default: false
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    # The check keeps the name "e2e" for the target SDK; the nightly API 29 run is "e2e (API 29)".
+    name: ${{ matrix.device.check }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 24
+    strategy:
+      fail-fast: false
+      matrix:
+        # Managed devices of build-logic/.../ManagedDevices.kt, and the system image each uses.
+        # API 37 is an Automated Test Device image; there is none below API 30, so API 29 runs
+        # on Google APIs.
+        device: >-
+          ${{ fromJSON((github.event_name == 'schedule' || inputs.min-sdk) && '[
+            {"check": "e2e", "name": "pixel6Api37", "image": "android-37.0/aosp_atd"},
+            {"check": "e2e (API 29)", "name": "pixel6Api29", "image": "android-29/google_apis"}
+          ]' || '[
+            {"check": "e2e", "name": "pixel6Api37", "image": "android-37.0/aosp_atd"}
+          ]') }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # The emulator needs hardware acceleration; GitHub's Linux runners have KVM, but only root
+      # may open it until this rule is in place.
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          distribution: temurin
+          java-version: "25"
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+
+      # The system image Gradle downloads into the SDK, and the emulator it creates from it with a
+      # booted snapshot, so a warm run neither downloads ~1 GB nor cold-boots to make a snapshot.
+      - name: Locate the system image and the managed emulators
+        run: |
+          echo "SYSTEM_IMAGE_DIR=$ANDROID_HOME/system-images/${{ matrix.device.image }}" >> "$GITHUB_ENV"
+          echo "MANAGED_AVD_DIR=$HOME/.android/avd/gradle-managed" >> "$GITHUB_ENV"
+      - name: Cache the system image
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v6.1.0
+        with:
+          path: ${{ env.SYSTEM_IMAGE_DIR }}
+          key: system-image-${{ matrix.device.name }}-x86_64-v1
+      - name: Cache the managed emulator
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v6.1.0
+        with:
+          path: ${{ env.MANAGED_AVD_DIR }}
+          key: managed-avd-${{ matrix.device.name }}-${{ hashFiles('build-logic/convention/src/main/kotlin/org/petkitlocal/buildlogic/ManagedDevices.kt', 'gradle/libs.versions.toml') }}
+
+      # The mock server, built from this checkout with the layer cache mock-server.yml fills, and
+      # tagged with the name compose gives the image (<project>-<service>), so `up` starts this
+      # one instead of building it again.
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Build the mock server
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: mock-server/Dockerfile
+          tags: petkit-e2e-mock:latest
+          load: true
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Start the mock server
+        run: docker compose -f e2e/docker-compose.yml up --detach --wait
+
+      - name: Instrumented tests on ${{ matrix.device.name }}
+        run: >-
+          ./gradlew :app:${{ matrix.device.name }}DebugAndroidTest
+          -Pandroid.testoptions.manageddevices.emulator.gpu=swiftshader_indirect
+          -Pandroid.experimental.testOptions.managedDevices.emulator.showKernelLogging=true
+      # AGP 9.5 reports success when it cannot install the APKs at all: the task passes with zero
+      # tests (seen locally). So the job counts what ran.
+      - name: Check that the tests ran
+        run: |
+          results=app/build/outputs/androidTest-results/managedDevice/debug/${{ matrix.device.name }}
+          tests=$(grep -ho '<testsuites [^>]*' "$results"/TEST-*.xml | grep -o ' tests="[0-9]*"' \
+            | grep -o '[0-9]*' | awk '{ n += $1 } END { print n + 0 }')
+          echo "$tests instrumented tests ran on ${{ matrix.device.name }}."
+          if [ "$tests" -eq 0 ]; then
+            echo "::error::No instrumented test ran on ${{ matrix.device.name }}; see the Gradle log."
+            exit 1
+          fi
+
+      - name: Mock server log
+        if: always()
+        run: |
+          mkdir -p build/e2e
+          docker compose -f e2e/docker-compose.yml logs --no-color > build/e2e/mock-server.log || true
+          docker compose -f e2e/docker-compose.yml down || true
+      - name: Upload reports
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-reports-${{ matrix.device.name }}
+          # Test results include the device's logcat for each test.
+          path: |
+            app/build/reports/androidTests/managedDevice/
+            app/build/outputs/androidTest-results/managedDevice/
+            build/e2e/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  smoke:
+    name: smoke
+    needs: e2e
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      APK: app/build/outputs/apk/release/app-release.apk
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          distribution: temurin
+          java-version: "25"
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+
+      # The CI key comes from four repository secrets:
+      #   ANDROID_CI_KEYSTORE_BASE64  the keystore (JKS or PKCS12), base64-encoded
+      #   ANDROID_CI_KEYSTORE_PASSWORD
+      #   ANDROID_CI_KEY_ALIAS
+      #   ANDROID_CI_KEY_PASSWORD     optional; the keystore password when empty
+      # Without them (a pull request from a fork gets no secrets) the job signs with a throwaway
+      # key made here and gone with the runner. No keystore is ever committed.
+      - name: Signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_CI_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_CI_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_CI_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_CI_KEY_PASSWORD }}
+        run: |
+          keystore="$RUNNER_TEMP/ci-signing.keystore"
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$keystore"
+            store_password=$KEYSTORE_PASSWORD
+            alias=$KEY_ALIAS
+            key_password=${KEY_PASSWORD:-$KEYSTORE_PASSWORD}
+            echo "Signing with the CI key from the repository secrets."
+          else
+            store_password=$(openssl rand -hex 24)
+            echo "::add-mask::$store_password"
+            alias=smoke
+            key_password=$store_password
+            keytool -genkeypair -keystore "$keystore" -storetype PKCS12 \
+              -storepass "$store_password" -keypass "$key_password" -alias "$alias" \
+              -keyalg RSA -keysize 3072 -validity 2 -dname "CN=petkit-local smoke test" 2>/dev/null
+            echo "::notice::No CI signing key in the secrets: the release APK is signed with a throwaway key."
+          fi
+          {
+            echo "SIGNING_STORE_FILE=$keystore"
+            echo "SIGNING_STORE_PASSWORD=$store_password"
+            echo "SIGNING_KEY_ALIAS=$alias"
+            echo "SIGNING_KEY_PASSWORD=$key_password"
+          } >> "$GITHUB_ENV"
+
+      # AGP's injected signing (the properties Android Studio's "Generate Signed APK" uses)
+      # replaces the release build type's debug key for this build only.
+      - name: Release APK (R8)
+        run: >-
+          ./gradlew :app:assembleRelease
+          -Pandroid.injected.signing.store.file="$SIGNING_STORE_FILE"
+          -Pandroid.injected.signing.store.password="$SIGNING_STORE_PASSWORD"
+          -Pandroid.injected.signing.key.alias="$SIGNING_KEY_ALIAS"
+          -Pandroid.injected.signing.key.password="$SIGNING_KEY_PASSWORD"
+      - name: Check the signature
+        run: |
+          apksigner=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
+          mkdir -p build
+          "$apksigner" verify --print-certs "$APK" | tee build/apk-certs.txt
+          if grep -q "CN=Android Debug" build/apk-certs.txt; then
+            echo "::error::The release APK is signed with the debug key."
+            exit 1
+          fi
+
+      # The same system image as the e2e job's target-SDK device, restored from its cache.
+      - name: Locate the system image
+        run: echo "SYSTEM_IMAGE_DIR=$ANDROID_HOME/system-images/android-37.0/aosp_atd" >> "$GITHUB_ENV"
+      - name: Cache the system image
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v6.1.0
+        with:
+          path: ${{ env.SYSTEM_IMAGE_DIR }}
+          key: system-image-pixel6Api37-x86_64-v1
+
+      # At M0 the smoke test does not sign in: the release build allows HTTPS only, and the mock
+      # serves plain HTTP. Signing in to the server arrives with M1 (docs/ROADMAP.md).
+      - name: Smoke test on the emulator
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: "37.0"
+          target: aosp_atd
+          arch: x86_64
+          profile: pixel_6
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot
+          disable-animations: true
+          script: scripts/smoke-test.sh "$APK" build/smoke
+
+      - name: Upload the evidence
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: smoke-evidence
+          path: |
+            build/smoke/
+            build/apk-certs.txt
+            app/build/outputs/mapping/release/mapping.txt
+          if-no-files-found: ignore
+          retention-days: 14
