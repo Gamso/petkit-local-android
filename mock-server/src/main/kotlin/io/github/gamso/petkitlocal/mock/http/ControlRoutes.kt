@@ -65,6 +65,14 @@ private fun World.controlDevice(call: ApplicationCall): MockDevice {
     return synchronized(lock) { id?.let { devices[it] } } ?: throw ApiException(404, "device_not_found", "no such device")
 }
 
+/** An accessory is online while its parent is: take the parent offline instead. */
+private fun MockDevice.notAccessory(): MockDevice =
+    if (isAccessory) {
+        throw ApiException(400, "bad_request", "an accessory is online while its parent ${parent?.id} is; take that one offline")
+    } else {
+        this
+    }
+
 /** The routes, for `GET /mock` (and the README). */
 private val CONTROL_ROUTES =
     listOf(
@@ -167,12 +175,12 @@ private fun Route.deviceControl(world: World) {
             call.ok(buildJsonObject { put("card_id", card.id) })
         }
         post("/offline") {
-            val device = world.controlDevice(call)
+            val device = world.controlDevice(call).notAccessory()
             synchronized(world.lock) { world.setOnline(device, false) }
             call.ok()
         }
         post("/online") {
-            val device = world.controlDevice(call)
+            val device = world.controlDevice(call).notAccessory()
             synchronized(world.lock) { world.setOnline(device, true) }
             call.ok()
         }

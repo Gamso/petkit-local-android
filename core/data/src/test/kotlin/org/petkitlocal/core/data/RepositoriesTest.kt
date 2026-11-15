@@ -12,6 +12,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.core.domain.Outcome
+import org.petkitlocal.core.domain.model.AccessoryRef
+import org.petkitlocal.core.domain.model.DeviceConnection
 import org.petkitlocal.core.domain.model.DeviceFamily
 import org.petkitlocal.core.domain.model.DeviceTransport
 import org.petkitlocal.core.domain.model.EntityCategory
@@ -74,6 +76,41 @@ class RepositoriesTest {
         assertEquals(true, box.actions[1].destructive)
         // A kind this app does not know is the generic family, not an error.
         assertEquals(DeviceFamily.Other, cached[1].family)
+    }
+
+    @Test
+    fun `a Bluetooth accessory names its parent, which lists it, and the first purifier is the K3`() = runTest {
+        val k3 = """{"id":4001,"type":"k3","model":"Pura Air K3","kind":"purifier","online":true,
+           "transport":"http","last_seen":null,"firmware":null,"is_camera":false,
+           "connection":"ble","parent_id":1002,"accessories":[]}"""
+        val box = summary(1002, "litter_box").replace(
+            "\"accessories\":[]",
+            """"accessories":[{"id":3003,"type":"ctw3","kind":"fountain"},{"id":4001,"type":"k3","kind":"purifier"},
+               {"id":4002,"type":"k3","kind":"purifier"},{"id":5000,"type":"x9","kind":"lamp"}]""",
+        )
+        server.on("devices", """{"devices":[$box,$k3]}""")
+        server.on("devices/1002", detail(1002, "litter_box"))
+        server.on("devices/4001", detail(4001, "purifier"))
+
+        devices.refresh()
+
+        val (parent, accessory) = devices.observeDevices().first()
+        assertEquals(DeviceConnection.Wifi, parent.connection)
+        assertEquals(
+            listOf(
+                AccessoryRef(3003, "ctw3", DeviceFamily.Fountain),
+                AccessoryRef(4001, "k3", DeviceFamily.Purifier),
+                AccessoryRef(4002, "k3", DeviceFamily.Purifier),
+                AccessoryRef(5000, "x9", DeviceFamily.Other),
+            ),
+            parent.accessories,
+        )
+        assertEquals(4001L, parent.puraAirId)
+        assertEquals(DeviceConnection.Ble, accessory.connection)
+        assertTrue(accessory.isAccessory)
+        assertEquals(1002L, accessory.parentId)
+        assertEquals(emptyList<AccessoryRef>(), accessory.accessories)
+        assertNull(accessory.puraAirId)
     }
 
     @Test
@@ -178,11 +215,12 @@ class RepositoriesTest {
 
     private fun summary(id: Long, kind: String, online: Boolean = true) =
         """{"id":$id,"type":"t4","model":"Model $id","kind":"$kind","online":$online,"transport":"http",
-           "last_seen":1794732641.452,"firmware":"1.652","is_camera":false}"""
+           "last_seen":1794732641.452,"firmware":"1.652","is_camera":false,
+           "connection":"wifi","parent_id":null,"accessories":[]}"""
 
     private fun detail(id: Long, kind: String) = """{"device":{"id":$id,"type":"t4","model":"Model $id",
         "kind":"$kind","online":true,"transport":"http","last_seen":1794732641.452,"firmware":"1.652",
-        "is_camera":false,"serial":"SN-$id",
+        "is_camera":false,"connection":"wifi","parent_id":null,"accessories":[],"serial":"SN-$id",
         "entities":[
           ${entity("device_status", "sensor", "-1", display = "\"idle\"")},
           ${entity("error", "sensor", "null")},

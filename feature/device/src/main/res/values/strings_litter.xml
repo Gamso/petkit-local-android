@@ -7,7 +7,6 @@
     <string name="page_session_ended">Your session has ended. Sign in again.</string>
     <string name="page_not_found">This device is no longer on the server.</string>
     <string name="page_close">Close</string>
-    <string name="page_all_settings">All settings</string>
 
     <!-- Hotspot pills: the parts of a device, and what each reports. -->
     <string name="page_part_litter">Litter</string>
@@ -41,7 +40,10 @@
     <string name="page_explain_waste_bin">The drawer the waste goes into. Empty it when it is full and put it back.</string>
     <string name="page_explain_deodorizer">The N50 odour eliminator pack. Replace it when its days run out, then reset its counter.</string>
     <string name="page_explain_spray">The N60 deodorizing spray. Refill it when its days run out, then reset its counter.</string>
-    <string name="page_explain_pura_air">The N60 cartridge of the Pura Air paired with this box. Refill it when it runs low, then reset its counter.</string>
+    <string name="page_explain_pura_air">The N60 cartridge of the Pura Air paired with this box, by the level it reports. Refill it when it runs low.</string>
+    <!-- A part of a Bluetooth accessory (a Pura Air): the way to its own screen. -->
+    <string name="page_open_accessory">Open the %1$s</string>
+    <string name="page_accessory_offline">The %1$s is unreachable: these are its last known values.</string>
     <string name="page_explain_bags">The waste bags of the bag box. Replace the box when it runs out.</string>
     <string name="page_explain_food">The food in the hopper. Refill it when it runs low and say so.</string>
     <string name="page_explain_bowl">How much food is left in the bowl.</string>

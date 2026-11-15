@@ -161,6 +161,27 @@ class DeviceCommandRepositoryImplTest {
     }
 
     @Test
+    fun `an accessory out of reach is refused with the name of the device relaying it`() = runTest {
+        db.deviceDao().upsertSummary(
+            DeviceRow(2001, 0, "d4", "Fresh Element Solo", "feeder", true, "http", null, null, false, null),
+        )
+        db.deviceDao().upsertSummary(
+            DeviceRow(3003, 0, "ctw3", "EverSweet Max Cordless", "fountain", true, "http", null, null, false, null)
+                .copy(connection = "ble", parentId = 2001),
+        )
+        val refusal = """{"error":"accessory_unreachable","message":"the Fresh Element Solo relaying it is off MQTT"}"""
+        server.enqueue(json(refusal, code = 409))
+        server.enqueue(json(refusal, code = 409))
+        server.enqueue(json(refusal, code = 409))
+
+        val expected = Outcome.Failure(DomainError.AccessoryUnreachable("Fresh Element Solo"))
+        assertEquals(expected, repository.runAction(3003, "ctw3_reset_filter", confirm = true))
+        assertEquals(expected, repository.setEntity(3003, "ctw3_light", EntityValue.Bool(true)))
+        // A device the cache does not know relays nothing it can name.
+        assertEquals(Outcome.Failure(DomainError.AccessoryUnreachable()), repository.runAction(3999, "x"))
+    }
+
+    @Test
     fun `an unreachable server is a network failure`() = runTest {
         server.close()
 

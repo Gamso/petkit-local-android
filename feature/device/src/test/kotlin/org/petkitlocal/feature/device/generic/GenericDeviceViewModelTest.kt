@@ -41,7 +41,8 @@ class GenericDeviceViewModelTest {
     @RegisterExtension
     val main = MainDispatcherExtension()
 
-    private val devices = FakeDeviceRepository(listOf(DeviceFixtures.fountain, DeviceFixtures.purifier))
+    private val devices =
+        FakeDeviceRepository(listOf(DeviceFixtures.fountain, DeviceFixtures.purifier, DeviceFixtures.puraMax))
     private val live = FakeLiveUpdatesRepository()
     private val commands = FakeDeviceCommandRepository()
 
@@ -77,6 +78,17 @@ class GenericDeviceViewModelTest {
             }
             assertEquals(1, live.collectors.value)
         }
+
+    @Test
+    fun `an accessory comes with the device relaying it, a WiFi device with none`() = runTest(main.dispatcher) {
+        val accessory = viewModel(id = DeviceFixtures.purifier.id)
+        shown(accessory)
+        assertEquals(DeviceFixtures.puraMax, accessory.uiState.value.relay)
+
+        val wifi = viewModel()
+        shown(wifi)
+        assertNull(wifi.uiState.value.relay)
+    }
 
     @Test
     fun `a device the server no longer has is gone, not loading`() = runTest(main.dispatcher) {

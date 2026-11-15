@@ -15,10 +15,14 @@ These rules are binding for every contributor, human or agent.
   enforces it.
 - **Room is the single source of truth, no optimistic UI** (ADR 0002): a command updates the cache
   only with what the server answered; the device's next report does the rest.
-- **No database migrations before the first release.** Until a version is released, change the Room
-  schema in place at version 1 (regenerate its exported JSON) and let the builder recreate an old
-  dev database (it is only a cache, refetched from the server). From the first release on, every
-  schema change bumps the version with a tested migration, and that fallback goes.
+- **No database migrations before the first release — but the version still goes up.** Room knows
+  a schema only by its version: a changed schema under the same number makes an installed app crash
+  on start. So until the first release, every schema change raises `PetkitDatabase.VERSION` (and
+  `OLDEST_SUPPORTED_VERSION` with it), keeps only the current exported schema, and writes no
+  migration; `fallbackToDestructiveMigration` rebuilds an older dev database (it is only a cache,
+  refetched from the server). Never add `fallbackToDestructiveMigrationOnDowngrade` next to it: it
+  turns required migrations back on. From the first release on, every schema change raises the
+  version with a tested migration, and the fallback goes.
 - **Build JDK 25, app bytecode 17, minSdk 29, target/compile 37.** Robolectric runs on SDK 37;
   screenshot tests on SDK 36 (SDK 37 renders blank images).
 - **Strict Gradle dependency verification**: a new dependency needs its entries in

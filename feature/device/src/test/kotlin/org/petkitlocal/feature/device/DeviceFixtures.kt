@@ -188,8 +188,11 @@ object DeviceFixtures {
     private fun setting(key: String, name: String, value: EntityValue, category: EntityCategory? = null) =
         Entity(key, name, EntityComponent.Switch, value, category = category, settable = true)
 
-    /** A Pura Air K3: two levels, no setting, no action. */
+    /** A Pura Air K3: two levels, no setting, no action; relayed by the Pura Max. */
     val purifier = Household.purifier.copy(serial = "K3-0001")
+
+    /** The Pura Max relaying it. */
+    val puraMax = Household.litterBox
 
     val zone = Household.zone
 

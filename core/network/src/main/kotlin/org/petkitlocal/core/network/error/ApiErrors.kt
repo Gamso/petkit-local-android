@@ -18,6 +18,7 @@ object ErrorCodes {
     const val INVALID_TOKEN = "invalid_token"
     const val PASSWORD_NOT_SET = "password_not_set"
     const val INVALID_PASSWORD = "invalid_password"
+    const val ACCESSORY_UNREACHABLE = "accessory_unreachable"
 }
 
 /**
@@ -64,6 +65,7 @@ object HttpErrorMapper {
     private const val BAD_REQUEST = 400
     private const val UNAUTHORIZED = 401
     private const val NOT_FOUND = 404
+    private const val CONFLICT = 409
     private const val UNPROCESSABLE = 422
     private const val TOO_MANY_REQUESTS = 429
 
@@ -87,6 +89,12 @@ object HttpErrorMapper {
                 DomainError.Validation(field = null, code = code ?: "http_$status", message = message.orEmpty())
 
             NOT_FOUND -> DomainError.NotFound(code = code ?: "not_found", message = message.orEmpty())
+
+            CONFLICT -> if (code == ErrorCodes.ACCESSORY_UNREACHABLE) {
+                DomainError.AccessoryUnreachable()
+            } else {
+                DomainError.Server(status = status, code = code, message = message)
+            }
 
             else -> DomainError.Server(status = status, code = code, message = message)
         }

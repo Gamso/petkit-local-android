@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test
 class ContractOracleTest {
     private val summary =
         """{"id":1,"type":"t4","model":"Pura Max","kind":"litter_box","online":true,"transport":"http",""" +
-            """"last_seen":null,"firmware":null,"is_camera":false}"""
+            """"last_seen":null,"firmware":null,"is_camera":false,"connection":"wifi","parent_id":null,"accessories":[]}"""
 
     private fun check(
         status: Int,

@@ -349,7 +349,8 @@ class AuthRepositoryImplTest {
     }
 
     private companion object {
-        const val SESSION = """{"id":"abc123","name":"Pixel 8","created":1.0,"last_used":1.0,"expires":7776001.0}"""
+        const val SESSION =
+            """{"id":"abc123","name":"Pixel 8","created":1.0,"last_used":1.0,"expires":7776001.0,"kinds":null,"push":null}"""
         const val LOGIN = """{"token":"tok-1","token_type":"Bearer","idle_timeout_sec":7776000,"session":$SESSION}"""
         const val INFO =
             """{"api_version":1,"server_time":5.0,"authenticated":false,"server_version":null,"session":null}"""

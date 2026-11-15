@@ -67,7 +67,9 @@ Every option can be set as a flag, `--name=value`, or as an environment variable
 
 ## What it implements
 
-Every operation in `api/openapi.yaml`, with petkit-local's own rules. These were read from its
+Every operation in `api/openapi.yaml` but the notification ones (`/push`, `/notifications`,
+`/notifications/ws`, issue #23: every session says `kinds: null, push: null`), with petkit-local's
+own rules. These were read from its
 `app_api/` at the commit recorded in `api/SOURCE`.
 
 - **Access**
@@ -85,6 +87,10 @@ Every operation in `api/openapi.yaml`, with petkit-local's own rules. These were
   - Entity values, units, `settable`, `min`/`max`/`step` and `options` follow petkit-local.
   - Writes are typed by component and refused with 422 `refused`, `not_settable` or
     `confirmation_required` exactly where petkit-local refuses them.
+  - Bluetooth accessories are listed with `connection: ble` and their `parent_id`, and their parent
+    lists them in `accessories`. An accessory is online, and on a transport, as its parent is. A
+    write to one is relayed by its parent while that parent is online on MQTT (`delivered: mqtt`)
+    and refused with 409 `accessory_unreachable` otherwise, never queued.
   - `delivered` is `mqtt` for a device online on MQTT, `queued` otherwise, and `local` for
     petkit-local's own settings.
 - **Feeding:** plan read, write and pause; one-off feeds with `invalid_schedule` / `invalid_feed`.
@@ -122,9 +128,9 @@ Every operation in `api/openapi.yaml`, with petkit-local's own rules. These were
 | 2003 | d4h | YumShare Solo | feeder | mqtt | Camera; weekday and weekend plans; a one-off feed tomorrow. |
 | 2004 | d4sh | YumShare Dual-Hopper | feeder | mqtt | Camera; hopper 2 empty. |
 | 3001 | w7h | EverSweet Ultra AI | fountain | mqtt | Camera; recognises the cats' drinks. |
-| 3002 | w5 | EverSweet 3 Pro | fountain | http | Offline for three hours. |
-| 3003 | ctw3 | EverSweet Max Cordless | fountain | http | Battery. |
-| 4001 | k3 | Pura Air K3 | purifier | http | Liquid and battery only. |
+| 3002 | w5 | EverSweet 3 Pro | fountain | ble, via 2004 | Relayed over MQTT: writes go through. Last frame three hours ago. |
+| 3003 | ctw3 | EverSweet Max Cordless | fountain | ble, via 2001 | Battery. Its parent polls HTTP: writes get 409. |
+| 4001 | k3 | Pura Air K3 | purifier | ble, via 1002 | The Pura Max's K3: liquid (N60) and battery only, no actions. |
 
 - **Pets:** Mochi (id 1, 4.2 kg entered, learned weight in use, has a photo) and Tigrou (id 2,
   6 kg, heavier, no photo).
@@ -140,10 +146,10 @@ it, run that script from a petkit-local checkout with its requirements installed
 has the command.
 
 **W5, CTW3 and K3 are Bluetooth accessories.** In petkit-local they reach the server through a
-parent device and, at the pinned commit, the real `/app/v1` does **not** list them. The mock lists
-them anyway, so the app can show every family, with the entities petkit-local's BLE definitions
-give them. It offers no actions for them, because their buttons are not among the actions
-petkit-local can send.
+parent device (`app_api/inventory.py`), with the entities and buttons petkit-local's BLE
+definitions give them: a fountain's filter reset (destructive), none on a K3. A K3 has no
+`last_seen` of its own, and no accessory has a firmware version. The control API's `offline` and
+`online` refuse an accessory (400): take its parent offline instead.
 
 ## Scenarios
 

@@ -25,6 +25,8 @@ data class DeviceNavigation(
     val onOpenSettings: (deviceId: Long) -> Unit = {},
     /** The litter box and feeder pages lead to History from their activity and action sheet. */
     val onOpenHistory: () -> Unit = {},
+    /** Another device's screen: a Bluetooth accessory's from its parent, and the other way round. */
+    val onOpenDevice: (deviceId: Long) -> Unit = {},
 )
 
 fun NavGraphBuilder.deviceScreen(navigation: DeviceNavigation) {

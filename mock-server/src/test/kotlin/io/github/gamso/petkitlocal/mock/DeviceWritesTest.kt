@@ -109,7 +109,30 @@ class DeviceWritesTest {
             assertEquals("confirmation_required", api.post(action, "/devices/${Seed.T6}/actions/ptz_flip", """{"confirm":"yes"}""").error)
             assertEquals(200, api.post(action, "/devices/${Seed.T6}/actions/ptz_flip", """{"confirm":true}""").status)
             assertEquals(200, api.post(action, "/devices/${Seed.T6}/actions/ptz_left").status)
-            assertEquals("action_not_found", api.post(action, "/devices/${Seed.W5}/actions/w5_reset_filter").error)
+            assertEquals("action_not_found", api.post(action, "/devices/${Seed.K3}/actions/reset_n60").error)
+        }
+
+    @Test
+    fun `an accessory is written through its parent on MQTT, or refused with 409, never queued`() =
+        mockTest { _, api ->
+            api.login()
+            // The W5's parent (the YumShare Dual-Hopper) holds an MQTT session.
+            assertEquals("confirmation_required", api.post(action, "/devices/${Seed.W5}/actions/w5_reset_filter").error)
+            val reset = api.post(action, "/devices/${Seed.W5}/actions/w5_reset_filter", """{"confirm":true}""")
+            assertEquals("mqtt", reset["delivered"].jsonPrimitive.content)
+            assertEquals("mqtt", api.set(Seed.W5, "w5_light", "false")["delivered"].jsonPrimitive.content)
+            // The CTW3's parent (the Fresh Element Solo) polls HTTP: nothing is sent or queued.
+            val refused = api.post(action, "/devices/${Seed.CTW3}/actions/ctw3_reset_filter", """{"confirm":true}""")
+            assertEquals(409, refused.status)
+            assertEquals("accessory_unreachable", refused.error)
+            assertEquals("accessory_unreachable", api.set(Seed.CTW3, "ctw3_light", "false").error)
+            // The value is checked before the relay is looked for.
+            assertEquals("refused", api.set(Seed.CTW3, "ctw3_light", "1").error)
+            // A parent that goes offline takes its accessory's relay with it.
+            api.client.control(io.ktor.http.HttpMethod.Post, "/devices/${Seed.D4SH}/offline")
+            assertEquals("accessory_unreachable", api.set(Seed.W5, "w5_light", "true").error)
+            // An accessory has no network of its own to drop.
+            assertEquals(400, api.client.control(io.ktor.http.HttpMethod.Post, "/devices/${Seed.W5}/offline").status)
         }
 
     @Test

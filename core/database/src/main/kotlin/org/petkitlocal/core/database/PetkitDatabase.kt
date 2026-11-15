@@ -13,10 +13,19 @@ import org.petkitlocal.core.database.model.PetRow
 import org.petkitlocal.core.database.model.TimelineItemRow
 
 /**
- * The app's cache (ADR 0002). Every schema change raises [version], exports its schema to
- * `core/database/schemas/` and adds its step to [MIGRATIONS]; `PetkitDatabaseMigrationTest`
- * checks that every exported version migrates to the current one. There is no destructive
- * fallback: losing the cache on an upgrade would empty the screens of a phone that is offline.
+ * The app's cache (ADR 0002).
+ *
+ * Until the first release: every schema change still raises [VERSION] — Room recognises a schema
+ * only by its version, so a changed schema under the same number makes an installed app crash on
+ * start — but writes no migration. [OLDEST_SUPPORTED_VERSION] follows [VERSION], only the current
+ * schema is exported to `core/database/schemas/`, and a development install holding an older one
+ * is rebuilt (`DatabaseModule`): it is only a cache, refetched from the server.
+ *
+ * From the first release on: [OLDEST_SUPPORTED_VERSION] stays at the first released version,
+ * every schema change raises [VERSION], keeps its export and adds its step to [MIGRATIONS], and
+ * `PetkitDatabaseMigrationTest` checks that every supported version migrates to the current one.
+ * Then there is no destructive fallback: losing the cache on an upgrade would empty the screens of
+ * a phone that is offline.
  */
 @Database(
     entities = [DeviceRow::class, EntityRow::class, ActionRow::class, PetRow::class, TimelineItemRow::class],
@@ -31,10 +40,15 @@ abstract class PetkitDatabase : RoomDatabase() {
     abstract fun timelineDao(): TimelineDao
 
     companion object {
-        const val VERSION = 1
+        /** 2: devices gained their connection, parent and accessories (Bluetooth accessories). */
+        const val VERSION = 2
+
+        /** The oldest schema an installed app may hold; [VERSION] until the first release. */
+        const val OLDEST_SUPPORTED_VERSION = VERSION
+
         const val NAME = "petkit.db"
 
-        /** Every step from an exported version to the next one. Version 1 is the first. */
+        /** Every step from a supported version to the next one. None before the first release. */
         val MIGRATIONS: Array<Migration> = arrayOf()
     }
 }

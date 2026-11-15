@@ -1,5 +1,5 @@
 {
- "source": "59a0699eda57465918f3cd4795ee4934d2f3955e",
+ "source": "2b080d1bca183f31288740defb238ef08e352482",
  "models": {
   "t3": {
    "type": "t3",
@@ -111,21 +111,6 @@
      "name": "N50 Days Left",
      "component": "sensor",
      "value_path": "state.deodorantLeftDays",
-     "unit": "days",
-     "device_class": null,
-     "category": null,
-     "options": null,
-     "option_values": null,
-     "settable": false,
-     "min": null,
-     "max": null,
-     "step": 1
-    },
-    {
-     "key": "n60_spray_days",
-     "name": "N60 Spray Days Left",
-     "component": "sensor",
-     "value_path": "state.sprayLeftDays",
      "unit": "days",
      "device_class": null,
      "category": null,
@@ -609,11 +594,6 @@
      "key": "reset_n50",
      "name": "Reset N50",
      "destructive": true
-    },
-    {
-     "key": "reset_n60",
-     "name": "Reset N60",
-     "destructive": true
     }
    ]
   },
@@ -727,21 +707,6 @@
      "name": "N50 Days Left",
      "component": "sensor",
      "value_path": "state.deodorantLeftDays",
-     "unit": "days",
-     "device_class": null,
-     "category": null,
-     "options": null,
-     "option_values": null,
-     "settable": false,
-     "min": null,
-     "max": null,
-     "step": 1
-    },
-    {
-     "key": "n60_spray_days",
-     "name": "N60 Spray Days Left",
-     "component": "sensor",
-     "value_path": "state.sprayLeftDays",
      "unit": "days",
      "device_class": null,
      "category": null,
@@ -1229,11 +1194,6 @@
     {
      "key": "reset_n50",
      "name": "Reset N50",
-     "destructive": true
-    },
-    {
-     "key": "reset_n60",
-     "name": "Reset N60",
      "destructive": true
     }
    ]
@@ -2445,21 +2405,6 @@
      "component": "sensor",
      "value_path": "state.usedTimes",
      "unit": null,
-     "device_class": null,
-     "category": null,
-     "options": null,
-     "option_values": null,
-     "settable": false,
-     "min": null,
-     "max": null,
-     "step": 1
-    },
-    {
-     "key": "n50_durability",
-     "name": "N50 Days Left",
-     "component": "sensor",
-     "value_path": "state.deodorantLeftDays",
-     "unit": "days",
      "device_class": null,
      "category": null,
      "options": null,
@@ -8706,7 +8651,13 @@
      "step": 1
     }
    ],
-   "actions": []
+   "actions": [
+    {
+     "key": "w5_reset_filter",
+     "name": "Reset Filter",
+     "destructive": true
+    }
+   ]
   },
   "ctw3": {
    "type": "ctw3",
@@ -9110,7 +9061,13 @@
      "step": 1
     }
    ],
-   "actions": []
+   "actions": [
+    {
+     "key": "ctw3_reset_filter",
+     "name": "Reset Filter",
+     "destructive": true
+    }
+   ]
   },
   "k3": {
    "type": "k3",

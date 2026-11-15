@@ -41,6 +41,16 @@ data class SessionDto(
     val created: Double,
     @SerialName("last_used") val lastUsed: Double,
     val expires: Double,
+    // The mock has no notification channels: every session receives every kind, pushed nowhere.
+    val kinds: List<String>? = null,
+    val push: PushRegistration? = null,
+)
+
+@Serializable
+data class PushRegistration(
+    val host: String,
+    val kinds: List<String>?,
+    val registered: Double,
 )
 
 @Serializable
@@ -77,6 +87,16 @@ data class DeviceSummary(
     @SerialName("last_seen") val lastSeen: Double?,
     val firmware: String?,
     @SerialName("is_camera") val isCamera: Boolean,
+    val connection: String,
+    @SerialName("parent_id") val parentId: Int?,
+    val accessories: List<AccessoryRef>,
+)
+
+@Serializable
+data class AccessoryRef(
+    val id: Int,
+    val type: String,
+    val kind: String,
 )
 
 @Serializable
@@ -90,6 +110,9 @@ data class DeviceDetail(
     @SerialName("last_seen") val lastSeen: Double?,
     val firmware: String?,
     @SerialName("is_camera") val isCamera: Boolean,
+    val connection: String,
+    @SerialName("parent_id") val parentId: Int?,
+    val accessories: List<AccessoryRef>,
     val serial: String?,
     val entities: List<EntityDto>,
     val actions: List<ActionDto>,

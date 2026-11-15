@@ -171,8 +171,9 @@ class Scenario(
     }
 
     private fun offlineBlip(): String {
-        if (world.devices.values.any { !it.online && it.id != Seed.W5 }) return "a device is already offline"
-        val device = online { it.id != Seed.W5 }.randomOrNull(rng) ?: return "no device"
+        // An accessory goes offline with its parent, never on its own.
+        if (world.devices.values.any { !it.online && !it.isAccessory }) return "a device is already offline"
+        val device = online { !it.isAccessory }.randomOrNull(rng) ?: return "no device"
         world.setOnline(device, false)
         world.later(intervalSec * 2) { if (world.devices[device.id] === device) world.setOnline(device, true) }
         return "${device.id} offline"

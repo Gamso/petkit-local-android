@@ -298,8 +298,20 @@ class LiveUpdatesRepositoryImplTest {
 
     private fun hello(vararg devices: DeviceDetailDto) = UpdateMessageDto.Hello(0.0, 25.0, devices.toList())
 
-    private fun summary(id: Long, online: Boolean = true) =
-        DeviceSummaryDto(id, "w5", "EverSweet 3 Pro", "fountain", online, "http", 1.0, "1.0", false)
+    private fun summary(id: Long, online: Boolean = true) = DeviceSummaryDto(
+        id = id,
+        type = "w5",
+        model = "EverSweet 3 Pro",
+        kind = "fountain",
+        online = online,
+        transport = "http",
+        lastSeen = 1.0,
+        firmware = "1.0",
+        isCamera = false,
+        connection = "wifi",
+        parentId = null,
+        accessories = emptyList(),
+    )
 
     private fun detail(id: Long, entities: List<EntityDto> = emptyList()) = DeviceDetailDto(
         id = id,
@@ -311,14 +323,17 @@ class LiveUpdatesRepositoryImplTest {
         lastSeen = 1.0,
         firmware = "1.0",
         isCamera = false,
+        connection = "wifi",
+        parentId = null,
+        accessories = emptyList(),
         serial = "SN-$id",
         entities = entities,
         actions = emptyList(),
     )
 
     private fun detailJson(id: Long) = """{"id":$id,"type":"w5","model":"EverSweet 3 Pro","kind":"fountain",
-        "online":true,"transport":"http","last_seen":1.0,"firmware":"1.0","is_camera":false,"serial":"SN-$id",
-        "entities":[],"actions":[{"key":"cleaning_start","name":"Clean","destructive":false}]}"""
+        "online":true,"transport":"http","last_seen":1.0,"firmware":"1.0","is_camera":false,"connection":"wifi","parent_id":null,
+        "accessories":[],"serial":"SN-$id","entities":[],"actions":[{"key":"cleaning_start","name":"Clean","destructive":false}]}"""
 
     private fun entity(key: String, value: JsonElement = JsonNull) =
         EntityDto(key, key, "number", value, null, null, null, null, null, true, null, null, null)

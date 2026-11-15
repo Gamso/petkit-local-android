@@ -15,8 +15,8 @@ import org.petkitlocal.core.domain.model.DeviceAction
  *   Ultra and Crystal Duo) have it built in. A box without one can be paired with a Pura Air
  *   (K3), whose cartridge is also an N60 (`k3LightSwitch` in a T4 report; the parent carries
  *   `withK3`/`k3Id`, `devices/payloads.py`): the N60, and its reset, then come from the Pura Air
- *   ([DevicePart.PuraAirSpray]). The `/app/v1` API does not say yet which Pura Air is paired with
- *   which box, so the pages pass none.
+ *   ([DevicePart.PuraAirSpray]). `/app/v1` lists it in the box's `accessories`; the first purifier
+ *   there holds the box's one K3 slot ([Device.puraAirId]).
  * - **N50 pack**: a passive pack in the waste bin (`devices/state_tables.py`), on every litter box
  *   but the Purobot Ultra, which `ha/categories.py` says has no N50 cartridge (its `reset_n50` is
  *   excluded there, and the code it sent is Pack).

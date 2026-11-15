@@ -212,6 +212,7 @@ private fun Route.deviceRoutes(world: World) {
         }
         val delivered =
             synchronized(world.lock) {
+                world.requireRelay(device)
                 world.runAction(device, key)
                 world.delivered(device)
             }

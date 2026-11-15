@@ -1,6 +1,7 @@
 package org.petkitlocal.feature.device.common
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -37,6 +39,42 @@ import org.petkitlocal.core.domain.model.DeviceTransport
 import org.petkitlocal.core.domain.model.Entity
 import org.petkitlocal.core.ui.ServerLabels
 import org.petkitlocal.feature.device.R
+
+/**
+ * A Bluetooth accessory's line to the device relaying it, "Reports through Pura Max", which opens
+ * that device's screen. A real touch target, unlike the discreet "via" on Home's card.
+ */
+@Composable
+fun RelayLink(relay: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val colors = PkTheme.colors
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(PkTheme.shapes.tile)
+            .clickable(onClickLabel = stringResource(R.string.device_relay_open, relay), onClick = onClick)
+            .defaultMinSize(minHeight = ROW_HEIGHT)
+            .padding(vertical = PkTheme.spacing.xxs)
+            .testTag(DeviceTestTags.RELAY),
+    ) {
+        Icon(PkIcons.Link, contentDescription = null, tint = colors.accent, modifier = Modifier.size(20.dp))
+        Spacer(Modifier.width(PkTheme.spacing.xs))
+        Text(
+            stringResource(R.string.device_relay, relay),
+            style = PkTheme.typography.bodyMedium,
+            color = colors.accent,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        Icon(
+            PkIcons.ChevronRight,
+            contentDescription = null,
+            tint = colors.onSurfaceMuted,
+            modifier = Modifier.size(20.dp),
+        )
+    }
+}
 
 /** A device screen's top row: the way back, the title and its subtitle, the settings shortcut. */
 @Composable
@@ -141,7 +179,9 @@ fun DeviceStatusLine(
             Text(statusText(status, labels), style = PkTheme.typography.titleMedium, color = colors.onSurface)
         }
         val details = listOfNotNull(
-            when (device.transport) {
+            // An accessory's transport is its parent's, which the relay line names.
+            when (device.transport.takeUnless { device.isAccessory }) {
+                null -> stringResource(R.string.device_transport_ble)
                 DeviceTransport.Mqtt -> stringResource(R.string.device_transport_mqtt)
                 DeviceTransport.Http -> stringResource(R.string.device_transport_http)
                 DeviceTransport.Unknown -> null
@@ -232,6 +272,10 @@ object DeviceTestTags {
     const val STATUS = "device:status"
     const val EDITOR = "device:editor"
     const val EDITOR_SAVE = "device:editor:save"
+
+    /** A Bluetooth accessory's way to the device relaying it, or a part's way to its accessory. */
+    const val RELAY = "device:relay"
+    const val OPEN_ACCESSORY = "device:open-accessory"
 
     fun entity(key: String): String = "device:entity:$key"
 

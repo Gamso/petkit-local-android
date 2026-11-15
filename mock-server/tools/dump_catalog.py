@@ -14,7 +14,9 @@ import sys
 
 sys.path.insert(0, sys.argv[1])
 
-from petkit_local.app_api.serializers import VALUE_COMPONENTS, device_kind  # noqa: E402
+from petkit_local.app_api.serializers import (  # noqa: E402
+    VALUE_COMPONENTS, accessory_actions, device_kind,
+)
 from petkit_local.devices.base import Device  # noqa: E402
 from petkit_local.ha.categories import get_entities_for_device  # noqa: E402
 from petkit_local.ha.commands import DESTRUCTIVE_ACTIONS, device_actions  # noqa: E402
@@ -29,7 +31,9 @@ BLE = {"w5", "ctw3", "k3"}
 def model(codename: str) -> dict:
     device = Device(device_type=codename, petkit_id=1)
     entities = get_ble_entities(codename) if codename in BLE else get_entities_for_device(device)
-    actions = device_actions(entities)
+    # An accessory's buttons are frames sent through its parent, not `ALL_ACTIONS`
+    # entries, so the real server offers them by a rule of their own.
+    actions = accessory_actions(entities) if codename in BLE else device_actions(entities)
     return {
         "type": codename,
         "model": device_display_name(codename),

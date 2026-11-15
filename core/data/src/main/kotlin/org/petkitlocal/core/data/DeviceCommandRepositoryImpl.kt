@@ -29,7 +29,7 @@ class DeviceCommandRepositoryImpl @Inject constructor(private val api: PetkitApi
         // A non-destructive action takes no body; `{}` is the same to the server.
         val body = ActionRequestDto(confirm = if (confirm) true else null)
         return when (val result = apiCall { api.runDeviceAction(deviceId, key, body) }) {
-            is Outcome.Failure -> result
+            is Outcome.Failure -> Outcome.Failure(named(result.error, deviceId))
             is Outcome.Success -> Outcome.Success(commandDelivery(result.value.delivered))
         }
     }
@@ -39,7 +39,7 @@ class DeviceCommandRepositoryImpl @Inject constructor(private val api: PetkitApi
             DomainError.Validation(field = key, code = NOT_WRITABLE, message = "This value cannot be written"),
         )
         val answer = when (val result = apiCall { api.setDeviceEntity(deviceId, key, EntityWriteRequestDto(json)) }) {
-            is Outcome.Failure -> return result
+            is Outcome.Failure -> return Outcome.Failure(named(result.error, deviceId))
             is Outcome.Success -> result.value
         }
         val entity = answer.entity
@@ -50,6 +50,13 @@ class DeviceCommandRepositoryImpl @Inject constructor(private val api: PetkitApi
             display = entity.display,
         )
         return Outcome.Success(commandDelivery(answer.delivered))
+    }
+
+    /** An unreachable accessory's error, with the name of the device relaying it, as cached. */
+    private suspend fun named(error: DomainError, deviceId: Long): DomainError {
+        if (error !is DomainError.AccessoryUnreachable || error.relay != null) return error
+        val relay = dao.getDevice(deviceId)?.parentId?.let { dao.getDevice(it) } ?: return error
+        return DomainError.AccessoryUnreachable(relay.model)
     }
 
     private companion object {

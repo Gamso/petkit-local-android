@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.petkitlocal.core.domain.Outcome
+import org.petkitlocal.core.domain.devicepage.DevicePart
 import org.petkitlocal.core.domain.devicepage.PageFixtures.at
 import org.petkitlocal.core.domain.devicepage.PageFixtures.device
 import org.petkitlocal.core.domain.devicepage.PageFixtures.item
@@ -20,10 +21,13 @@ import org.petkitlocal.core.domain.devicepage.PageFixtures.pet
 import org.petkitlocal.core.domain.devicepage.PageFixtures.sensor
 import org.petkitlocal.core.domain.devicepage.PageFixtures.switch
 import org.petkitlocal.core.domain.devicepage.PageFixtures.today
+import org.petkitlocal.core.domain.devicepage.PartReading
 import org.petkitlocal.core.domain.devicepage.RefreshDevicePageUseCase
 import org.petkitlocal.core.domain.home.BusyActivity
 import org.petkitlocal.core.domain.home.DeviceStatus
+import org.petkitlocal.core.domain.model.AccessoryRef
 import org.petkitlocal.core.domain.model.Device
+import org.petkitlocal.core.domain.model.DeviceConnection
 import org.petkitlocal.core.domain.model.DeviceFamily
 import org.petkitlocal.core.domain.model.Pet
 import org.petkitlocal.core.domain.model.TimelineCategory
@@ -104,6 +108,40 @@ class LitterRulesTest {
         assertEquals(Outcome.Success(Unit), RefreshDevicePageUseCase(devices, pets, timeline)(today))
         assertEquals(setOf(today, yesterday), timeline.refreshed.toSet())
         assertEquals(1, devices.refreshes)
+    }
+
+    @Test
+    fun `a T4 shows the N60 of the Pura Air in its K3 slot, and follows its level`() = runTest {
+        val t4 = device(1002, DeviceFamily.LitterBox, type = "t4").copy(
+            accessories = listOf(
+                AccessoryRef(3003, "ctw3", DeviceFamily.Fountain),
+                AccessoryRef(4001, "k3", DeviceFamily.Purifier),
+                AccessoryRef(4002, "k3", DeviceFamily.Purifier),
+            ),
+        )
+        fun k3(id: Long, liquid: Double) =
+            device(id, DeviceFamily.Purifier, sensor("k3_liquid", liquid, unit = "%"), type = "k3")
+                .copy(connection = DeviceConnection.Ble, parentId = 1002)
+        val devices = Devices(listOf(t4, k3(4001, 63.0), k3(4002, 10.0)))
+        val clock = Clock.fixed(Instant.parse("2026-11-15T09:00:00Z"), paris)
+        val pages = ObserveLitterBoxUseCase(devices, Pets(emptyList()), Timeline(emptyMap()), clock)(1002, today)
+
+        val page = pages.first()!!
+        assertEquals(4001L, page.puraAir?.id)
+        val n60 = page.hotspots.single { it.part == DevicePart.PuraAirSpray }
+        assertEquals(PartReading.Percent(63), n60.reading)
+
+        // A new report of the Pura Air's level reaches the box's page.
+        devices.devices.value = listOf(t4, k3(4001, 12.0), k3(4002, 10.0))
+        val low = pages.first()!!.hotspots.single { it.part == DevicePart.PuraAirSpray }
+        assertEquals(PartReading.Percent(12), low.reading)
+        assertEquals(true, low.attention)
+
+        // No Pura Air listed: no N60 pill on a T4, which has no sprayer of its own.
+        devices.devices.value = listOf(t4.copy(accessories = emptyList()), k3(4001, 63.0))
+        val alone = pages.first()!!
+        assertNull(alone.puraAir)
+        assertEquals(false, alone.hotspots.any { it.part == DevicePart.PuraAirSpray || it.part == DevicePart.Spray })
     }
 
     private class Devices(initial: List<Device>) : DeviceRepository {

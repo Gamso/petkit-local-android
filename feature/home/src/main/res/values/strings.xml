@@ -27,6 +27,8 @@
     <string name="home_water_low">Low</string>
     <string name="home_no_figure">Nothing to report</string>
     <string name="home_percent">%1$d %%</string>
+    <!-- A Bluetooth accessory's card: the device it reports through. -->
+    <string name="home_relay">via %1$s</string>
     <plurals name="home_meals">
         <item quantity="one">%1$d meal</item>
         <item quantity="other">%1$d meals</item>

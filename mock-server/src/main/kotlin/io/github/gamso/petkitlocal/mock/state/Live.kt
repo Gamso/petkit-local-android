@@ -275,6 +275,8 @@ private val RESETS =
         "reset_n60" to ("state.sprayLeftDays" to 30),
         "reset_bagbox" to ("state.packageCount" to 0),
         "reset_desiccant" to ("state.desiccantLeftDays" to 30),
+        "w5_reset_filter" to ("consumables.filterPercentage" to 100),
+        "ctw3_reset_filter" to ("consumables.filterPercent" to 100),
     )
 
 /**

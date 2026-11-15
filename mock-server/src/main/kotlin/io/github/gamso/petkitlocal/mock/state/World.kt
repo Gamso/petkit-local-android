@@ -2,6 +2,7 @@ package io.github.gamso.petkitlocal.mock.state
 
 import io.github.gamso.petkitlocal.mock.MockClock
 import io.github.gamso.petkitlocal.mock.MockConfig
+import io.github.gamso.petkitlocal.mock.api.ApiException
 import io.github.gamso.petkitlocal.mock.api.MockJson
 import io.github.gamso.petkitlocal.mock.api.PetDetail
 import io.github.gamso.petkitlocal.mock.api.PetStats
@@ -120,13 +121,17 @@ class World(
         block: () -> T,
     ): T {
         val before = device.changes()
-        val summaryBefore = device.summary().copy(lastSeen = null)
+        // An accessory's summary follows its parent's (online, transport): watch them too.
+        val watched = listOf(device) + device.accessories
+        val summariesBefore = watched.map { it.summary().copy(lastSeen = null) }
         val result = block()
         if (reported && device.online) device.lastSeen = clock.now()
         if (devices[device.id] !== device) return result
-        val summaryAfter = device.summary()
-        if (summaryAfter.copy(lastSeen = null) != summaryBefore) {
-            hub.broadcast(encode(UpdateDevice.serializer(), UpdateDevice(device = summaryAfter)))
+        watched.zip(summariesBefore).forEach { (watchedDevice, summaryBefore) ->
+            val summaryAfter = watchedDevice.summary()
+            if (summaryAfter.copy(lastSeen = null) != summaryBefore) {
+                hub.broadcast(encode(UpdateDevice.serializer(), UpdateDevice(device = summaryAfter)))
+            }
         }
         val changed = device.changes().values.filter { before[it.key] != it }
         if (changed.isNotEmpty()) {
@@ -171,8 +176,39 @@ class World(
 
     fun device(id: Int): MockDevice? = devices[id]
 
-    /** `mqtt` when the device holds a session now, `queued` for its next HTTP poll. */
-    fun delivered(device: MockDevice): String = if (device.online && device.transport == "mqtt") "mqtt" else "queued"
+    /**
+     * `mqtt` when the device holds a session now, `queued` for its next HTTP poll. An accessory's
+     * write is relayed by its parent at once or refused ([requireRelay]), never queued.
+     */
+    fun delivered(device: MockDevice): String =
+        if (device.isAccessory || (device.online && device.transport == "mqtt")) "mqtt" else "queued"
+
+    /**
+     * Refuses a write to an accessory no parent can relay now, as `send_accessory_command` does:
+     * only a parent holding an MQTT session can.
+     *
+     * @throws ApiException 409 `accessory_unreachable`.
+     */
+    fun requireRelay(device: MockDevice) {
+        if (!device.isAccessory) return
+        val parent = device.parent ?: throw ApiException(409, "accessory_unreachable", "no registered device relays this accessory")
+        if (!parent.online || parent.transport != "mqtt") {
+            throw ApiException(
+                409,
+                "accessory_unreachable",
+                "the ${parent.model.model} relaying it is not on MQTT, and an accessory is only reachable while it is",
+            )
+        }
+    }
+
+    /** Pairs [accessory] with [parent], listed after the ones it already relays. */
+    fun link(
+        accessory: MockDevice,
+        parent: MockDevice,
+    ) {
+        accessory.parent = parent
+        parent.accessories += accessory
+    }
 
     fun setOnline(
         device: MockDevice,
@@ -185,8 +221,19 @@ class World(
     }
 
     fun removeDevice(id: Int): Boolean {
-        devices.remove(id) ?: return false
+        val removed = devices.remove(id) ?: return false
         hub.broadcast(encode(UpdateDeviceRemoved.serializer(), UpdateDeviceRemoved(deviceId = id)))
+        // The link is stated from both ends, so both ends hear of it (`device` messages).
+        removed.parent?.let { parent ->
+            parent.accessories.remove(removed)
+            hub.broadcast(encode(UpdateDevice.serializer(), UpdateDevice(device = parent.summary())))
+        }
+        removed.accessories.forEach { accessory ->
+            accessory.parent = null
+            hub.broadcast(encode(UpdateDevice.serializer(), UpdateDevice(device = accessory.summary())))
+        }
+        removed.parent = null
+        removed.accessories.clear()
         return true
     }
 

@@ -137,6 +137,8 @@ fun World.setEntity(
                 throw refused("${def.name} cannot be set")
             }
         }
+    // The value is checked first, as `payload_for` runs before the relay is looked for.
+    requireRelay(device)
     change(device, reported = false) {
         if (path == "feed_schedule") {
             device.syncPlan()

@@ -5,8 +5,10 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import org.petkitlocal.core.domain.model.AccessoryRef
 import org.petkitlocal.core.domain.model.Device
 import org.petkitlocal.core.domain.model.DeviceAction
+import org.petkitlocal.core.domain.model.DeviceConnection
 import org.petkitlocal.core.domain.model.DeviceFamily
 import org.petkitlocal.core.domain.model.DeviceTransport
 import org.petkitlocal.core.domain.model.Entity
@@ -22,6 +24,10 @@ import org.petkitlocal.core.domain.model.TimelineItem
  * A household like the mock server's (mock-server/README.md): one device of each family, two
  * cats and a morning of cards, with the entity keys petkit-local really uses. For ViewModel,
  * Compose UI and screenshot tests.
+ *
+ * The Bluetooth accessories: the Pura Max relays the Pura Air (its K3 slot), the Fresh Element
+ * Solo relays the CTW3, and the W5 is linked to no device, which is why it is offline (the mock
+ * links it to the YumShare instead).
  */
 @Suppress("MagicNumber") // Fixture data.
 object Household {
@@ -48,6 +54,7 @@ object Household {
         binary("waste_bin", true, "problem", "Waste Bin Full"),
         binary("pet_occupied", false, "occupancy", "Pet Occupied"),
         actions = listOf(DeviceAction("cleaning_start", "Start Cleaning", false)),
+        accessories = listOf(AccessoryRef(4001, "k3", DeviceFamily.Purifier)),
     )
 
     val cameraLitterBox = device(
@@ -70,6 +77,7 @@ object Household {
         sensor("desiccant_days", EntityValue.Number(3.0), unit = "days", name = "Desiccant Days Left"),
         sensor("total_dispensed", EntityValue.Number(40.0), unit = "g", name = "Total Dispensed"),
         binary("food_low", false, "problem", "Food Low"),
+        accessories = listOf(AccessoryRef(3003, "ctw3", DeviceFamily.Fountain)),
     )
 
     val dualFeeder = device(
@@ -102,6 +110,7 @@ object Household {
         DeviceFamily.Fountain,
         binary("w5_water_missing", false, "problem", "Water Low"),
         online = false,
+        connection = DeviceConnection.Ble,
     )
 
     val batteryFountain = device(
@@ -111,6 +120,8 @@ object Household {
         DeviceFamily.Fountain,
         sensor("ctw3_filter", EntityValue.Number(12.0), unit = "%", name = "Filter"),
         binary("ctw3_water_lack", false, "problem", "Water Low"),
+        connection = DeviceConnection.Ble,
+        parentId = 2001,
     )
 
     val purifier = device(
@@ -120,6 +131,8 @@ object Household {
         DeviceFamily.Purifier,
         sensor("k3_liquid", EntityValue.Number(63.0), unit = "%", name = "K3 Liquid"),
         sensor("k3_battery", EntityValue.Number(88.0), unit = "%", name = "K3 Battery"),
+        connection = DeviceConnection.Ble,
+        parentId = 1002,
     )
 
     /** A kind this app does not know: the generic family. */
@@ -163,6 +176,9 @@ object Household {
         transport: DeviceTransport = DeviceTransport.Http,
         isCamera: Boolean = false,
         actions: List<DeviceAction> = emptyList(),
+        connection: DeviceConnection = DeviceConnection.Wifi,
+        parentId: Long? = null,
+        accessories: List<AccessoryRef> = emptyList(),
     ) = Device(
         id = id,
         type = type,
@@ -175,6 +191,9 @@ object Household {
         isCamera = isCamera,
         entities = entities.toList(),
         actions = actions,
+        connection = connection,
+        parentId = parentId,
+        accessories = accessories,
     )
 
     fun sensor(

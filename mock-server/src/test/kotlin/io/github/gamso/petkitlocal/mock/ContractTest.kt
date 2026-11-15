@@ -96,6 +96,7 @@ class ContractTest {
             )
             assertEquals(404, api.post(action, "/devices/${Seed.T4}/actions/feed").status)
             assertEquals(404, api.post(action, "/devices/99/actions/feed").status)
+            assertEquals(409, api.post(action, "/devices/${Seed.CTW3}/actions/ctw3_reset_filter", """{"confirm":true}""").status)
 
             val entity = "/devices/{id}/entities/{key}"
             assertEquals(200, api.put(entity, "/devices/${Seed.T4}/entities/cleaning_delay", """{"value":600}""").status)
@@ -114,6 +115,8 @@ class ContractTest {
                     ).status,
             )
             assertEquals(404, api.put(entity, "/devices/${Seed.T4}/entities/nope", """{"value":1}""").status)
+            assertEquals(409, api.put(entity, "/devices/${Seed.CTW3}/entities/ctw3_light", """{"value":true}""").status)
+            assertEquals(200, api.put(entity, "/devices/${Seed.W5}/entities/w5_light", """{"value":true}""").status)
             assertEquals(401, api.put(entity, "/devices/${Seed.T4}/entities/child_lock", """{"value":true}""", token = "bad").status)
         }
 
@@ -246,9 +249,23 @@ class ContractTest {
             Coverage.record("GET", "/ws", 101)
         }
 
+    /**
+     * Notifications over the app's own connection and UnifiedPush (issue #23): in the spec, not
+     * served yet. Every session the mock hands out says `kinds: null, push: null`, which is true.
+     */
+    private val pending =
+        setOf(
+            "PUT" to "/push",
+            "DELETE" to "/push",
+            "GET" to "/notifications",
+            "PUT" to "/notifications",
+            "GET" to "/notifications/ws",
+        )
+
     @AfterAll
     fun `every operation of the spec was called`() {
-        val missing = Contract.operations - Coverage.seen.keys
+        val missing = Contract.operations - Coverage.seen.keys - pending
+        assertTrue(Contract.operations.containsAll(pending), "a pending operation left the spec: ${pending - Contract.operations}")
         assertTrue(missing.isEmpty(), "operations never called: $missing")
         val unsuccessful =
             Coverage.seen.filter { (op, statuses) ->

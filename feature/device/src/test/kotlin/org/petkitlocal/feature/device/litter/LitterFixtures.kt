@@ -3,6 +3,7 @@ package org.petkitlocal.feature.device.litter
 import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.core.domain.litter.LitterBoxPage
 import org.petkitlocal.core.domain.litter.LitterRules
+import org.petkitlocal.core.domain.model.AccessoryRef
 import org.petkitlocal.core.domain.model.Device
 import org.petkitlocal.core.domain.model.DeviceAction
 import org.petkitlocal.core.domain.model.DeviceFamily
@@ -25,7 +26,8 @@ import org.petkitlocal.feature.device.common.CommandSubject
 
 /**
  * Litter boxes as the mock serves them (mock-server/README.md): a Pura Max (T4) and a Purobot
- * Ultra (T6) with the entity and action keys petkit-local defines, and their cards.
+ * Ultra (T6) with the entity and action keys petkit-local defines, and their cards; the Pura Max
+ * also with the Pura Air (K3) the mock links to it.
  */
 object LitterFixtures {
     val actionsT4 = listOf(
@@ -39,7 +41,6 @@ object LitterFixtures {
         DeviceAction("maintenance_start", "Enter Maintenance", true),
         DeviceAction("dump_litter", "Dump Litter", true),
         DeviceAction("reset_n50", "Reset N50", true),
-        DeviceAction("reset_n60", "Reset N60", true),
     )
 
     val pura = Household.device(
@@ -51,7 +52,6 @@ object LitterFixtures {
         sensor("error", EntityValue.None),
         sensor("litter_percent", EntityValue.Number(91.0), unit = "%"),
         sensor("n50_durability", EntityValue.Number(21.0), unit = "days"),
-        sensor("n60_spray_days", EntityValue.Number(4.0), unit = "days"),
         binary("waste_bin", false, "problem", "Waste Bin Full"),
         binary("waste_bin_present", true, "presence"),
         binary("pet_occupied", false, "occupancy"),
@@ -69,7 +69,6 @@ object LitterFixtures {
         sensor("device_status", EntityValue.Number(-1.0), display = "idle"),
         sensor("error", EntityValue.Text("bin full")),
         sensor("litter_percent", EntityValue.Number(12.0), unit = "%"),
-        sensor("n50_durability", EntityValue.Number(21.0), unit = "days"),
         sensor("n60_spray_days", EntityValue.Number(17.0), unit = "days"),
         binary("waste_bin", true, "problem"),
         binary("waste_bin_present", true, "presence"),
@@ -79,8 +78,20 @@ object LitterFixtures {
         switch("auto_spray", "Auto Deodorizing", false),
         transport = DeviceTransport.Mqtt,
         isCamera = true,
-        actions = actionsT4.filter { it.key != "reset_n50" } + DeviceAction("pack_waste", "Pack Waste", false),
+        actions = actionsT4.filter { it.key != "reset_n50" } +
+            DeviceAction("reset_n60", "Reset N60", true) +
+            DeviceAction("pack_waste", "Pack Waste", false),
     )
+
+    /** The Pura Max holding the household's Pura Air (63 % of N60) in its K3 slot. */
+    val puraWithK3 = pura.copy(accessories = listOf(AccessoryRef(4001, "k3", DeviceFamily.Purifier)))
+
+    val puraAir: Device = Household.purifier
+
+    // Lazy: the page reads the day's cards, declared below.
+    val withPuraAir by lazy {
+        LitterUiState(page = page(puraWithK3, puraAir = puraAir), loaded = true, zone = Household.zone)
+    }
 
     val todayItems: List<TimelineItem> = listOf(
         item(16, 1002, at(9, 45), TimelineCategory.Toileting, pet = 1, duration = 95).copy(weightG = 4310),
@@ -102,8 +113,8 @@ object LitterFixtures {
         item(4, 1002, at(12, 0).minusSeconds(DAY), TimelineCategory.Toileting, pet = 2, duration = 140),
     )
 
-    fun page(device: Device = pura, today: List<TimelineItem> = todayItems): LitterBoxPage =
-        LitterRules.page(device, Household.pets, today, yesterdayItems, Household.zone)
+    fun page(device: Device = pura, today: List<TimelineItem> = todayItems, puraAir: Device? = null): LitterBoxPage =
+        LitterRules.page(device, Household.pets, today, yesterdayItems, Household.zone, puraAir)
 
     val content = LitterUiState(page = page(), loaded = true, zone = Household.zone)
 

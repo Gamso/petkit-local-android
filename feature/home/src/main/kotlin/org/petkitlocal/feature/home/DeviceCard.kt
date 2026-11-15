@@ -2,6 +2,7 @@ package org.petkitlocal.feature.home
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,11 +12,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,9 +28,14 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -49,6 +57,9 @@ import org.petkitlocal.core.ui.rememberServerLabels
  * One device on Home (docs/DESIGN.md, DeviceCard): glyph and name, the family's headline figure,
  * the 24-hour strip of the day's cards, and the status band at the bottom. [petColors] gives each
  * pet's colour index, so a visit on the strip has its pet's colour.
+ *
+ * A Bluetooth accessory with a card of its own says, discreetly under its name, which device it
+ * reports through.
  */
 @Composable
 internal fun DeviceCard(
@@ -81,6 +92,7 @@ internal fun DeviceCard(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
+                overview.relay?.let { RelayLine(it) }
                 Row {
                     Column(
                         verticalArrangement = Arrangement.spacedBy(PkTheme.spacing.xxs),
@@ -108,6 +120,27 @@ internal fun DeviceCard(
             }
             StatusBand(overview.status)
         }
+    }
+}
+
+/** "via Pura Max": small and muted, part of the card (which opens the accessory itself). */
+@Composable
+private fun RelayLine(relay: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            PkIcons.Link,
+            contentDescription = null,
+            tint = PkTheme.colors.onSurfaceMuted,
+            modifier = Modifier.size(14.dp),
+        )
+        Spacer(Modifier.width(PkTheme.spacing.xxs))
+        Text(
+            stringResource(R.string.home_relay, relay),
+            style = PkTheme.typography.labelMedium,
+            color = PkTheme.colors.onSurfaceMuted,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 

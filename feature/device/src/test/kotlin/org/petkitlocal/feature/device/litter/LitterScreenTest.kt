@@ -39,6 +39,7 @@ class LitterScreenTest {
         onBack = { calls += "back" },
         onOpenSettings = { calls += "settings:$it" },
         onOpenHistory = { calls += "history" },
+        onOpenDevice = { calls += "device:$it" },
     )
 
     private val callbacks = LitterCallbacks(
@@ -70,8 +71,9 @@ class LitterScreenTest {
         compose.onNodeWithContentDescription("Litter, 91 %").assertExists()
         compose.onNodeWithContentDescription("Waste bin, OK").assertExists()
         compose.onNodeWithContentDescription("N50 pack, 21 days").assertExists()
-        // The server reports an N60 countdown on a T4 too, but a Pura Max has no N60.
-        compose.onNodeWithContentDescription("N60 spray, 4 days").assertDoesNotExist()
+        // A Pura Max has no N60 of its own, and no Pura Air is linked to this one.
+        compose.onNodeWithContentDescription("N60 spray", substring = true).assertDoesNotExist()
+        compose.onNodeWithContentDescription("Pura Air · N60", substring = true).assertDoesNotExist()
         // Four visits today, two yesterday.
         scrollTo("Visits")
         compose.onNodeWithText("+2 vs yesterday", useUnmergedTree = true).assertExists()
@@ -117,6 +119,26 @@ class LitterScreenTest {
     }
 
     @Test
+    fun `a Pura Max with its Pura Air shows the N60 level as a pill`() {
+        show(LitterFixtures.withPuraAir)
+        compose.onNodeWithContentDescription("Pura Air · N60, 63 %").performClick()
+
+        assertEquals(listOf("hotspot:${DevicePart.PuraAirSpray}"), calls)
+    }
+
+    @Test
+    fun `the Pura Air's pill shows its other readings and leads to its own screen`() {
+        show(LitterFixtures.withPuraAir.copy(openPart = DevicePart.PuraAirSpray))
+        compose.onNodeWithText("by the level it reports", substring = true).assertExists()
+        // Its other reading, and the way to its own screen.
+        compose.onNodeWithText("K3 Battery").assertExists()
+        compose.onNodeWithText("88 %").assertExists()
+        compose.onNodeWithText("Open the Pura Air K3").performClick()
+
+        assertEquals(listOf("hotspot:null", "device:4001"), calls)
+    }
+
+    @Test
     fun `a hotspot pill opens its part`() {
         show(LitterFixtures.content)
         compose.onNodeWithContentDescription("Litter, 91 %").performClick()
@@ -124,13 +146,13 @@ class LitterScreenTest {
     }
 
     @Test
-    fun `a hotspot's explanation offers the actions on that part, and the settings`() {
+    fun `a hotspot's explanation offers the actions on that part, and no way to the settings`() {
         show(LitterFixtures.content.copy(openPart = DevicePart.Litter))
         compose.onNodeWithText("Top it up", substring = true).assertExists()
         compose.onNode(hasText("Level Litter") and hasAnyAncestor(isDialog())).performClick()
-        compose.onNodeWithText("All settings").performClick()
+        compose.onNodeWithText("All settings").assertDoesNotExist()
 
-        assertEquals(listOf("action:level_litter", "hotspot:null", "settings:1002"), calls)
+        assertEquals(listOf("action:level_litter"), calls)
     }
 
     @Test

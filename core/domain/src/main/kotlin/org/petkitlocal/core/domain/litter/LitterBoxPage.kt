@@ -25,6 +25,8 @@ data class LitterBoxPage(
     val pets: List<Pet>,
     /** Today's cards of this device, newest first. */
     val activity: List<TimelineItem>,
+    /** The Pura Air (K3) in the box's K3 slot, when it has one and the cache holds it. */
+    val puraAir: Device? = null,
 ) {
     /** The pets the chart can be filtered on: those with a visit today, in the household's order. */
     val chartPets: List<Pet> get() = visits.mapNotNull { it.petId }.toSet().let { ids -> pets.filter { it.id in ids } }

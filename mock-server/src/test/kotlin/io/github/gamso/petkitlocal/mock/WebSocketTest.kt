@@ -183,6 +183,30 @@ class WebSocketTest {
         }
 
     @Test
+    fun `an accessory follows its parent online and offline, and its parent hears of its removal`() =
+        mockTest { _, api ->
+            api.live {
+                incoming.nextMessage()
+                api.client.control(HttpMethod.Post, "/devices/${Seed.D4SH}/offline")
+                val messages = listOf(incoming.nextMessage(), incoming.nextMessage())
+                val w5 = messages.single { it["device"]!!.jsonObject["id"]!!.jsonPrimitive.int == Seed.W5 }
+                assertFalse(
+                    w5["device"]!!
+                        .jsonObject["online"]!!
+                        .jsonPrimitive.content
+                        .toBoolean(),
+                )
+                api.client.control(HttpMethod.Post, "/devices/${Seed.D4SH}/online")
+                repeat(2) { incoming.nextMessage() }
+                api.client.control(HttpMethod.Post, "/devices/${Seed.K3}/remove")
+                assertEquals("device_removed", incoming.nextMessage().type)
+                val parent = incoming.nextMessage()
+                assertEquals(Seed.T4, parent["device"]!!.jsonObject["id"]!!.jsonPrimitive.int)
+                assertEquals(0, parent["device"]!!.jsonObject["accessories"]!!.jsonArray.size)
+            }
+        }
+
+    @Test
     fun `an application ping is answered with a pong, anything else is ignored`() =
         mockTest { _, api ->
             api.live {

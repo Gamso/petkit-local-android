@@ -7,7 +7,6 @@
     <string name="page_session_ended">Votre session a pris fin. Reconnectez-vous.</string>
     <string name="page_not_found">Cet appareil n\'est plus sur le serveur.</string>
     <string name="page_close">Fermer</string>
-    <string name="page_all_settings">Tous les réglages</string>
 
     <string name="page_part_litter">Litière</string>
     <string name="page_part_waste_bin">Bac à déchets</string>
@@ -41,7 +40,9 @@
     <string name="page_explain_waste_bin">Le tiroir où vont les déchets. Videz-le quand il est plein et remettez-le en place.</string>
     <string name="page_explain_deodorizer">Le désodorisant N50. Remplacez-le quand ses jours sont écoulés, puis remettez son compteur à zéro.</string>
     <string name="page_explain_spray">Le spray désodorisant N60. Rechargez-le quand ses jours sont écoulés, puis remettez son compteur à zéro.</string>
-    <string name="page_explain_pura_air">La cartouche N60 du Pura Air associé à ce bac. Rechargez-la quand elle baisse, puis remettez son compteur à zéro.</string>
+    <string name="page_explain_pura_air">La cartouche N60 du Pura Air associé à ce bac, d\'après le niveau qu\'il indique. Rechargez-la quand elle baisse.</string>
+    <string name="page_open_accessory">Ouvrir le %1$s</string>
+    <string name="page_accessory_offline">Le %1$s est injoignable : voici ses dernières valeurs connues.</string>
     <string name="page_explain_bags">Les sacs de la boîte à sacs. Remplacez la boîte quand elle est vide.</string>
     <string name="page_explain_food">Les croquettes du réservoir. Remplissez-le quand il baisse et signalez-le.</string>
     <string name="page_explain_bowl">Ce qui reste de croquettes dans la gamelle.</string>
