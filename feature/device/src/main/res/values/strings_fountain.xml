@@ -17,4 +17,33 @@
     <string name="page_explain_tray">The tray the pets drink from. Empty and clean it when it is full, then put it back.</string>
     <string name="page_explain_clean_tank">The tank of clean water that refills the tray. Fill it and put it back.</string>
     <string name="page_explain_waste_tank">The tank the used water drains into. Empty it and put it back.</string>
+
+    <!-- Fountain page. -->
+    <string name="fountain_mode_smart">Smart mode</string>
+    <string name="fountain_mode_dnd">Do not disturb</string>
+    <string name="fountain_mode_lock">Child lock</string>
+    <string name="fountain_today">Today</string>
+    <string name="fountain_drinks">Drinks</string>
+    <string name="fountain_average_drink">Average drink</string>
+    <string name="fountain_no_drink_yesterday">No drink yesterday</string>
+    <string name="fountain_pump_today">Pump running</string>
+    <!-- Under the pump's time: the fountain keeps no yesterday to compare with. -->
+    <string name="fountain_pump_since_midnight">Since midnight, by the fountain\'s count</string>
+    <string name="fountain_hours_minutes">%1$d h %2$02d</string>
+    <string name="fountain_minutes">%1$d min</string>
+    <string name="fountain_no_drinks_reported">This fountain does not report drinks, only its own state.</string>
+    <plurals name="fountain_pet_drinks">
+        <item quantity="one">%1$d drink</item>
+        <item quantity="other">%1$d drinks</item>
+    </plurals>
+    <plurals name="fountain_pet_yesterday">
+        <item quantity="one">%1$d yesterday</item>
+        <item quantity="other">%1$d yesterday</item>
+    </plurals>
+    <string name="fountain_chart_title">Drinks over the day</string>
+    <string name="fountain_chart_empty">No drink yet today.</string>
+    <plurals name="fountain_chart_description">
+        <item quantity="one">Chart of %1$d drink today, by time and duration</item>
+        <item quantity="other">Chart of %1$d drinks today, by time and duration</item>
+    </plurals>
 </resources>

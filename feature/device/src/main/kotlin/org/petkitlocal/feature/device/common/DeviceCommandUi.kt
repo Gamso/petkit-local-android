@@ -47,6 +47,9 @@ private val ACTION_ICONS: Map<String, ImageVector> = mapOf(
     "pack_waste" to PkIcons.Clean,
     "dump_litter" to PkIcons.Clean,
     "light" to PkIcons.Lightbulb,
+    // A Bluetooth fountain's filter reset (`w5_*`, `ctw3_*`), a reset like the others.
+    "w5_reset_filter" to PkIcons.Refresh,
+    "ctw3_reset_filter" to PkIcons.Refresh,
     // The feeder page's own entries of the sheet (FeederScreen).
     "feeder:plan" to PkIcons.Calendar,
     "feeder:later" to PkIcons.Clock,
