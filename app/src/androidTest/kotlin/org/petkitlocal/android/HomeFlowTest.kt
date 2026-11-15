@@ -27,6 +27,7 @@ import org.junit.runner.RunWith
 import org.petkitlocal.core.e2e.MockServer
 import org.petkitlocal.core.e2e.MockServerRule
 import org.petkitlocal.feature.auth.SignInTestTags
+import org.petkitlocal.feature.device.common.DeviceTestTags
 import org.petkitlocal.feature.home.HomeTestTags
 import org.petkitlocal.feature.settings.SettingsTestTags
 
@@ -66,9 +67,9 @@ class HomeFlowTest {
         list.performScrollToNode(box)
         waitFor(box and hasText("Offline", substring = true))
 
-        // A card opens its device (the M2 placeholder for now).
+        // A card opens its device.
         compose.onNode(box).performClick()
-        waitFor(hasText("Device #$PURA_MAX"))
+        waitFor(hasTestTag(DeviceTestTags.STATUS))
         compose.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
 
         signOut()
