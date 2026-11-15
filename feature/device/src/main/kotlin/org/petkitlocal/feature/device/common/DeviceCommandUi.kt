@@ -47,6 +47,10 @@ private val ACTION_ICONS: Map<String, ImageVector> = mapOf(
     "pack_waste" to PkIcons.Clean,
     "dump_litter" to PkIcons.Clean,
     "light" to PkIcons.Lightbulb,
+    // The feeder page's own entries of the sheet (FeederScreen).
+    "feeder:plan" to PkIcons.Calendar,
+    "feeder:later" to PkIcons.Clock,
+    "feeder:history" to PkIcons.History,
 )
 
 /** In order: the first prefix that matches wins. */
@@ -121,7 +125,9 @@ fun CommandFeedbackBanner(feedback: CommandFeedback, onDismiss: () -> Unit, modi
     }
 }
 
+@Composable
 private fun subjectName(subject: CommandSubject, labels: ServerLabels): String = when (subject) {
+    is CommandSubject.Labelled -> stringResource(subject.label)
     is CommandSubject.Action -> labels.action(subject.key, subject.name)
     is CommandSubject.Setting -> labels.entity(subject.key, subject.name)
 }

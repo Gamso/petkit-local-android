@@ -199,6 +199,12 @@ object PkIcons {
         lineTo(15f, 7f)
     }
 
+    /** Close, or cancel one item of a list. */
+    val Close: ImageVector = symbol(
+        "Close", // close
+        "M480,536L284,732Q273,743 256,743Q239,743 228,732Q217,721 217,704Q217,687 228,676L424,480L228,284Q217,273 217,256Q217,239 228,228Q239,217 256,217Q273,217 284,228L480,424L676,228Q687,217 704,217Q721,217 732,228Q743,239 743,256Q743,273 732,284L536,480L732,676Q743,687 743,704Q743,721 732,732Q721,743 704,743Q687,743 676,732L480,536Z",
+    )
+
     /** A Material Symbol: one filled path on its 960-unit grid. */
     private fun symbol(name: String, pathData: String, autoMirror: Boolean = false): ImageVector = ImageVector.Builder(
         name = name,

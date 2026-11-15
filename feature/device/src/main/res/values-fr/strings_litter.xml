@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Communs aux pages litière et distributeur (page_*). -->
+    <string name="page_refresh_failed">Le serveur n\'a pas pu répondre. Dernières données connues affichées.</string>
+    <string name="page_unreachable">Le serveur est injoignable.</string>
+    <string name="page_load_failed">Le serveur n\'a pas pu répondre.</string>
+    <string name="page_session_ended">Votre session a pris fin. Reconnectez-vous.</string>
+    <string name="page_not_found">Cet appareil n\'est plus sur le serveur.</string>
+    <string name="page_close">Fermer</string>
+    <string name="page_all_settings">Tous les réglages</string>
+
+    <string name="page_part_litter">Litière</string>
+    <string name="page_part_waste_bin">Bac à déchets</string>
+    <string name="page_part_deodorizer">Pack N50</string>
+    <string name="page_part_spray">Spray N60</string>
+    <string name="page_part_pura_air">Pura Air · N60</string>
+    <string name="page_part_bags">Sacs à déchets</string>
+    <string name="page_part_food">Croquettes</string>
+    <string name="page_part_hopper1">Réservoir 1</string>
+    <string name="page_part_hopper2">Réservoir 2</string>
+    <string name="page_part_bowl">Gamelle</string>
+    <string name="page_part_desiccant">Déshydratant</string>
+    <string name="page_reading_percent">%1$d %%</string>
+    <plurals name="page_reading_days">
+        <item quantity="one">%1$d jour restant</item>
+        <item quantity="many">%1$d jours restants</item>
+        <item quantity="other">%1$d jours restants</item>
+    </plurals>
+    <plurals name="page_reading_days_short">
+        <item quantity="one">%1$d jour</item>
+        <item quantity="many">%1$d jours</item>
+        <item quantity="other">%1$d jours</item>
+    </plurals>
+    <string name="page_condition_ok">OK</string>
+    <string name="page_condition_full">Plein</string>
+    <string name="page_condition_removed">Retiré</string>
+    <string name="page_condition_missing">Absent</string>
+    <string name="page_condition_low">Bas</string>
+    <string name="page_attention">À vérifier</string>
+    <string name="page_explain_litter">La quantité de litière dans le bac. Complétez-la quand elle baisse, puis nivelez-la.</string>
+    <string name="page_explain_waste_bin">Le tiroir où vont les déchets. Videz-le quand il est plein et remettez-le en place.</string>
+    <string name="page_explain_deodorizer">Le désodorisant N50. Remplacez-le quand ses jours sont écoulés, puis remettez son compteur à zéro.</string>
+    <string name="page_explain_spray">Le spray désodorisant N60. Rechargez-le quand ses jours sont écoulés, puis remettez son compteur à zéro.</string>
+    <string name="page_explain_pura_air">La cartouche N60 du Pura Air associé à ce bac. Rechargez-la quand elle baisse, puis remettez son compteur à zéro.</string>
+    <string name="page_explain_bags">Les sacs de la boîte à sacs. Remplacez la boîte quand elle est vide.</string>
+    <string name="page_explain_food">Les croquettes du réservoir. Remplissez-le quand il baisse et signalez-le.</string>
+    <string name="page_explain_bowl">Ce qui reste de croquettes dans la gamelle.</string>
+    <string name="page_explain_desiccant">Le déshydratant qui garde les croquettes au sec. Remplacez-le quand ses jours sont écoulés, puis remettez son compteur à zéro.</string>
+    <string name="page_explain_other">Un consommable que cet appareil suit.</string>
+
+    <string name="litter_today">Aujourd\'hui</string>
+    <string name="litter_visits">Passages</string>
+    <string name="litter_average_visit">Passage moyen</string>
+    <string name="litter_vs_yesterday">%1$s par rapport à hier</string>
+    <string name="litter_same_as_yesterday">Comme hier</string>
+    <string name="litter_no_visit_yesterday">Aucun passage hier</string>
+    <string name="litter_no_average">–</string>
+    <string name="litter_chart_title">Passages de la journée</string>
+    <string name="litter_chart_all">Tous</string>
+    <string name="litter_chart_minutes">min</string>
+    <string name="litter_chart_empty">Aucun passage aujourd\'hui.</string>
+    <plurals name="litter_chart_description">
+        <item quantity="one">Graphique de %1$d passage aujourd\'hui, par heure et durée</item>
+        <item quantity="many">Graphique de %1$d passages aujourd\'hui, par heure et durée</item>
+        <item quantity="other">Graphique de %1$d passages aujourd\'hui, par heure et durée</item>
+    </plurals>
+    <string name="litter_hour">%1$d h</string>
+    <string name="litter_activity">Activité</string>
+    <string name="litter_activity_empty">Rien pour l\'instant aujourd\'hui.</string>
+    <string name="litter_see_history">Tout voir dans l\'historique</string>
+    <string name="litter_unknown_pet">Animal non reconnu</string>
+    <string name="litter_visit">Passage</string>
+</resources>

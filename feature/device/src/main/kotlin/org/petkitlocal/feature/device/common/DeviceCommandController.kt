@@ -1,5 +1,6 @@
 package org.petkitlocal.feature.device.common
 
+import androidx.annotation.StringRes
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -35,6 +36,13 @@ sealed interface CommandSubject {
     data class Action(override val key: String, override val name: String) : CommandSubject
 
     data class Setting(override val key: String, override val name: String) : CommandSubject
+
+    /**
+     * A change a page words itself (a feeder's plan, a one-off feed): [label] is its string
+     * resource, [name] its English for logs and tests.
+     */
+    data class Labelled(override val key: String, override val name: String, @param:StringRes val label: Int) :
+        CommandSubject
 }
 
 sealed interface CommandResult {
@@ -106,6 +114,16 @@ class DeviceCommandController(
         val subject = CommandSubject.Setting(entity.key, entity.name)
         return track(subject, reportFailure) { setEntityValue(deviceId, entity, value) }
     }
+
+    /**
+     * Any other command a page sends (a feeding plan, a one-off feed), with the same banner:
+     * sending, then how it went out; a failure only if [reportFailure], as for [write].
+     */
+    suspend fun report(
+        subject: CommandSubject,
+        reportFailure: Boolean,
+        request: suspend () -> Outcome<CommandDelivery>,
+    ): Outcome<CommandDelivery> = track(subject, reportFailure, request)
 
     private fun send(action: DeviceAction, confirmed: Boolean) {
         scope.launch {

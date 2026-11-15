@@ -19,7 +19,12 @@ fun NavController.navigateToDevice(deviceId: Long) = navigate(DeviceDestination(
 fun NavController.navigateToDeviceSettings(deviceId: Long) = navigate(DeviceSettingsDestination(deviceId))
 
 /** Where a device screen leads; the app wires each to a destination. */
-data class DeviceNavigation(val onBack: () -> Unit = {}, val onOpenSettings: (deviceId: Long) -> Unit = {})
+data class DeviceNavigation(
+    val onBack: () -> Unit = {},
+    val onOpenSettings: (deviceId: Long) -> Unit = {},
+    /** The litter box and feeder pages lead to History from their activity and action sheet. */
+    val onOpenHistory: () -> Unit = {},
+)
 
 fun NavGraphBuilder.deviceScreen(navigation: DeviceNavigation) {
     composable<DeviceDestination> { DeviceRoute(navigation) }

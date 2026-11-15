@@ -27,7 +27,9 @@ import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.device.ObserveDeviceUseCase
 import org.petkitlocal.core.domain.model.DeviceFamily
 import org.petkitlocal.feature.device.common.DeviceGoneView
+import org.petkitlocal.feature.device.feeder.FeederRoute
 import org.petkitlocal.feature.device.generic.GenericDeviceRoute
+import org.petkitlocal.feature.device.litter.LitterRoute
 
 /** Which screen a device gets: known once the cache has been read. */
 sealed interface DeviceKindState {
@@ -58,8 +60,8 @@ class DeviceRouteViewModel @Inject constructor(
 }
 
 /**
- * The device destination: the screen of the device's family. Every family shows the generic
- * screen for now; the litter box and feeder screens take over theirs when they land (M2).
+ * The device destination: the screen of the device's family. Litter boxes and feeders have their
+ * own pages (SPEC.md §5.3, §5.6); every other family shows the generic screen.
  */
 @Composable
 internal fun DeviceRoute(navigation: DeviceNavigation, viewModel: DeviceRouteViewModel = hiltViewModel()) {
@@ -68,8 +70,10 @@ internal fun DeviceRoute(navigation: DeviceNavigation, viewModel: DeviceRouteVie
         DeviceKindState.Loading, DeviceKindState.Gone -> DevicePlaceholder(state, navigation.onBack)
 
         is DeviceKindState.Known -> when (state.family) {
-            DeviceFamily.LitterBox,
-            DeviceFamily.Feeder,
+            DeviceFamily.LitterBox -> LitterRoute(navigation)
+
+            DeviceFamily.Feeder -> FeederRoute(navigation)
+
             DeviceFamily.Fountain,
             DeviceFamily.Purifier,
             DeviceFamily.Other,
