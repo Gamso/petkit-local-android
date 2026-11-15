@@ -32,6 +32,8 @@ rootProject.name = "petkit-local-android"
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 include(":core:domain")
+include(":core:data")
+include(":core:network")
 include(":core:database")
 include(":core:datastore")
 include(":core:designsystem")
