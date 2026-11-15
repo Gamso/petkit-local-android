@@ -11,6 +11,7 @@ import io.ktor.http.HttpMethod
 import io.ktor.websocket.CloseReason
 import io.ktor.websocket.Frame
 import kotlinx.coroutines.withTimeout
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -142,8 +143,18 @@ class WebSocketTest {
                 )
                 val pet = seen.filter { it.type == "state" }.flatMap { it["entities"]!!.jsonArray }.map { it.jsonObject }
                 assertTrue(pet.any { it["key"]!!.jsonPrimitive.content == "pet_occupied" && it["value"]!!.jsonPrimitive.content == "true" })
-                assertTrue(pet.any { it["key"]!!.jsonPrimitive.content == "last_pet" && it["value"]!!.jsonPrimitive.content == "Tigrou" })
             }
+            // `state` carries only what changed, and the seeded history is laid out back from the
+            // current time: depending on the hour, its last visit may already be Tigrou's, and then
+            // `last_pet` is never sent. The stored value is what must be right.
+            val detail = Json.parseToJsonElement(api.get("/devices/{id}", "/devices/${Seed.T5}").text).jsonObject
+            val lastPet =
+                detail["device"]!!
+                    .jsonObject["entities"]!!
+                    .jsonArray
+                    .map { it.jsonObject }
+                    .first { it["key"]!!.jsonPrimitive.content == "last_pet" }
+            assertEquals("Tigrou", lastPet["value"]!!.jsonPrimitive.content)
         }
 
     @Test
