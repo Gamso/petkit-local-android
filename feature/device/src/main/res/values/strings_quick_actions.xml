@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The quick actions of a device's collapsed action sheet, chosen by the user (issue #40). -->
+<resources>
+    <string name="quick_actions_edit">Edit quick actions</string>
+    <string name="quick_actions_title">Quick actions</string>
+    <string name="quick_actions_explanation">Choose up to three actions to keep in view at the bottom of this device\'s page, in this order. The others stay under More, and an action that cannot be undone still asks first.</string>
+    <string name="quick_actions_in_view">Always in view (%1$d of %2$d)</string>
+    <string name="quick_actions_behind_more">Under More</string>
+    <string name="quick_actions_by_app">Chosen by the app until you change them.</string>
+    <string name="quick_actions_none">None: only More shows at the bottom of the page.</string>
+    <string name="quick_actions_row_full">Three actions already: remove one before adding another.</string>
+    <string name="quick_actions_not_saved">This phone could not save the change.</string>
+    <string name="quick_actions_all_in_view">Every action is in view.</string>
+    <string name="quick_actions_reset">Reset to default</string>
+    <string name="quick_actions_done">Done</string>
+    <string name="quick_actions_position">%1$d of %2$d</string>
+    <string name="quick_actions_move_up">Move up</string>
+    <string name="quick_actions_move_down">Move down</string>
+    <string name="quick_actions_remove">Remove from quick actions</string>
+    <string name="quick_actions_move_up_named">Move %1$s up</string>
+    <string name="quick_actions_move_down_named">Move %1$s down</string>
+    <string name="quick_actions_remove_named">Remove %1$s from quick actions</string>
+    <string name="quick_actions_add">Add to quick actions</string>
+    <string name="quick_actions_settings_section">On this phone</string>
+    <string name="quick_actions_settings_by_app">Chosen by the app</string>
+</resources>

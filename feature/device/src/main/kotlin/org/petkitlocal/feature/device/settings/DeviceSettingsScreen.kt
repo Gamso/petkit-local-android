@@ -71,8 +71,11 @@ import org.petkitlocal.feature.device.common.DeviceGoneView
 import org.petkitlocal.feature.device.common.DeviceHeader
 import org.petkitlocal.feature.device.common.DeviceSectionTitle
 import org.petkitlocal.feature.device.common.DeviceTestTags
+import org.petkitlocal.feature.device.common.LocalQuickActions
+import org.petkitlocal.feature.device.common.QuickActions
 import org.petkitlocal.feature.device.common.entityValueText
 import org.petkitlocal.feature.device.deviceFallbackTitle
+import org.petkitlocal.feature.device.quickactions.quickActionsSetting
 
 /** What the settings screen's user can do; the route wires each to the ViewModel. */
 data class DeviceSettingsActions(
@@ -111,6 +114,7 @@ internal fun DeviceSettingsScreen(
     val direction = LocalLayoutDirection.current
     val gutter = PkTheme.spacing.gutter
     val labels = rememberServerLabels()
+    val quick = LocalQuickActions.current
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -138,7 +142,7 @@ internal fun DeviceSettingsScreen(
                 )
             }
             if (uiState.offline) item(key = "offline") { PkOfflineBanner() }
-            settingsContent(uiState, labels, actions)
+            settingsContent(uiState, labels, actions, quick)
         }
         uiState.commands.feedback?.let { feedback ->
             CommandFeedbackBanner(
@@ -162,28 +166,36 @@ private fun LazyListScope.settingsContent(
     uiState: DeviceSettingsUiState,
     labels: ServerLabels,
     actions: DeviceSettingsActions,
+    quick: QuickActions,
 ) {
     when {
         !uiState.loaded -> item(key = "loading") { PkLoadingView(cards = 2) }
 
         uiState.device == null -> item(key = "gone") { DeviceGoneView() }
 
-        uiState.groups.isEmpty() -> item(key = "none") {
-            Text(
-                stringResource(R.string.device_settings_none),
-                style = PkTheme.typography.bodyLarge,
-                color = PkTheme.colors.onSurfaceMuted,
-            )
+        uiState.groups.isEmpty() -> {
+            item(key = "none") {
+                Text(
+                    stringResource(R.string.device_settings_none),
+                    style = PkTheme.typography.bodyLarge,
+                    color = PkTheme.colors.onSurfaceMuted,
+                )
+            }
+            quickActionsSetting(uiState.device, quick)
         }
 
-        else -> uiState.groups.forEach { group ->
+        else -> uiState.groups.forEachIndexed { index, group ->
             val family = uiState.device.family
+            // This phone's own setting, after the device's and before what is folded away.
+            val firstFolded = uiState.groups.indexOfFirst { it.category.folded }
+            if (index == firstFolded) quickActionsSetting(uiState.device, quick)
             if (group.category.folded) {
                 item(key = "group-${group.category}") { FoldedGroup(group, family, uiState, labels, actions) }
             } else {
                 item(key = "title-${group.category}") { DeviceSectionTitle(categoryTitle(group.category)) }
                 item(key = "group-${group.category}") { GroupCard(group, family, uiState, labels, actions) }
             }
+            if (index == uiState.groups.lastIndex && firstFolded < 0) quickActionsSetting(uiState.device, quick)
         }
     }
 }

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The quick actions of a device's collapsed action sheet, chosen by the user (issue #40). -->
+<resources>
+    <string name="quick_actions_edit">Modifier les actions rapides</string>
+    <string name="quick_actions_title">Actions rapides</string>
+    <string name="quick_actions_explanation">Choisissez jusqu\'à trois actions à garder visibles en bas de la page de cet appareil, dans cet ordre. Les autres restent sous « Plus », et une action irréversible demande toujours confirmation.</string>
+    <string name="quick_actions_in_view">Toujours visibles (%1$d sur %2$d)</string>
+    <string name="quick_actions_behind_more">Sous « Plus »</string>
+    <string name="quick_actions_by_app">Choisies par l\'application tant que vous ne les changez pas.</string>
+    <string name="quick_actions_none">Aucune : seul « Plus » s\'affiche en bas de la page.</string>
+    <string name="quick_actions_row_full">Déjà trois actions : retirez-en une avant d\'en ajouter une autre.</string>
+    <string name="quick_actions_not_saved">Ce téléphone n\'a pas pu enregistrer la modification.</string>
+    <string name="quick_actions_all_in_view">Toutes les actions sont visibles.</string>
+    <string name="quick_actions_reset">Rétablir le choix par défaut</string>
+    <string name="quick_actions_done">Terminé</string>
+    <string name="quick_actions_position">%1$d sur %2$d</string>
+    <string name="quick_actions_move_up">Monter</string>
+    <string name="quick_actions_move_down">Descendre</string>
+    <string name="quick_actions_remove">Retirer des actions rapides</string>
+    <string name="quick_actions_move_up_named">Monter %1$s</string>
+    <string name="quick_actions_move_down_named">Descendre %1$s</string>
+    <string name="quick_actions_remove_named">Retirer %1$s des actions rapides</string>
+    <string name="quick_actions_add">Ajouter aux actions rapides</string>
+    <string name="quick_actions_settings_section">Sur ce téléphone</string>
+    <string name="quick_actions_settings_by_app">Choisies par l\'application</string>
+</resources>
