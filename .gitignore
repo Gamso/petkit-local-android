@@ -15,3 +15,6 @@ keystore.properties
 # OS
 .DS_Store
 Thumbs.db
+# JVM crash reports
+hs_err_pid*.log
+replay_pid*.log

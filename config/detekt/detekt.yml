@@ -1,0 +1,43 @@
+# Built on detekt's default configuration (buildUponDefaultConfig); only the differences are here,
+# each with its reason.
+
+complexity:
+  LongParameterList:
+    # Composables take their state and one lambda per user intent (ARCHITECTURE.md §3).
+    ignoreAnnotated: ['Composable']
+  TooManyFunctions:
+    # Retrofit interfaces have one function per route; previews add one function per component.
+    ignoreAnnotatedFunctions: ['Preview', 'PkPreviews']
+
+naming:
+  MatchingDeclarationName:
+    # A Compose file is named after its composable (PkButton.kt holds PkButton and the
+    # PkButtonStyle it takes); a feature's navigation file holds its destination and its
+    # NavGraphBuilder extension. The rule only sees the class, so it would name them backwards.
+    active: false
+  FunctionNaming:
+    # Composables are PascalCase; test names are sentences in backticks.
+    ignoreAnnotated: ['Composable', 'Test', 'ParameterizedTest', 'TestFactory']
+  TopLevelPropertyNaming:
+    # Compose design tokens are PascalCase values (LightPkColors, PlusJakartaSans).
+    constantPattern: '[A-Z][A-Za-z0-9_]*'
+    propertyPattern: '[A-Za-z][_A-Za-z0-9]*'
+
+style:
+  MagicNumber:
+    # Design tokens and previews are made of literal colours and sizes; tests of literal data.
+    excludes: ['**/test/**', '**/designsystem/theme/**']
+    ignorePropertyDeclaration: true
+    ignoreAnnotated: ['Composable', 'Preview', 'PkPreviews']
+  UnusedPrivateFunction:
+    # Previews are called by the IDE, not by code.
+    ignoreAnnotated: ['Preview', 'PkPreviews']
+  ForbiddenComment:
+    # TODO(milestone) marks the planned work of docs/ROADMAP.md; anything else must not linger.
+    comments:
+      - value: 'FIXME:'
+        reason: 'Fix it before merging.'
+      - value: 'STOPSHIP:'
+        reason: 'Fix it before merging.'
+  ReturnCount:
+    max: 3

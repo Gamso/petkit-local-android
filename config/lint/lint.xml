@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Shared Android lint configuration. Every suppression says why. -->
+<lint>
+    <!-- lifecycle-runtime's bundled lint checks are compiled against an older lint API than the
+         one AGP 9.5 runs; lint skips them and reports it. It is a notice about a library's own
+         checks, not about this code, and only a lifecycle release can fix it. -->
+    <issue id="ObsoleteLintCustomCheck" severity="ignore" />
+</lint>
