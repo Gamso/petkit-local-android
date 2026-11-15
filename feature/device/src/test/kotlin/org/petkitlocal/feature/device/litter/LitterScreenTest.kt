@@ -39,7 +39,7 @@ class LitterScreenTest {
     private val navigation = DeviceNavigation(
         onBack = { calls += "back" },
         onOpenSettings = { calls += "settings:$it" },
-        onOpenHistory = { calls += "history" },
+        onOpenHistory = { calls += "history:$it" },
         onOpenDevice = { calls += "device:$it" },
     )
 
@@ -93,7 +93,7 @@ class LitterScreenTest {
         scrollTo("See all in History")
         compose.onNodeWithText("See all in History").performClick()
 
-        assertEquals(listOf("pet:2", "history"), calls)
+        assertEquals(listOf("pet:2", "history:1002"), calls)
     }
 
     @Test

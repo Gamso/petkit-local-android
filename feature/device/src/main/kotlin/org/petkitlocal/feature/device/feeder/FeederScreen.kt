@@ -104,7 +104,7 @@ internal fun FeederScreen(
         refreshing = uiState.refreshing && page != null,
         onRefresh = callbacks.onRefresh,
         callbacks = callbacks.commands.copy(
-            onAction = { action -> onSheetAction(action, navigation, callbacks) },
+            onAction = { action -> onSheetAction(action, page?.device?.id, navigation, callbacks) },
         ),
         modifier = modifier,
         hotspots = page?.hotspots.orEmpty(),
@@ -168,11 +168,16 @@ private fun pageActions(): List<DeviceAction> = listOf(
     DeviceAction(SHEET_HISTORY, stringResource(R.string.feeder_sheet_history), destructive = false),
 )
 
-private fun onSheetAction(action: DeviceAction, navigation: DeviceNavigation, callbacks: FeederCallbacks) {
+private fun onSheetAction(
+    action: DeviceAction,
+    deviceId: Long?,
+    navigation: DeviceNavigation,
+    callbacks: FeederCallbacks,
+) {
     when (action.key) {
         SHEET_PLAN -> callbacks.onEditPlan()
         SHEET_LATER -> callbacks.onAddFeed()
-        SHEET_HISTORY -> navigation.onOpenHistory()
+        SHEET_HISTORY -> deviceId?.let(navigation.onOpenHistory)
         else -> callbacks.commands.onAction(action)
     }
 }

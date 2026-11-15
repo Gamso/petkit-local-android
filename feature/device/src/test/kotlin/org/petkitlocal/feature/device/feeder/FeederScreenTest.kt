@@ -49,7 +49,7 @@ class FeederScreenTest {
 
     private fun show(state: FeederUiState) {
         compose.setContent {
-            PkTheme { FeederScreen(state, DeviceNavigation(onOpenHistory = { calls += "history" }), callbacks) }
+            PkTheme { FeederScreen(state, DeviceNavigation(onOpenHistory = { calls += "history:$it" }), callbacks) }
         }
     }
 
@@ -105,7 +105,7 @@ class FeederScreenTest {
         }
 
         // Feed goes to the ViewModel, which feeds now with the chosen portions.
-        assertEquals(listOf("action:feed", "edit", "add", "history"), calls)
+        assertEquals(listOf("action:feed", "edit", "add", "history:2001"), calls)
     }
 
     @Test

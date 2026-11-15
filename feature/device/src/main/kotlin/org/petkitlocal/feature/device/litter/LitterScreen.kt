@@ -132,5 +132,7 @@ private fun LazyListScope.litterContent(
     }
     item(key = "today") { TodayCard(page, Modifier.gutter()) }
     item(key = "chart") { VisitsChartCard(page, uiState.petFilter, callbacks.onPetFilter, Modifier.gutter()) }
-    item(key = "activity") { ActivityCard(page, uiState.zone, navigation.onOpenHistory, Modifier.gutter()) }
+    item(key = "activity") {
+        ActivityCard(page, uiState.zone, { navigation.onOpenHistory(page.device.id) }, Modifier.gutter())
+    }
 }
