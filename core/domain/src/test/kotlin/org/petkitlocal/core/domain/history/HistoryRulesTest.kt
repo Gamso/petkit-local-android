@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.petkitlocal.core.domain.ListOnlyPets
 import org.petkitlocal.core.domain.Outcome
 import org.petkitlocal.core.domain.devicepage.PageFixtures
 import org.petkitlocal.core.domain.model.Device
@@ -24,7 +25,6 @@ import org.petkitlocal.core.domain.model.PetRef
 import org.petkitlocal.core.domain.model.TimelineCategory
 import org.petkitlocal.core.domain.model.TimelineItem
 import org.petkitlocal.core.domain.repository.DeviceRepository
-import org.petkitlocal.core.domain.repository.PetRepository
 import org.petkitlocal.core.domain.repository.TimelineRepository
 
 class HistoryRulesTest {
@@ -151,7 +151,7 @@ class HistoryRulesTest {
         override suspend fun refresh(): Outcome<Unit> = Outcome.Success(Unit)
     }
 
-    private class StaticPets(private val pets: List<Pet>) : PetRepository {
+    private class StaticPets(private val pets: List<Pet>) : ListOnlyPets() {
         override fun observePets() = flowOf(pets)
 
         override suspend fun refresh(): Outcome<Unit> = Outcome.Success(Unit)
