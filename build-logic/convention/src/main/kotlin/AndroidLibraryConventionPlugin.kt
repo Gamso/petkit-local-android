@@ -6,6 +6,7 @@ import org.gradle.kotlin.dsl.configure
 import org.petkitlocal.buildlogic.apply
 import org.petkitlocal.buildlogic.configureAndroidCommon
 import org.petkitlocal.buildlogic.configureQuality
+import org.petkitlocal.buildlogic.disableDeviceTestsWithoutSources
 import org.petkitlocal.buildlogic.disableReleaseHostTests
 import org.petkitlocal.buildlogic.libs
 import org.petkitlocal.buildlogic.moduleNamespace
@@ -20,6 +21,7 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
         }
         extensions.configure<LibraryAndroidComponentsExtension> {
             disableReleaseHostTests()
+            disableDeviceTestsWithoutSources(target)
         }
         configureQuality()
     }

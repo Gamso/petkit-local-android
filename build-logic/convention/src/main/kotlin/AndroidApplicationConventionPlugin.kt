@@ -8,6 +8,7 @@ import org.petkitlocal.buildlogic.configureAndroidCommon
 import org.petkitlocal.buildlogic.configureCompose
 import org.petkitlocal.buildlogic.configureManagedDevices
 import org.petkitlocal.buildlogic.configureQuality
+import org.petkitlocal.buildlogic.disableDeviceTestsWithoutSources
 import org.petkitlocal.buildlogic.disableReleaseHostTests
 import org.petkitlocal.buildlogic.libs
 import org.petkitlocal.buildlogic.version
@@ -32,6 +33,7 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
         }
         extensions.configure<ApplicationAndroidComponentsExtension> {
             disableReleaseHostTests()
+            disableDeviceTestsWithoutSources(target)
         }
         configureQuality()
     }
