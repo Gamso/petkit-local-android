@@ -1,5 +1,6 @@
 package io.github.gamso.petkitlocal.mock
 
+import io.github.gamso.petkitlocal.mock.api.AccessoryRef
 import io.github.gamso.petkitlocal.mock.catalog.Catalog
 import io.github.gamso.petkitlocal.mock.seed.Seed
 import io.github.gamso.petkitlocal.mock.state.World
@@ -40,7 +41,7 @@ class SeedTest {
     @Test
     fun `each device shows exactly the entities and actions petkit-local defines for its model`() {
         val catalog = Catalog.load()
-        assertEquals("59a0699eda57465918f3cd4795ee4934d2f3955e", catalog.source)
+        assertEquals("2b080d1bca183f31288740defb238ef08e352482", catalog.source)
         world.devices.values.forEach { d ->
             val detail = d.detail()
             assertEquals(catalog.model(d.type).entities.map { it.key }, detail.entities.map { it.key }, d.type)
@@ -51,6 +52,28 @@ class SeedTest {
         assertTrue(
             t4.entities.map { it.key }.containsAll(listOf("device_status", "litter_percent", "waste_bin", "auto_work", "cleaning_delay")),
         )
+    }
+
+    @Test
+    fun `Bluetooth accessories are devices that name their parent, which lists them`() {
+        val summaries = world.devices.values.associate { it.id to it.summary() }
+        assertEquals(
+            mapOf(Seed.W5 to Seed.D4SH, Seed.CTW3 to Seed.D4, Seed.K3 to Seed.T4),
+            summaries.values.filter { it.connection == "ble" }.associate { it.id to it.parentId },
+        )
+        val t4 = summaries.getValue(Seed.T4)
+        assertEquals(listOf(AccessoryRef(Seed.K3, "k3", "purifier")), t4.accessories)
+        assertEquals("wifi", t4.connection)
+        assertEquals(null, t4.parentId)
+        summaries.values.filter { it.connection == "ble" }.forEach {
+            assertEquals(emptyList<AccessoryRef>(), it.accessories)
+            assertEquals(null, it.firmware)
+            // An accessory is online, and on a transport, as its parent is.
+            val parent = summaries.getValue(it.parentId!!)
+            assertEquals(parent.online, it.online)
+            assertEquals(parent.transport, it.transport)
+        }
+        assertEquals(null, summaries.getValue(Seed.K3).lastSeen)
     }
 
     @Test

@@ -1,5 +1,6 @@
 package io.github.gamso.petkitlocal.mock.state
 
+import io.github.gamso.petkitlocal.mock.api.AccessoryRef
 import io.github.gamso.petkitlocal.mock.api.ActionDto
 import io.github.gamso.petkitlocal.mock.api.DeviceDetail
 import io.github.gamso.petkitlocal.mock.api.DeviceSummary
@@ -20,6 +21,9 @@ import kotlinx.serialization.json.doubleOrNull
 /** Components that carry a value; buttons are the device's `actions` instead. */
 val VALUE_COMPONENTS = setOf("sensor", "binary_sensor", "switch", "number", "select", "text", "time")
 
+/** Bluetooth accessories: no network of their own, reached through a parent (`devices/ble/`). */
+val BLE_TYPES = setOf("w5", "w4", "ctw2", "ctw3", "k3")
+
 /**
  * One fake device. Its state is a document keyed by the entities' `value_path`s, exactly the
  * paths petkit-local resolves (`ha/state_doc.py`), so two entities reading one field (a W7H's
@@ -33,7 +37,24 @@ class MockDevice(
     var transport: String,
 ) {
     val type: String get() = model.type
-    var online: Boolean = true
+
+    /** A Bluetooth accessory, relayed by [parent] (`app_api/inventory.py`). */
+    val isAccessory: Boolean get() = type in BLE_TYPES
+
+    /** The device relaying this accessory; null for a WiFi device or an unlinked accessory. */
+    var parent: MockDevice? = null
+
+    /** The accessories this device relays, in the order the server lists them. */
+    val accessories: MutableList<MockDevice> = mutableListOf()
+
+    private var reachable: Boolean = true
+
+    /** An accessory is online while the device relaying it is, as `accessory_summary` says. */
+    var online: Boolean
+        get() = if (isAccessory) parent?.online == true else reachable
+        set(value) {
+            reachable = value
+        }
     var lastSeen: Double? = null
     val doc: MutableMap<String, JsonElement> = mutableMapOf()
 
@@ -69,10 +90,15 @@ class MockDevice(
             model = model.model,
             kind = model.kind,
             online = online,
-            transport = transport,
-            lastSeen = lastSeen,
-            firmware = firmware,
+            // An accessory travels on its parent's transport (`http` when it has none).
+            transport = if (isAccessory) parent?.transport ?: "http" else transport,
+            // A K3's readings ride on its parent's reports: it has no contact of its own.
+            lastSeen = if (type == "k3") null else lastSeen,
+            firmware = if (isAccessory) null else firmware,
             isCamera = model.isCamera,
+            connection = if (isAccessory) "ble" else "wifi",
+            parentId = parent?.id,
+            accessories = accessories.map { AccessoryRef(it.id, it.type, it.model.kind) },
         )
 
     fun entities(): List<EntityDto> = model.entities.filter { it.component in VALUE_COMPONENTS }.map { render(it) }
@@ -93,6 +119,9 @@ class MockDevice(
             lastSeen = s.lastSeen,
             firmware = s.firmware,
             isCamera = s.isCamera,
+            connection = s.connection,
+            parentId = s.parentId,
+            accessories = s.accessories,
             serial = serial,
             entities = entities(),
             actions = model.actions.map { ActionDto(it.key, it.name, it.destructive) },

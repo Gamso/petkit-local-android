@@ -56,11 +56,12 @@ class Seed(
             seedValues(device)
             if (device.isFeeder) device.plan = seedPlan(device)
         }
-        // A Bluetooth fountain that has been out of its parent's range for three hours.
-        world.devices.getValue(W5).apply {
-            online = false
-            lastSeen = clock.now() - 3 * 3600 - 412
-        }
+        // The Bluetooth accessories and the devices relaying them: the Pura Max holds the Pura
+        // Air in its K3 slot; the W5 is relayed by a feeder on MQTT, so it can be written to; the
+        // CTW3's parent polls HTTP, so a write to it is refused with 409.
+        ACCESSORIES.forEach { (accessory, parent) -> world.link(world.devices.getValue(accessory), world.devices.getValue(parent)) }
+        // A Bluetooth fountain whose last frame decoded three hours ago: out of its parent's range.
+        world.devices.getValue(W5).lastSeen = clock.now() - 3 * 3600 - 412
         world.pets[1] = Pet(1, "Mochi", listOf(T3, T4, T5, T6, T7, D4H, W7H), 4200.0, 4310.0, hasPhoto = true)
         world.pets[2] = Pet(2, "Tigrou", listOf(T4, T5, T6, D4SH, W7H), 6000.0, null, hasPhoto = false)
         history()
@@ -369,6 +370,9 @@ class Seed(
                 SeedDevice(CTW3, "ctw3", null, "2.06"),
                 SeedDevice(K3, "k3", null, "1.03"),
             )
+
+        /** Each Bluetooth accessory and the device relaying it, in the order the parent lists them. */
+        val ACCESSORIES = listOf(K3 to T4, W5 to D4SH, CTW3 to D4)
 
         /** The embedded-Linux models reach the broker; the ESP32 ones and the BLE accessories poll HTTP. */
         fun transportOf(type: String) = if (type in setOf("t5", "t6", "t7", "d4h", "d4sh", "w7h")) "mqtt" else "http"
