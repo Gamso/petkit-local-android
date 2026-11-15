@@ -1,15 +1,16 @@
 package org.petkitlocal.feature.auth
 
-import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import kotlinx.serialization.Serializable
 
+/**
+ * The sign-in screen. Nothing navigates to it by hand: the app's auth gate shows it whenever
+ * there is no session, and leaves it for Home when one starts.
+ */
 @Serializable
 data object SignInDestination
 
-fun NavController.navigateToSignIn() = navigate(SignInDestination)
-
-fun NavGraphBuilder.signInScreen(onBack: () -> Unit) {
-    composable<SignInDestination> { SignInRoute(onBack = onBack) }
+fun NavGraphBuilder.signInScreen() {
+    composable<SignInDestination> { SignInRoute() }
 }

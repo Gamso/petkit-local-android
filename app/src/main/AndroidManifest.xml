@@ -3,6 +3,9 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Android 17+: without it, packets to a private address (a server on the LAN) are dropped
+         and every call times out. Asked at sign-in, only for a LAN server (feature:auth). -->
+    <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
 
     <application
         android:name=".PetkitLocalApplication"

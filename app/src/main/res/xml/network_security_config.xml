@@ -1,7 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Release: HTTPS only (SPEC.md §8). The debug build replaces this file
-     (src/debug/res/xml/network_security_config.xml) to reach the mock server over plain HTTP.
-     Plain HTTP to a private LAN address (SPEC.md §3) arrives with sign-in (M1). -->
-<network-security-config>
-    <base-config cleartextTrafficPermitted="false" />
+<!-- petkit-local on a home network usually listens on plain HTTP (SPEC.md §3), and a network
+     security config cannot name "any private address". So cleartext is allowed here, and the app
+     itself refuses plain HTTP to anything but a private LAN host (ServerAddresses, core:domain),
+     before a single request is made. -->
+<network-security-config xmlns:tools="http://schemas.android.com/tools">
+    <base-config cleartextTrafficPermitted="true" tools:ignore="InsecureBaseConfiguration">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
 </network-security-config>

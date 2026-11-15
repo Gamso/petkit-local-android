@@ -1,4 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="auth_title">Connexion</string>
+    <string name="auth_tagline">Les appareils de vos animaux, sur votre propre serveur.</string>
+
+    <string name="auth_address_label">Adresse du serveur</string>
+    <string name="auth_password_label">Mot de passe</string>
+    <string name="auth_password_show">Afficher le mot de passe</string>
+    <string name="auth_password_hide">Masquer le mot de passe</string>
+    <string name="auth_phone_name_label">Nom de ce téléphone</string>
+    <string name="auth_phone_name_help">Affiché dans la liste des téléphones connectés du panneau.</string>
+    <string name="auth_phone_name_row">Nom du téléphone : %1$s</string>
+    <string name="auth_phone_name_title">Nom du téléphone</string>
+    <string name="auth_phone_name_edit">Modifier</string>
+    <string name="auth_phone_name_close">Fermer</string>
+    <string name="auth_plain_http_warning">HTTP non chiffré : le mot de passe et la session circulent en clair. À réserver à votre réseau domestique.</string>
+
+    <string name="auth_submit">Se connecter</string>
+    <string name="auth_submitting">Connexion…</string>
+    <plurals name="auth_retry_in">
+        <item quantity="one">Réessayer dans %d seconde</item>
+        <item quantity="many">Réessayer dans %d secondes</item>
+        <item quantity="other">Réessayer dans %d secondes</item>
+    </plurals>
+
+    <string name="auth_error_address_empty">Saisissez l\'adresse du serveur.</string>
+    <string name="auth_error_address_malformed">Ce n\'est pas une adresse de serveur.</string>
+    <string name="auth_error_address_scheme">Utilisez une adresse qui commence par https://.</string>
+    <string name="auth_error_address_https_required">HTTPS est obligatoire en dehors de votre réseau domestique.</string>
+    <string name="auth_error_wrong_password">Mot de passe incorrect.</string>
+    <string name="auth_error_password_missing">Saisissez le mot de passe.</string>
+    <string name="auth_error_not_petkit_local">Aucun serveur petkit-local ne répond à cette adresse. Vérifiez-la, ainsi que le chemin de votre proxy inverse s\'il en a un.</string>
+    <string name="auth_error_password_not_set">Ce serveur n\'a pas encore de mot de passe. Définissez-en un dans la carte « Phone app access » du panneau, puis connectez-vous.</string>
+    <string name="auth_error_incompatible">Ce serveur parle la version %1$d de l\'API de l\'application mobile et cette application la version %2$d. Mettez à jour petkit-local ou l\'application.</string>
+    <string name="auth_error_locked_out">Trop de mots de passe incorrects. Patientez avant de réessayer.</string>
+    <string name="auth_error_unreachable">Le serveur est injoignable. Vérifiez l\'adresse et votre connexion.</string>
+    <string name="auth_error_server">Le serveur a rencontré une erreur. Réessayez plus tard.</string>
+    <string name="auth_error_server_status">Le serveur a rencontré une erreur (HTTP %1$d). Réessayez plus tard.</string>
+    <string name="auth_error_server_message">Le serveur a refusé : %1$s</string>
+
+    <string name="auth_local_network_rationale">Votre serveur est sur votre réseau domestique. Android vous demande d\'autoriser cette application à joindre les appareils du réseau local, sans quoi elle ne peut pas joindre le serveur.</string>
+    <string name="auth_local_network_allow">Autoriser l\'accès au réseau local</string>
+    <string name="auth_error_local_network_denied">L\'accès au réseau local a été refusé : l\'application ne peut pas joindre un serveur de votre réseau domestique. Autorisez-le dans les paramètres Android de l\'application, ou utilisez une adresse HTTPS joignable depuis Internet.</string>
+    <string name="auth_open_app_settings">Ouvrir les paramètres Android</string>
+
+    <string name="auth_session_ended">Vous avez été déconnecté : la session de ce téléphone a été révoquée dans le panneau, le mot de passe a changé, ou elle est restée 90 jours sans servir.</string>
+    <string name="auth_session_ended_password_removed">Vous avez été déconnecté : le mot de passe a été supprimé dans le panneau. Définissez-en un nouveau pour vous reconnecter.</string>
 </resources>
