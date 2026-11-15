@@ -1,0 +1,31 @@
+# On top of detekt's defaults. The mock is one process holding a fake world in memory; its route
+# table and seed data are long by nature.
+complexity:
+  LongMethod:
+    threshold: 120
+  CyclomaticComplexMethod:
+    threshold: 30
+  LargeClass:
+    threshold: 900
+  TooManyFunctions:
+    thresholdInFiles: 40
+    thresholdInClasses: 40
+  LongParameterList:
+    functionThreshold: 10
+    constructorThreshold: 20
+style:
+  MagicNumber:
+    active: false
+  # Validators mirror petkit-local's early-return checks (`ha/schedules.py`), one refusal per rule.
+  ReturnCount:
+    max: 12
+  MaxLineLength:
+    maxLineLength: 140
+  # Request validators refuse each bad field with its own API error, as petkit-local's do.
+  ThrowsCount:
+    max: 12
+exceptions:
+  # Request parsing turns a library's parse failure into the API's own error code on purpose
+  # (`bad_parameter`, `invalid_feed`): the original exception is the detail, the code is the answer.
+  SwallowedException:
+    active: false

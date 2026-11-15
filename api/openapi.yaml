@@ -1,0 +1,1338 @@
+openapi: 3.1.0
+info:
+  title: petkit-local app API
+  version: "1"
+  summary: API for the petkit-local phone app.
+  description: |
+    Served by petkit-local on its own port (8097 by default), and on nothing else:
+    neither the web panel nor the device API is reachable through it.
+
+    Every route answers 401 `password_not_set` until a password has been set in the
+    petkit-local panel (Setup -> Phone app access). After that, `/info` and this file
+    are public, `/auth/login` takes the password, and every other route needs
+    `Authorization: Bearer <token>` with a token from `/auth/login`.
+
+    A token lasts until logout, revocation from the panel, a password change, or 90
+    days without use (each authenticated request extends it).
+
+    Conventions: times are Unix epoch seconds (`null` when unknown), weights are grams,
+    durations are seconds. Media URLs are absolute paths on this API, to be joined to
+    the base URL the app reached the server at; fetch them with the same bearer header.
+    Every refusal is an `Error` object.
+
+    Writes go to the device the way Home Assistant's do: published at once when it
+    holds an MQTT session, otherwise queued for its next HTTP poll. Each answers
+    `delivered`: `mqtt`, `queued`, or `local` when only petkit-local's own state
+    changed. A device confirms a write in its next report, which `/ws` relays.
+
+    Adding a field to a response is a compatible change; removing or renaming one
+    is not and requires `/app/v2`.
+servers:
+  - url: /app/v1
+security:
+  - bearer: []
+tags:
+  - name: meta
+  - name: auth
+  - name: devices
+  - name: updates
+  - name: video
+  - name: timeline
+  - name: media
+  - name: pets
+  - name: controls
+  - name: feeding
+
+paths:
+  /info:
+    get:
+      tags: [meta]
+      operationId: getInfo
+      summary: Server identity and clock. Public once a password is set.
+      description: |
+        A valid bearer token is optional here; with one, `server_version` and
+        `session` are filled in, so the app can check its token in the same call.
+      security:
+        - {}
+        - bearer: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Info" }
+        "401": { $ref: "#/components/responses/PasswordNotSet" }
+
+  /openapi.yaml:
+    get:
+      tags: [meta]
+      operationId: getOpenApi
+      summary: This document. Public once a password is set.
+      security:
+        - {}
+      responses:
+        "200":
+          description: The OpenAPI document.
+          content:
+            application/yaml:
+              schema: { type: string }
+        "401": { $ref: "#/components/responses/PasswordNotSet" }
+
+  /auth/login:
+    post:
+      tags: [auth]
+      operationId: login
+      summary: Exchange the password for a per-phone session token.
+      description: |
+        Failed attempts are counted per client address. Each one locks that address
+        out for twice as long as the last (1 s, 2 s, 4 s ... up to 15 minutes); a
+        locked-out attempt is answered 429 without the password being checked.
+      security:
+        - {}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/LoginRequest" }
+      responses:
+        "200":
+          description: Signed in. The token is shown only in this response.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LoginResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401":
+          description: "`password_not_set`, or `invalid_password` (with `Retry-After`)."
+          headers:
+            Retry-After: { $ref: "#/components/headers/RetryAfter" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "415": { $ref: "#/components/responses/UnsupportedMediaType" }
+        "429": { $ref: "#/components/responses/TooManyAttempts" }
+
+  /auth/logout:
+    post:
+      tags: [auth]
+      operationId: logout
+      summary: Revoke the calling session (only that one).
+      responses:
+        "200":
+          description: Signed out.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Ok" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /auth/password:
+    post:
+      tags: [auth]
+      operationId: changePassword
+      summary: Change the password. Needs the current one; revokes every OTHER session.
+      description: |
+        The calling session stays signed in. The current password is checked under
+        the same per-address lockout as login.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChangePasswordRequest" }
+      responses:
+        "200":
+          description: Changed.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChangePasswordResponse" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401":
+          description: "No valid session, or `invalid_password` for the current password."
+          headers:
+            Retry-After: { $ref: "#/components/headers/RetryAfter" }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "415": { $ref: "#/components/responses/UnsupportedMediaType" }
+        "429": { $ref: "#/components/responses/TooManyAttempts" }
+
+  /devices:
+    get:
+      tags: [devices]
+      operationId: listDevices
+      summary: Every device, ordered by id.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [devices]
+                properties:
+                  devices:
+                    type: array
+                    items: { $ref: "#/components/schemas/DeviceSummary" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /devices/{id}:
+    get:
+      tags: [devices]
+      operationId: getDevice
+      summary: One device with the current value of each of its entities.
+      parameters:
+        - { $ref: "#/components/parameters/DeviceId" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [device]
+                properties:
+                  device: { $ref: "#/components/schemas/DeviceDetail" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /devices/{id}/actions/{action}:
+    post:
+      tags: [controls]
+      operationId: runDeviceAction
+      summary: Press one of the device's buttons (feed, clean, deodorize, ...).
+      description: |
+        Only the actions in the device's `actions` list (the buttons Home Assistant
+        shows for that model). One marked `destructive` cannot be undone — it spends a
+        consumable or takes the device out of service — and is refused with 422
+        `confirmation_required` unless the body is `{"confirm": true}`. Any other
+        action needs no body.
+      parameters:
+        - { $ref: "#/components/parameters/DeviceId" }
+        - name: action
+          in: path
+          required: true
+          description: An action `key` from `DeviceDetail.actions`.
+          schema: { type: string }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ActionRequest" }
+      responses:
+        "200":
+          description: Sent or queued.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ActionResult" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "415": { $ref: "#/components/responses/UnsupportedMediaType" }
+        "422": { $ref: "#/components/responses/Unprocessable" }
+
+  /devices/{id}/entities/{key}:
+    put:
+      tags: [controls]
+      operationId: setDeviceEntity
+      summary: Change a setting — an entity whose `settable` is true.
+      description: |
+        `value` is typed by the entity's `component`: a boolean for `switch`, a
+        number within `min`/`max` for `number`, one of `options` for `select`,
+        `HH:MM` or `HH:MM:SS` for `time`, a string of at most 255 characters for
+        `text`. The answer carries the entity with the value now stored; the
+        device's next report confirms or overwrites it.
+      parameters:
+        - { $ref: "#/components/parameters/DeviceId" }
+        - name: key
+          in: path
+          required: true
+          description: An entity `key` from `DeviceDetail.entities`.
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/EntityWriteRequest" }
+      responses:
+        "200":
+          description: Stored, and sent or queued.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/EntityWriteResult" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "415": { $ref: "#/components/responses/UnsupportedMediaType" }
+        "422": { $ref: "#/components/responses/Unprocessable" }
+
+  /devices/{id}/schedule:
+    get:
+      tags: [feeding]
+      operationId: getFeedingPlan
+      summary: A feeder's recurring meals and whether they are paused.
+      parameters:
+        - { $ref: "#/components/parameters/DeviceId" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [schedule]
+                properties:
+                  schedule: { $ref: "#/components/schemas/FeedingPlan" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotAFeeder" }
+    put:
+      tags: [feeding]
+      operationId: setFeedingPlan
+      summary: Replace the meals, pause or resume them — or both, pushed once.
+      description: |
+        `groups` replaces every recurring meal (pending one-off feeds are kept);
+        `active` false pauses the plan: the meals stay stored and the feeder is
+        told it has none until it is resumed. Send either or both.
+      parameters:
+        - { $ref: "#/components/parameters/DeviceId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/FeedingPlanWrite" }
+      responses:
+        "200":
+          description: Stored, and sent or queued.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FeedingPlanResult" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotAFeeder" }
+        "415": { $ref: "#/components/responses/UnsupportedMediaType" }
+        "422": { $ref: "#/components/responses/Unprocessable" }
+
+  /devices/{id}/deferred-feeds:
+    get:
+      tags: [feeding]
+      operationId: listDeferredFeeds
+      summary: A feeder's pending one-off feeds, soonest first.
+      parameters:
+        - { $ref: "#/components/parameters/DeviceId" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [deferred_feeds]
+                properties:
+                  deferred_feeds:
+                    type: array
+                    items: { $ref: "#/components/schemas/DeferredFeed" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotAFeeder" }
+    post:
+      tags: [feeding]
+      operationId: addDeferredFeed
+      summary: Schedule one feed at a date and time (the feeder's own timezone).
+      description: A pause of the recurring plan does not hold a one-off feed back.
+      parameters:
+        - { $ref: "#/components/parameters/DeviceId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DeferredFeedRequest" }
+      responses:
+        "201":
+          description: Stored, and sent or queued.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeferredFeedResult" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotAFeeder" }
+        "415": { $ref: "#/components/responses/UnsupportedMediaType" }
+        "422": { $ref: "#/components/responses/Unprocessable" }
+
+  /devices/{id}/deferred-feeds/{feed_id}:
+    delete:
+      tags: [feeding]
+      operationId: deleteDeferredFeed
+      summary: Cancel one pending one-off feed.
+      parameters:
+        - { $ref: "#/components/parameters/DeviceId" }
+        - name: feed_id
+          in: path
+          required: true
+          description: A `DeferredFeed.id`.
+          schema: { type: string }
+      responses:
+        "200":
+          description: Removed, and the feeder told.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WriteResult" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404":
+          description: "`device_not_found`, `not_a_feeder`, or `feed_not_found`."
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /devices/{id}/live:
+    get:
+      tags: [video]
+      operationId: openLiveVideo
+      summary: The camera's live video as fragmented MP4 over a WebSocket (go2rtc MSE).
+      description: |
+        A WebSocket upgrade, authenticated by the same `Authorization: Bearer` header as
+        every route (sent on the upgrade request). Every refusal happens before the
+        upgrade, as a normal JSON `Error`. The stream is always this device's own:
+        nothing the client sends names it.
+
+        Message flow:
+
+        1. Client -> server, text, once: `{"type":"mse","value":"<codecs>"}` — the codec
+           list the player supports, comma-separated MSE strings, e.g.
+           `avc1.640029,avc1.64002A,avc1.640033,hvc1.1.6.L153.B0,mp4a.40.2,mp4a.40.5,opus`.
+           Only `type` and `value` are used; any other message, or a second request, is
+           answered with an `error` message and not acted on. Binary messages from the
+           client are ignored.
+        2. Server -> client, text: `{"type":"mse","value":"video/mp4; codecs=\"avc1.42001F,mp4a.40.2\""}`
+           — the MIME type to create the `SourceBuffer` with.
+        3. Server -> client, binary, continuous: the first message is the init segment
+           (`ftyp`+`moov`), every following one a media fragment (`moof`+`mdat`). Append
+           them in order. A viewer joining a running stream gets the init segment at
+           once and its first fragment at the next keyframe.
+        4. Server -> client, text, at any time: `{"type":"error","value":"<text>"}` — the
+           camera stream could not be opened (a camera takes a new viewer only some
+           seconds after the last one left) or a client message was refused. The socket
+           stays open; close it and retry after a few seconds.
+
+        Close codes: `1000` closed by the client; `1001` the server is stopping;
+        `1011` the stream ended (camera or go2rtc went away) — retry after a few
+        seconds; `1013` the client did not keep up with the stream (more than 4 MiB
+        queued) — fall back to HLS; `4401` the session ended (logout, revocation,
+        password change) — sign in again; `4409` the same session opened this
+        camera again, which replaces the older view.
+
+        Viewers are capped at 2 per camera and 4 in total, WebSocket and HLS together;
+        one session holds at most one view per camera. The server pings every 20 s.
+      parameters:
+        - { $ref: "#/components/parameters/DeviceId" }
+      responses:
+        "101":
+          description: Switching protocols; the WebSocket follows the flow above.
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404":
+          description: "`device_not_found`, or `stream_not_found`: not a camera, the camera
+            patch is not applied, or the camera's stream is not reachable."
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "426":
+          description: "`upgrade_required`: the request was not a WebSocket upgrade."
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "429": { $ref: "#/components/responses/VideoLimitReached" }
+        "503": { $ref: "#/components/responses/VideoUnavailable" }
+
+  /devices/{id}/live/hls/{file}:
+    get:
+      tags: [video]
+      operationId: getLiveHls
+      summary: The camera's live video as HLS (fMP4 segments), the fallback to the WebSocket.
+      description: |
+        Start with `playlist.m3u8` WITHOUT `id`: it opens an HLS session (one viewer
+        slot, capped like the WebSocket) and answers a master playlist whose one
+        variant is `playlist.m3u8?id=<session>`. Every URI in every playlist is
+        RELATIVE to this route, so a player resolves them here; send the same bearer
+        header on each request (Media3: `DefaultHttpDataSource.Factory`
+        `.setDefaultRequestProperties`).
+
+        A session id works only for the session that opened it and this device. It
+        lapses after ~5 s without a request (go2rtc's own limit), which a playing
+        player never reaches; after that its files answer 404 `hls_session_expired`
+        and the player should start again from `playlist.m3u8` without `id`.
+        Segments are about 0.5 s; expect a few seconds of delay.
+      parameters:
+        - { $ref: "#/components/parameters/DeviceId" }
+        - name: file
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [playlist.m3u8, init.mp4, segment.m4s]
+        - name: id
+          in: query
+          description: The HLS session, as written in the playlists. Absent only on the
+            first `playlist.m3u8`.
+          schema: { type: string }
+        - name: "n"
+          in: query
+          description: The segment number (`segment.m4s` only), as written in the playlist.
+          schema: { type: integer, minimum: 0 }
+      responses:
+        "200":
+          description: The playlist, init segment or media segment.
+          content:
+            application/vnd.apple.mpegurl:
+              schema: { type: string }
+            video/mp4:
+              schema: { type: string, contentMediaType: video/mp4 }
+            video/iso.segment:
+              schema: { type: string, contentMediaType: video/iso.segment }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404":
+          description: "`device_not_found`, `stream_not_found`, `hls_session_not_found`
+            (an id this session did not open for this device), `hls_session_expired`, or
+            `not_found` (another file)."
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "429": { $ref: "#/components/responses/VideoLimitReached" }
+        "502":
+          description: "`bad_upstream`: go2rtc answered something this route will not
+            relay (refused rather than passed through)."
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "503": { $ref: "#/components/responses/VideoUnavailable" }
+
+  /timeline:
+    get:
+      tags: [timeline]
+      operationId: getTimeline
+      summary: History as grouped cards, newest first, cursor-paginated.
+      parameters:
+        - name: device
+          in: query
+          description: Only this device.
+          schema: { type: integer }
+        - name: day
+          in: query
+          description: Only this local calendar day (cut at the server's local midnight).
+          schema: { type: string, format: date }
+        - name: kind
+          in: query
+          description: Only cards under this filter chip.
+          schema:
+            type: string
+            enum: [all, pet, toileting, drinking, feeding, cleaning, health_alert, fault]
+            default: all
+        - name: pet
+          in: query
+          description: Only cards attributed to this pet.
+          schema: { type: integer }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 30 }
+        - name: cursor
+          in: query
+          description: The `next_cursor` of the previous page, verbatim. Opaque.
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TimelinePage" }
+        "400": { $ref: "#/components/responses/BadRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+
+  /timeline/{event_id}:
+    get:
+      tags: [timeline]
+      operationId: getTimelineEvent
+      summary: One stored event, with its decoded fields and its media.
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          description: A timeline item's `id`, or one of its steps' `id`.
+          schema: { type: integer }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [event]
+                properties:
+                  event: { $ref: "#/components/schemas/EventDetail" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+
+  /media/thumb/{path}:
+    get:
+      tags: [media]
+      operationId: getMediaThumbnail
+      summary: A JPEG thumbnail for a photo or video in the media tree.
+      parameters:
+        - { $ref: "#/components/parameters/MediaPath" }
+      responses:
+        "200":
+          description: The thumbnail.
+          content:
+            image/jpeg:
+              schema: { type: string, contentMediaType: image/jpeg }
+            image/png:
+              schema: { type: string, contentMediaType: image/png }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /media/{path}:
+    get:
+      tags: [media]
+      operationId: getMediaFile
+      summary: One photo or video from the media tree. Supports Range.
+      parameters:
+        - { $ref: "#/components/parameters/MediaPath" }
+      responses:
+        "200":
+          description: The file.
+          content:
+            "*/*":
+              schema: { type: string }
+        "206":
+          description: The requested range of the file.
+          content:
+            "*/*":
+              schema: { type: string }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /pets:
+    get:
+      tags: [pets]
+      operationId: listPets
+      summary: Every pet, ordered by id.
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [pets]
+                properties:
+                  pets:
+                    type: array
+                    items: { $ref: "#/components/schemas/Pet" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+
+  /pets/{id}:
+    get:
+      tags: [pets]
+      operationId: getPet
+      summary: One pet, its weight and visit statistics, and its recent visits.
+      parameters:
+        - { $ref: "#/components/parameters/PetId" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [pet]
+                properties:
+                  pet: { $ref: "#/components/schemas/PetDetail" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+
+  /pets/{id}/photo:
+    get:
+      tags: [pets]
+      operationId: getPetPhoto
+      summary: The pet's first reference photo.
+      parameters:
+        - { $ref: "#/components/parameters/PetId" }
+      responses:
+        "200":
+          description: The photo.
+          content:
+            image/jpeg:
+              schema: { type: string, contentMediaType: image/jpeg }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+
+  /ws:
+    get:
+      tags: [updates]
+      operationId: openLiveUpdates
+      summary: Live updates over a WebSocket.
+      description: |
+        Upgrade with `Authorization: Bearer <token>` on the request (a native client
+        can send headers on the upgrade). Every frame the server sends is one JSON
+        text message, an `UpdateMessage` told apart by `type`:
+
+        * `hello` — first, once: every device as `DeviceDetail`. Start from it rather
+          than from an earlier `GET`, so nothing falls between the two.
+        * `state` — a device's entities whose value changed, and only those. A device
+          is looked at at most once a second, so a burst of reports is one message.
+        * `device` — a device's summary when anything other than `last_seen` changed
+          (online or offline, transport, firmware), or when a new device appears
+          (fetch `/devices/{id}` for its entities).
+        * `device_removed`.
+        * `timeline` — a timeline card that is new or changed (its photos or video
+          arrived, a cleaning attached). Replace any card with the same `id`, and
+          drop those listed in `replaces`: an episode still in progress is keyed on
+          its newest report until the one that closes it arrives. For history,
+          open the socket first, then `GET /timeline`, and merge by `id`.
+
+        The server pings every 25 s at the protocol level. The app may send
+        `{"type": "ping"}` for an application-level `{"type": "pong"}`; anything else
+        it sends is ignored.
+
+        Close codes (the same as the live-video socket's): `1001` server shutting
+        down; `4401` the session ended (logout, revoked in the panel, password
+        changed or removed) — sign in again; `1013` the app read too slowly and its
+        queue filled — reconnect, which starts from a fresh `hello`.
+      responses:
+        "101":
+          description: Switching to the WebSocket protocol; each message is an `UpdateMessage`.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UpdateMessage" }
+        "400":
+          description: Not a WebSocket upgrade request.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      description: A session token from `POST /auth/login`.
+
+  parameters:
+    DeviceId:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer }
+    PetId:
+      name: id
+      in: path
+      required: true
+      schema: { type: integer }
+    MediaPath:
+      name: path
+      in: path
+      required: true
+      description: A media-tree-relative path, as found in a `Media` object (slashes included).
+      schema: { type: string }
+
+  headers:
+    RetryAfter:
+      description: Seconds to wait before the next login attempt from this address.
+      schema: { type: integer }
+
+  responses:
+    BadRequest:
+      description: A malformed parameter or body.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Unauthorized:
+      description: "`password_not_set`, or `invalid_token` (missing, revoked or expired)."
+      headers:
+        WWW-Authenticate:
+          schema: { type: string }
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    PasswordNotSet:
+      description: "`password_not_set`: no password has been set in the panel yet."
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotFound:
+      description: No such resource (a malformed id is not found either).
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    UnsupportedMediaType:
+      description: The body was not sent as `application/json`.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    TooManyAttempts:
+      description: This address is locked out after wrong passwords.
+      headers:
+        Retry-After: { $ref: "#/components/headers/RetryAfter" }
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Unprocessable:
+      description: |
+        Understood and refused; nothing was changed. `error` says why:
+        `confirmation_required`, `refused` (a value of the wrong type or out of
+        bounds), `not_settable`, `invalid_schedule`, `invalid_feed`.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    NotAFeeder:
+      description: "`device_not_found`, or `not_a_feeder` for a device with no feeding plan."
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Unavailable:
+      description: The store behind this route is not running.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    VideoLimitReached:
+      description: "`live_limit_reached`: this camera (2) or the server (4) already has
+        as many live viewers as it serves."
+      headers:
+        Retry-After: { schema: { type: integer } }
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    VideoUnavailable:
+      description: "`live_unavailable`: go2rtc, which serves the camera's stream, is not
+        running or did not answer. Retry shortly."
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+
+  schemas:
+    Error:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          description: Machine-readable code, e.g. `password_not_set`, `invalid_token`,
+            `invalid_password`, `too_many_attempts`, `device_not_found`, `bad_cursor`.
+        message: { type: string, description: Human-readable explanation. }
+
+    Ok:
+      type: object
+      required: [ok]
+      properties:
+        ok: { type: boolean, const: true }
+
+    Session:
+      type: object
+      required: [id, name, created, last_used, expires]
+      properties:
+        id: { type: string, description: "Public id; the panel revokes by it." }
+        name: { type: string, description: The `device_name` given at login. }
+        created: { type: number }
+        last_used: { type: number, description: Updated at most every 5 minutes. }
+        expires: { type: number, description: "`last_used` + 90 days." }
+
+    Info:
+      type: object
+      required: [api_version, server_time, authenticated, server_version, session]
+      properties:
+        api_version: { type: integer, const: 1 }
+        server_time: { type: number }
+        authenticated: { type: boolean }
+        server_version: { type: [string, "null"] }
+        session:
+          oneOf:
+            - { $ref: "#/components/schemas/Session" }
+            - { type: "null" }
+
+    LoginRequest:
+      type: object
+      required: [password]
+      properties:
+        password: { type: string }
+        device_name:
+          type: string
+          maxLength: 64
+          description: Shown in the panel's list of signed-in phones.
+
+    LoginResponse:
+      type: object
+      required: [token, token_type, idle_timeout_sec, session]
+      properties:
+        token: { type: string, description: "Send as `Authorization: Bearer <token>`." }
+        token_type: { type: string, const: Bearer }
+        idle_timeout_sec: { type: integer }
+        session: { $ref: "#/components/schemas/Session" }
+
+    ChangePasswordRequest:
+      type: object
+      required: [current_password, new_password]
+      properties:
+        current_password: { type: string }
+        new_password: { type: string, minLength: 8, maxLength: 1024 }
+
+    ChangePasswordResponse:
+      type: object
+      required: [ok, revoked_sessions]
+      properties:
+        ok: { type: boolean, const: true }
+        revoked_sessions: { type: integer }
+
+    DeviceSummary:
+      type: object
+      required: [id, type, model, kind, online, transport, last_seen, firmware, is_camera]
+      properties:
+        id: { type: integer }
+        type: { type: string, description: "Codename, e.g. `t5`, `d4sh`." }
+        model: { type: string, description: "Commercial name; `Unknown` for an unlisted codename." }
+        kind:
+          type: string
+          enum: [litter_box, feeder, fountain, purifier, other]
+        online: { type: boolean }
+        transport: { type: string, enum: [mqtt, http] }
+        last_seen: { type: [number, "null"], description: Latest contact over either transport. }
+        firmware: { type: [string, "null"] }
+        is_camera: { type: boolean }
+
+    DeviceDetail:
+      allOf:
+        - { $ref: "#/components/schemas/DeviceSummary" }
+        - type: object
+          required: [serial, entities, actions]
+          properties:
+            serial: { type: [string, "null"] }
+            entities:
+              type: array
+              items: { $ref: "#/components/schemas/Entity" }
+            actions:
+              type: array
+              description: The buttons it offers, destructive ones last.
+              items: { $ref: "#/components/schemas/Action" }
+
+    Action:
+      type: object
+      required: [key, name, destructive]
+      properties:
+        key: { type: string, description: "Pass to `POST /devices/{id}/actions/{action}`." }
+        name: { type: string }
+        destructive:
+          type: boolean
+          description: "Cannot be undone; confirm with the user, then send `{\"confirm\": true}`."
+
+    ActionRequest:
+      type: object
+      properties:
+        confirm:
+          type: boolean
+          description: Required, and true, for a `destructive` action.
+
+    Delivered:
+      type: string
+      enum: [mqtt, queued, local]
+      description: |
+        `mqtt`: published to the device now. `queued`: the device is not on MQTT and
+        takes it on its next HTTP poll. `local`: only petkit-local's state changed.
+
+    WriteResult:
+      type: object
+      required: [ok, delivered]
+      properties:
+        ok: { type: boolean, const: true }
+        delivered: { $ref: "#/components/schemas/Delivered" }
+
+    ActionResult:
+      type: object
+      required: [ok, action, delivered]
+      properties:
+        ok: { type: boolean, const: true }
+        action: { type: string }
+        delivered: { $ref: "#/components/schemas/Delivered" }
+
+    EntityWriteRequest:
+      type: object
+      required: [value]
+      properties:
+        value:
+          description: Typed by the entity's component (see the operation).
+
+    EntityWriteResult:
+      type: object
+      required: [ok, delivered, entity]
+      properties:
+        ok: { type: boolean, const: true }
+        delivered: { $ref: "#/components/schemas/Delivered" }
+        entity: { $ref: "#/components/schemas/Entity" }
+
+    EntityChange:
+      type: object
+      description: The changing part of an `Entity`, as a live `state` message carries it.
+      required: [key, value, display]
+      properties:
+        key: { type: string }
+        value:
+          description: As `Entity.value`.
+        display: { type: [string, "null"] }
+
+    Entity:
+      type: object
+      description: |
+        One value the device exposes, as Home Assistant shows it. `key` is stable
+        (it is the Home Assistant entity key).
+      required: [key, name, component, value, display, unit, device_class, category, options, settable,
+                 min, max, step]
+      properties:
+        key: { type: string }
+        name: { type: string }
+        component:
+          type: string
+          enum: [sensor, binary_sensor, switch, number, select, text, time]
+        value:
+          description: Raw value; a boolean for `binary_sensor` and `switch`; null if unreported.
+        display:
+          type: [string, "null"]
+          description: The option label for an enum value, when it has one.
+        unit: { type: [string, "null"] }
+        device_class: { type: [string, "null"] }
+        category:
+          type: [string, "null"]
+          enum: [config, diagnostic, null]
+        options:
+          type: [array, "null"]
+          items: { type: string }
+          description: The labels a `select` offers.
+        settable:
+          type: boolean
+          description: "Whether `PUT /devices/{id}/entities/{key}` accepts a value for it."
+        min: { type: [number, "null"], description: "A `number`'s lower bound, if it has one." }
+        max: { type: [number, "null"], description: "A `number`'s upper bound, if it has one." }
+        step: { type: [number, "null"], description: "A `number`'s increment." }
+
+    Meal:
+      type: object
+      required: [id, time, amount, amount1, amount2]
+      properties:
+        id: { type: string, description: "Keep it when re-sending a meal; a new one may leave it out." }
+        time: { type: integer, minimum: 0, maximum: 86399, description: Seconds since local midnight. }
+        amount:
+          type: [integer, "null"]
+          minimum: 0
+          maximum: 255
+          description: A single-hopper feeder's portion; null on a Dual-Hopper.
+        amount1:
+          type: [integer, "null"]
+          minimum: 0
+          maximum: 255
+          description: A Dual-Hopper's first hopper; null on a single hopper.
+        amount2:
+          type: [integer, "null"]
+          minimum: 0
+          maximum: 255
+          description: A Dual-Hopper's second hopper (default 0); null on a single hopper.
+
+    FeedingGroup:
+      type: object
+      required: [days, meals]
+      properties:
+        days:
+          type: array
+          items: { type: integer, minimum: 1, maximum: 7 }
+          description: The device's day numbers, which the panel shows as 1 = Sunday ... 7 = Saturday.
+        meals:
+          type: array
+          maxItems: 24
+          items: { $ref: "#/components/schemas/Meal" }
+
+    FeedingPlan:
+      type: object
+      required: [device_id, active, dual_hopper, groups]
+      properties:
+        device_id: { type: integer }
+        active: { type: boolean, description: "False while paused: the meals are kept, none is served." }
+        dual_hopper: { type: boolean, description: "Meals use `amount1`/`amount2`, not `amount`." }
+        groups:
+          type: array
+          items: { $ref: "#/components/schemas/FeedingGroup" }
+
+    FeedingPlanWrite:
+      type: object
+      description: |
+        Either field, or both. A meal sends `time` and `amount` (single hopper) or
+        `amount1` and optionally `amount2` (Dual-Hopper, default 0), and its `id` when
+        it is an existing meal. At most 7 groups of 24 meals.
+      properties:
+        active: { type: boolean }
+        groups:
+          type: array
+          maxItems: 7
+          items: { $ref: "#/components/schemas/FeedingGroup" }
+
+    FeedingPlanResult:
+      type: object
+      required: [ok, delivered, schedule]
+      properties:
+        ok: { type: boolean, const: true }
+        delivered: { $ref: "#/components/schemas/Delivered" }
+        schedule: { $ref: "#/components/schemas/FeedingPlan" }
+
+    DeferredFeed:
+      type: object
+      required: [id, fire_at, amount, amount1, amount2]
+      properties:
+        id: { type: string }
+        fire_at: { type: [number, "null"] }
+        amount: { type: [integer, "null"], description: Single hopper; null on a Dual-Hopper. }
+        amount1: { type: [integer, "null"], description: Dual-Hopper; null on a single hopper. }
+        amount2: { type: [integer, "null"], description: Dual-Hopper; null on a single hopper. }
+
+    DeferredFeedRequest:
+      type: object
+      required: [date, time]
+      description: "`amount` for a single-hopper feeder; `amount1`, `amount2` or both for a Dual-Hopper."
+      properties:
+        date: { type: string, format: date, description: In the feeder's timezone. }
+        time: { type: string, pattern: "^[0-9]{1,2}:[0-9]{2}$", description: "HH:MM, in the feeder's timezone." }
+        amount: { type: integer, minimum: 0, maximum: 255 }
+        amount1: { type: integer, minimum: 0, maximum: 255, default: 0 }
+        amount2: { type: integer, minimum: 0, maximum: 255, default: 0 }
+
+    DeferredFeedResult:
+      type: object
+      required: [ok, delivered, feed]
+      properties:
+        ok: { type: boolean, const: true }
+        delivered: { $ref: "#/components/schemas/Delivered" }
+        feed: { $ref: "#/components/schemas/DeferredFeed" }
+
+    Media:
+      type: object
+      description: An episode's photos and videos, as API paths.
+      required: [thumbnail, snapshot, highlight, playback, timelapse, waste, health, video_pending]
+      properties:
+        thumbnail: { type: [string, "null"] }
+        snapshot: { type: [string, "null"] }
+        highlight: { type: [string, "null"], description: The short event clip. }
+        playback: { type: [string, "null"], description: "The whole recording, once assembled." }
+        timelapse: { type: [string, "null"] }
+        waste:
+          type: array
+          items: { type: string }
+        health:
+          type: array
+          items: { type: string }
+        video_pending:
+          type: boolean
+          description: A recording is expected but still being assembled.
+
+    PetRef:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: integer }
+        name: { type: [string, "null"], description: Null when the pet has since been deleted. }
+
+    TimelineStep:
+      type: object
+      required: [id, ts, label, detail]
+      properties:
+        id: { type: integer }
+        ts: { type: [number, "null"] }
+        label: { type: string }
+        detail:
+          type: boolean
+          description: A low-level step the official app does not show.
+
+    TimelineItem:
+      type: object
+      required: [id, kind, filters, device_id, device_type, ts, display_ts, event_type,
+                 event_kind, label, pet, duration_sec, weight_g, facts, media, steps]
+      properties:
+        id: { type: integer, description: "Pass to `GET /timeline/{event_id}`." }
+        kind: { type: string, description: "`visit`, `event`, or a grouped cycle kind." }
+        filters:
+          type: array
+          items: { type: string }
+          description: The filter chips this card falls under.
+        device_id: { type: [integer, "null"] }
+        device_type: { type: [string, "null"] }
+        ts: { type: [number, "null"], description: "Sort key: when the closing report arrived." }
+        display_ts: { type: [number, "null"], description: "What to show: e.g. when the pet entered." }
+        event_type: { type: [string, "null"] }
+        event_kind: { type: [string, "null"] }
+        label: { type: [string, "null"], description: Null for a visit. }
+        pet:
+          oneOf:
+            - { $ref: "#/components/schemas/PetRef" }
+            - { type: "null" }
+        duration_sec: { type: [integer, "null"] }
+        weight_g: { type: [integer, "null"] }
+        facts:
+          type: array
+          items: { type: string }
+        media:
+          oneOf:
+            - { $ref: "#/components/schemas/Media" }
+            - { type: "null" }
+        steps:
+          type: array
+          items: { $ref: "#/components/schemas/TimelineStep" }
+
+    TimelinePage:
+      type: object
+      required: [items, next_cursor]
+      properties:
+        items:
+          type: array
+          items: { $ref: "#/components/schemas/TimelineItem" }
+        next_cursor:
+          type: [string, "null"]
+          description: Null on the last page.
+
+    EventField:
+      type: object
+      required: [key, label, text]
+      properties:
+        key: { type: string }
+        label: { type: string }
+        text: { type: string }
+
+    EventDetail:
+      type: object
+      required: [id, device_id, device_type, ts, event_type, event_kind, label, pet, facts,
+                 fields, media]
+      properties:
+        id: { type: integer }
+        device_id: { type: [integer, "null"] }
+        device_type: { type: [string, "null"] }
+        ts: { type: [number, "null"] }
+        event_type: { type: [string, "null"] }
+        event_kind: { type: [string, "null"] }
+        label: { type: string }
+        pet:
+          oneOf:
+            - { $ref: "#/components/schemas/PetRef" }
+            - { type: "null" }
+        facts:
+          type: array
+          items: { type: string }
+        fields:
+          type: array
+          items: { $ref: "#/components/schemas/EventField" }
+        media:
+          oneOf:
+            - { $ref: "#/components/schemas/Media" }
+            - { type: "null" }
+
+    Pet:
+      type: object
+      required: [id, name, device_ids, entered_weight_g, weight_g, weight_learned, photo]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        device_ids:
+          type: array
+          items: { type: integer }
+        entered_weight_g: { type: [number, "null"], description: The weight the owner typed. }
+        weight_g:
+          type: [number, "null"]
+          description: What a visit is compared with — the learned weight once trusted.
+        weight_learned: { type: boolean }
+        photo: { type: [string, "null"], description: "`/app/v1/pets/{id}/photo`, if there is one." }
+
+    PetStats:
+      type: object
+      required: [median_weight_g, visits_today, last_visit_ts, last_visit_weight_g,
+                 last_visit_duration_sec, last_device_id]
+      properties:
+        median_weight_g: { type: [number, "null"] }
+        visits_today: { type: integer }
+        last_visit_ts: { type: [number, "null"] }
+        last_visit_weight_g: { type: [number, "null"] }
+        last_visit_duration_sec: { type: [number, "null"] }
+        last_device_id: { type: [integer, "null"] }
+
+    PetDetail:
+      allOf:
+        - { $ref: "#/components/schemas/Pet" }
+        - type: object
+          required: [stats, recent_visits]
+          properties:
+            stats: { $ref: "#/components/schemas/PetStats" }
+            recent_visits:
+              type: array
+              description: Up to 20 visits from the last 7 days, newest first.
+              items: { $ref: "#/components/schemas/TimelineItem" }
+
+    UpdateMessage:
+      description: One WebSocket message from `/ws`, told apart by `type`.
+      oneOf:
+        - { $ref: "#/components/schemas/UpdateHello" }
+        - { $ref: "#/components/schemas/UpdateState" }
+        - { $ref: "#/components/schemas/UpdateDevice" }
+        - { $ref: "#/components/schemas/UpdateDeviceRemoved" }
+        - { $ref: "#/components/schemas/UpdateTimeline" }
+        - { $ref: "#/components/schemas/UpdatePong" }
+      discriminator:
+        propertyName: type
+        mapping:
+          hello: "#/components/schemas/UpdateHello"
+          state: "#/components/schemas/UpdateState"
+          device: "#/components/schemas/UpdateDevice"
+          device_removed: "#/components/schemas/UpdateDeviceRemoved"
+          timeline: "#/components/schemas/UpdateTimeline"
+          pong: "#/components/schemas/UpdatePong"
+
+    UpdateHello:
+      type: object
+      required: [type, server_time, heartbeat_sec, devices]
+      properties:
+        type: { type: string, const: hello }
+        server_time: { type: number }
+        heartbeat_sec: { type: number, description: The protocol ping interval. }
+        devices:
+          type: array
+          items: { $ref: "#/components/schemas/DeviceDetail" }
+
+    UpdateState:
+      type: object
+      required: [type, device_id, ts, entities]
+      properties:
+        type: { type: string, const: state }
+        device_id: { type: integer }
+        ts: { type: number }
+        entities:
+          type: array
+          description: Only the entities whose value changed.
+          items: { $ref: "#/components/schemas/EntityChange" }
+
+    UpdateDevice:
+      type: object
+      required: [type, device]
+      properties:
+        type: { type: string, const: device }
+        device: { $ref: "#/components/schemas/DeviceSummary" }
+
+    UpdateDeviceRemoved:
+      type: object
+      required: [type, device_id]
+      properties:
+        type: { type: string, const: device_removed }
+        device_id: { type: integer }
+
+    UpdateTimeline:
+      type: object
+      required: [type, item, replaces]
+      properties:
+        type: { type: string, const: timeline }
+        item: { $ref: "#/components/schemas/TimelineItem" }
+        replaces:
+          type: array
+          description: Ids of cards sent earlier that this one now stands for; drop them.
+          items: { type: integer }
+
+    UpdatePong:
+      type: object
+      required: [type]
+      properties:
+        type: { type: string, const: pong }

@@ -1,0 +1,6 @@
+# Run inside Linux containers and CI: a CRLF checkout on Windows must not break them.
+gradlew text eol=lf
+*.sh text eol=lf
+*.bat text eol=crlf
+*.jar binary
+*.mp4 binary

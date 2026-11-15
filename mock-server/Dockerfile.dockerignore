@@ -1,0 +1,9 @@
+# The build context is the repo root; the image needs only these.
+*
+!api/openapi.yaml
+!mock-server/gradlew
+!mock-server/gradle
+!mock-server/settings.gradle.kts
+!mock-server/build.gradle.kts
+!mock-server/gradle.properties
+!mock-server/src
