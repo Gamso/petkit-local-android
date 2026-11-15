@@ -13,7 +13,7 @@ android {
         versionName = "0.1.0"
     }
 
-    // English and French only (SPEC.md ง7): drops the other languages libraries bring along.
+    // English and French only (SPEC.md ยง7): drops the other languages libraries bring along.
     androidResources {
         localeFilters += listOf("en", "fr")
     }
