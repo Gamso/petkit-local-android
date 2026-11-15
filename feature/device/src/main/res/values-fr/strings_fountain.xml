@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Les parties d'une fontaine, sur les pastilles et leurs explications (page_*, comme les autres pages). -->
+    <string name="page_part_water">Niveau d\'eau</string>
+    <string name="page_part_filter">Filtre</string>
+    <string name="page_part_pump">Pompe</string>
+    <string name="page_part_battery">Batterie</string>
+    <string name="page_part_tray">Plateau</string>
+    <string name="page_part_clean_tank">Bac d\'eau propre</string>
+    <string name="page_part_waste_tank">Bac d\'eau usée</string>
+    <string name="page_condition_running">En marche</string>
+    <string name="page_condition_stopped">À l\'arrêt</string>
+    <string name="page_explain_water">L\'eau de la fontaine. Remplissez-la quand la fontaine signale qu\'elle est basse.</string>
+    <string name="page_explain_filter">La cartouche filtrante, selon ce qu\'il en reste. Remplacez-la quand elle est usée, puis remettez son compteur à zéro.</string>
+    <string name="page_explain_pump">La pompe qui fait circuler l\'eau. En mode intelligent, elle se repose entre deux cycles : à l\'arrêt n\'est pas une panne.</string>
+    <string name="page_explain_battery">La batterie de cette fontaine sans fil. Rechargez-la quand elle est faible.</string>
+    <string name="page_explain_tray">Le plateau où boivent les animaux. Videz-le et nettoyez-le quand il est plein, puis remettez-le en place.</string>
+    <string name="page_explain_clean_tank">Le bac d\'eau propre qui remplit le plateau. Remplissez-le et remettez-le en place.</string>
+    <string name="page_explain_waste_tank">Le bac où s\'écoule l\'eau usée. Videz-le et remettez-le en place.</string>
+</resources>
