@@ -7,7 +7,6 @@
     <string name="page_session_ended">Your session has ended. Sign in again.</string>
     <string name="page_not_found">This device is no longer on the server.</string>
     <string name="page_close">Close</string>
-    <string name="page_all_settings">All settings</string>
 
     <!-- Hotspot pills: the parts of a device, and what each reports. -->
     <string name="page_part_litter">Litter</string>

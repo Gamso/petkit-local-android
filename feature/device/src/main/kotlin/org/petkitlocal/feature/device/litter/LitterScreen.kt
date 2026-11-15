@@ -85,10 +85,6 @@ internal fun LitterScreen(
             hotspot = hotspot,
             sending = uiState.commands.sending,
             onAction = callbacks.commands.onAction,
-            onOpenSettings = {
-                callbacks.onHotspot(null)
-                page?.let { navigation.onOpenSettings(it.device.id) }
-            },
             onDismiss = { callbacks.onHotspot(null) },
             accessory = page?.puraAir?.takeIf { hotspot.part == DevicePart.PuraAirSpray },
             onOpenAccessory = {

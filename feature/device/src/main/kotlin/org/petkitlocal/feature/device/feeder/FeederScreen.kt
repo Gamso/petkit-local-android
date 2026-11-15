@@ -115,7 +115,7 @@ internal fun FeederScreen(
             feederContent(page, uiState, navigation, callbacks)
         }
     }
-    FeederDialogs(uiState, navigation, callbacks)
+    FeederDialogs(uiState, callbacks)
 }
 
 private fun LazyListScope.feederContent(
@@ -181,16 +181,12 @@ private const val SHEET_LATER = "feeder:later"
 private const val SHEET_HISTORY = "feeder:history"
 
 @Composable
-private fun FeederDialogs(uiState: FeederUiState, navigation: DeviceNavigation, callbacks: FeederCallbacks) {
+private fun FeederDialogs(uiState: FeederUiState, callbacks: FeederCallbacks) {
     uiState.openHotspot?.let { hotspot ->
         HotspotDialog(
             hotspot = hotspot,
             sending = uiState.commands.sending,
             onAction = callbacks.commands.onAction,
-            onOpenSettings = {
-                callbacks.onHotspot(null)
-                uiState.page?.let { navigation.onOpenSettings(it.device.id) }
-            },
             onDismiss = { callbacks.onHotspot(null) },
         )
     }

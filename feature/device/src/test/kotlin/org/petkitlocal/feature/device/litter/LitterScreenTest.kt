@@ -146,13 +146,13 @@ class LitterScreenTest {
     }
 
     @Test
-    fun `a hotspot's explanation offers the actions on that part, and the settings`() {
+    fun `a hotspot's explanation offers the actions on that part, and no way to the settings`() {
         show(LitterFixtures.content.copy(openPart = DevicePart.Litter))
         compose.onNodeWithText("Top it up", substring = true).assertExists()
         compose.onNode(hasText("Level Litter") and hasAnyAncestor(isDialog())).performClick()
-        compose.onNodeWithText("All settings").performClick()
+        compose.onNodeWithText("All settings").assertDoesNotExist()
 
-        assertEquals(listOf("action:level_litter", "hotspot:null", "settings:1002"), calls)
+        assertEquals(listOf("action:level_litter"), calls)
     }
 
     @Test

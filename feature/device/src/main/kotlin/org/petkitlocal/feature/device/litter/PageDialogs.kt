@@ -30,8 +30,8 @@ import org.petkitlocal.feature.device.common.actionIcon
 import org.petkitlocal.feature.device.common.entityValueText
 
 /**
- * What a hotspot pill opens: the part, what it reports, what it is for, the actions on it (a
- * destructive one is still confirmed), and a contextual way to the device's settings. A part that
+ * What a hotspot pill opens: the part, what it reports, what it is for, and the actions on it (a
+ * destructive one is still confirmed). The way to the settings is the header's gear only. A part that
  * belongs to an [accessory] (a Pura Air's N60) also shows the accessory's other readings and leads
  * to its own screen, where its own buttons and settings are.
  */
@@ -40,7 +40,6 @@ internal fun HotspotDialog(
     hotspot: Hotspot,
     sending: Set<String>,
     onAction: (DeviceAction) -> Unit,
-    onOpenSettings: () -> Unit,
     onDismiss: () -> Unit,
     accessory: Device? = null,
     onOpenAccessory: () -> Unit = {},
@@ -50,7 +49,6 @@ internal fun HotspotDialog(
             hotspot,
             sending,
             onAction,
-            onOpenSettings,
             onDismiss,
             accessory = accessory,
             onOpenAccessory = onOpenAccessory,
@@ -64,7 +62,6 @@ internal fun HotspotDialogContent(
     hotspot: Hotspot,
     sending: Set<String>,
     onAction: (DeviceAction) -> Unit,
-    onOpenSettings: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     accessory: Device? = null,
@@ -109,11 +106,6 @@ internal fun HotspotDialogContent(
                 horizontalArrangement = Arrangement.spacedBy(PkTheme.spacing.xs, Alignment.End),
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                PkButton(
-                    stringResource(R.string.page_all_settings),
-                    onClick = onOpenSettings,
-                    style = PkButtonStyle.Text,
-                )
                 PkButton(stringResource(R.string.page_close), onClick = onDismiss, style = PkButtonStyle.Text)
             }
         }

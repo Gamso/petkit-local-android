@@ -7,7 +7,6 @@
     <string name="page_session_ended">Votre session a pris fin. Reconnectez-vous.</string>
     <string name="page_not_found">Cet appareil n\'est plus sur le serveur.</string>
     <string name="page_close">Fermer</string>
-    <string name="page_all_settings">Tous les réglages</string>
 
     <string name="page_part_litter">Litière</string>
     <string name="page_part_waste_bin">Bac à déchets</string>

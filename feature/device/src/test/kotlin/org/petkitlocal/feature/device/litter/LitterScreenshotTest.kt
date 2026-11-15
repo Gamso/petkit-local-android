@@ -52,7 +52,6 @@ class LitterScreenshotTest(private val variant: ScreenshotVariant) {
                     hotspot,
                     sending = emptySet(),
                     onAction = {},
-                    onOpenSettings = {},
                     onDismiss = {},
                     accessory = LitterFixtures.puraAir,
                 )
@@ -66,7 +65,7 @@ class LitterScreenshotTest(private val variant: ScreenshotVariant) {
         val hotspot = LitterFixtures.page().hotspots.first { it.part == DevicePart.Deodorizer }
         capture("litter_hotspot") {
             Box(Modifier.background(PkTheme.colors.background).padding(16.dp)) {
-                HotspotDialogContent(hotspot, sending = emptySet(), onAction = {}, onOpenSettings = {}, onDismiss = {})
+                HotspotDialogContent(hotspot, sending = emptySet(), onAction = {}, onDismiss = {})
             }
         }
     }
