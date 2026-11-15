@@ -159,7 +159,10 @@ private fun DeviceList(uiState: GenericDeviceUiState, actions: GenericDeviceActi
                 title = device?.model ?: deviceFallbackTitle(),
                 subtitle = device?.serial,
                 onBack = actions.onBack,
-                onOpenSettings = actions.onOpenSettings.takeIf { (uiState.sections?.settingsCount ?: 0) > 0 },
+                // Settings also hold this phone's quick actions of a device that has actions.
+                onOpenSettings = actions.onOpenSettings.takeIf {
+                    (uiState.sections?.settingsCount ?: 0) > 0 || device?.actions.orEmpty().isNotEmpty()
+                },
             )
         }
         if (uiState.offline) item(key = "offline") { PkOfflineBanner() }

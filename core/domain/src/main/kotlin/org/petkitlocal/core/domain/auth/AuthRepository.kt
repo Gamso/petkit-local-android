@@ -53,6 +53,17 @@ fun interface SessionScopedCache {
     suspend fun clear()
 }
 
+/**
+ * Anything kept on the phone across sessions, but for one server only (the user's quick actions
+ * per device id: ids are the server's). Signing out, or a session the server ended, keeps it; a
+ * sign-in that succeeds calls every implementation bound into the set Hilt provides (`@Binds
+ * @IntoSet` in the data layer) with the server's normalised [ServerAddress.baseUrl], and each
+ * forgets what it kept when that is another server than the one it was kept for.
+ */
+fun interface ServerScopedCache {
+    suspend fun keepOnlyFor(serverBaseUrl: String)
+}
+
 /** This phone's default name for the server's list of signed-in phones: its model. */
 fun interface PhoneNameProvider {
     fun defaultPhoneName(): String

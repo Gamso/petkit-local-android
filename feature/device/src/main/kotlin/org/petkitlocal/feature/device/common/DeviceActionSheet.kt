@@ -59,6 +59,8 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import org.petkitlocal.core.designsystem.component.PkButton
+import org.petkitlocal.core.designsystem.component.PkButtonStyle
 import org.petkitlocal.core.designsystem.icon.PkIcons
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.device.ActionLayout
@@ -86,7 +88,8 @@ fun DeviceActionScaffold(
     var expanded by rememberSaveable { mutableStateOf(initiallyExpanded) }
     var bottomPadding by remember { mutableStateOf(0.dp) }
     val density = LocalDensity.current
-    val layout = remember(actions) { DeviceActionOrder.layout(actions) }
+    val quick = LocalQuickActions.current
+    val layout = remember(actions, quick.pinned) { DeviceActionOrder.layout(actions, quick.pinned) }
     BackHandler(enabled = expanded) { expanded = false }
     Box(modifier.fillMaxSize()) {
         content(bottomPadding)
@@ -114,7 +117,7 @@ fun DeviceActionScaffold(
                 },
         ) {
             banner()
-            if (actions.isEmpty()) {
+            if (actions.isEmpty() || !quick.ready) {
                 Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
             } else {
                 DeviceActionSheet(
@@ -124,6 +127,12 @@ fun DeviceActionScaffold(
                     onAction = { action ->
                         expanded = false
                         onAction(action)
+                    },
+                    onEditQuickActions = quick.onEdit?.let { edit ->
+                        {
+                            expanded = false
+                            edit()
+                        }
                     },
                 )
             }
@@ -135,8 +144,10 @@ private val SCRIM = Color.Black.copy(alpha = 0.32f)
 
 /**
  * The sheet itself, stateless. Collapsed, one row: the [DeviceActionOrder.VISIBLE] everyday
- * actions and, when there are others, "More". Expanded, the others follow as a list (full width,
- * so long names wrap between words), maintenance and destructive ones last.
+ * actions (or the user's own, [LocalQuickActions]) and, when there are others, "More". Expanded,
+ * the others follow as a list (full width, so long names wrap between words), maintenance and
+ * destructive ones last, then [onEditQuickActions] when the row can be edited: More shows then
+ * even when every action is in view, so the editor can always be reached.
  */
 @Composable
 fun DeviceActionSheet(
@@ -145,9 +156,10 @@ fun DeviceActionSheet(
     onExpandedChange: (Boolean) -> Unit,
     onAction: (DeviceAction) -> Unit,
     modifier: Modifier = Modifier,
+    onEditQuickActions: (() -> Unit)? = null,
 ) {
     val labels = rememberServerLabels()
-    val hasMore = layout.more.isNotEmpty()
+    val hasMore = layout.more.isNotEmpty() || onEditQuickActions != null
     val title = stringResource(org.petkitlocal.core.designsystem.R.string.pk_action_sheet)
     Surface(
         shape = PkTheme.shapes.sheet,
@@ -170,7 +182,9 @@ fun DeviceActionSheet(
                     ActionTile(
                         label = labels.action(action.key, action.name),
                         icon = actionIcon(action.key),
-                        primary = action == layout.main.first(),
+                        // A destructive action pinned in view is marked as in the list, never primary.
+                        primary = action == layout.main.first() && !action.destructive,
+                        destructive = action.destructive,
                         onClick = { onAction(action) },
                         modifier = Modifier.weight(1f),
                     )
@@ -179,7 +193,10 @@ fun DeviceActionSheet(
                 if (hasMore) MoreTile(expanded, onExpandedChange, Modifier.weight(1f))
             }
             AnimatedVisibility(visible = expanded && hasMore) {
-                MoreList(layout.more, labels, onAction)
+                Column {
+                    MoreList(layout.more, labels, onAction)
+                    onEditQuickActions?.let { EditQuickActionsEntry(it) }
+                }
             }
             Spacer(Modifier.padding(bottom = PkTheme.spacing.s))
             Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
@@ -258,8 +275,14 @@ private fun ActionTile(
     primary: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    destructive: Boolean = false,
 ) {
     val colors = PkTheme.colors
+    val (background, tint) = when {
+        primary -> colors.accent to colors.onAccent
+        destructive -> colors.warningContainer to colors.onWarningContainer
+        else -> colors.surfaceMuted to colors.onSurface
+    }
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
@@ -272,9 +295,9 @@ private fun ActionTile(
             modifier = Modifier
                 .size(TILE_SIZE)
                 .clip(PkTheme.shapes.tile)
-                .background(if (primary) colors.accent else colors.surfaceMuted),
+                .background(background),
         ) {
-            Icon(icon, contentDescription = null, tint = if (primary) colors.onAccent else colors.onSurface)
+            Icon(icon, contentDescription = null, tint = tint)
         }
         Spacer(Modifier.padding(top = PkTheme.spacing.xs))
         WholeWordLabel(label)
@@ -365,6 +388,20 @@ private fun MoreList(actions: List<DeviceAction>, labels: ServerLabels, onAction
             }
         }
     }
+}
+
+/** The way to the quick actions editor, last in the expanded sheet. */
+@Composable
+private fun EditQuickActionsEntry(onEdit: () -> Unit) {
+    PkButton(
+        text = stringResource(R.string.quick_actions_edit),
+        onClick = onEdit,
+        style = PkButtonStyle.Text,
+        icon = PkIcons.Edit,
+        modifier = Modifier
+            .padding(top = PkTheme.spacing.xxs)
+            .testTag(QuickActionsTestTags.EDIT_ENTRY),
+    )
 }
 
 private val LIST_ICON_SIZE = 40.dp

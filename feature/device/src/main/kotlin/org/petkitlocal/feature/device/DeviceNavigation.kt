@@ -4,6 +4,7 @@ import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import kotlinx.serialization.Serializable
+import org.petkitlocal.feature.device.quickactions.QuickActionsHost
 import org.petkitlocal.feature.device.settings.DeviceSettingsRoute
 
 /** The screen of one device: its family's own, or the generic one ([DeviceRoute]). */
@@ -27,11 +28,12 @@ data class DeviceNavigation(
 )
 
 fun NavGraphBuilder.deviceScreen(navigation: DeviceNavigation) {
-    composable<DeviceDestination> { DeviceRoute(navigation) }
+    // Every family's page gets the user's quick actions from the host around it (issue #40).
+    composable<DeviceDestination> { QuickActionsHost { DeviceRoute(navigation) } }
 }
 
 fun NavGraphBuilder.deviceSettingsScreen(onBack: () -> Unit) {
-    composable<DeviceSettingsDestination> { DeviceSettingsRoute(onBack = onBack) }
+    composable<DeviceSettingsDestination> { QuickActionsHost { DeviceSettingsRoute(onBack = onBack) } }
 }
 
 /** The [DeviceDestination] and [DeviceSettingsDestination] property the argument is stored under. */

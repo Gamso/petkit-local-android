@@ -38,6 +38,7 @@ import org.petkitlocal.core.domain.auth.AddressCheck
 import org.petkitlocal.core.domain.auth.AuthState
 import org.petkitlocal.core.domain.auth.ServerAddress
 import org.petkitlocal.core.domain.auth.ServerAddresses
+import org.petkitlocal.core.domain.auth.ServerScopedCache
 import org.petkitlocal.core.domain.auth.SessionScopedCache
 import org.petkitlocal.core.network.PetkitApi
 import org.petkitlocal.core.network.PetkitHttpClient
@@ -56,6 +57,8 @@ class AuthRepositoryImplTest {
     private val scopes = mutableListOf<CoroutineScope>()
     private val cleared = mutableListOf<String>()
     private val cache = SessionScopedCache { cleared += "devices" }
+    private val keptFor = mutableListOf<String>()
+    private val serverCache = ServerScopedCache { keptFor += it }
 
     /** Reversible, and not the identity: enough to prove the token goes through the cipher. */
     private class ReversingCipher : TokenCipher {
@@ -75,6 +78,7 @@ class AuthRepositoryImplTest {
             ),
             api = { checkNotNull(apiRef) },
             caches = setOf(cache),
+            serverCaches = setOf(serverCache),
             scope = scope,
         )
         val client = PetkitHttpClient.okHttpClient(repository, repository, repository)
@@ -176,6 +180,22 @@ class AuthRepositoryImplTest {
         assertInstanceOf(DomainError.Unauthorized::class.java, (result as Outcome.Failure).error)
         assertEquals(AuthState.SignedOut(null), harness.repository.authState.value)
         assertNull(harness.repository.currentToken())
+        assertEquals(emptyList<String>(), keptFor)
+    }
+
+    @Test
+    fun `a sign-in names its server to what is kept per server, and signing out keeps it`() = runBlocking {
+        val harness = Harness()
+
+        harness.signIn()
+        assertEquals(listOf(address.baseUrl), keptFor)
+
+        json(200, """{"ok":true}""")
+        harness.repository.signOut()
+        take()
+        // The session caches are cleared; what is kept per server is not touched again.
+        assertEquals(listOf("devices"), cleared)
+        assertEquals(listOf(address.baseUrl), keptFor)
     }
 
     @Test

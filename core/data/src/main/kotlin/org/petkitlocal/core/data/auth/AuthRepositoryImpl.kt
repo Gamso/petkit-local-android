@@ -25,6 +25,7 @@ import org.petkitlocal.core.domain.auth.AuthRepository
 import org.petkitlocal.core.domain.auth.AuthState
 import org.petkitlocal.core.domain.auth.ServerAddress
 import org.petkitlocal.core.domain.auth.ServerInfo
+import org.petkitlocal.core.domain.auth.ServerScopedCache
 import org.petkitlocal.core.domain.auth.Session
 import org.petkitlocal.core.domain.auth.SessionScopedCache
 import org.petkitlocal.core.domain.map
@@ -51,6 +52,7 @@ class AuthRepositoryImpl @Inject constructor(
     // A Provider: the API's client needs this class, so it cannot be built before it.
     private val api: Provider<PetkitApi>,
     private val caches: Set<@JvmSuppressWildcards SessionScopedCache>,
+    private val serverCaches: Set<@JvmSuppressWildcards ServerScopedCache>,
     @param:AuthCoroutineScope private val scope: CoroutineScope,
 ) : AuthRepository,
     ServerAddressProvider,
@@ -134,6 +136,8 @@ class AuthRepositoryImpl @Inject constructor(
                 val error = DomainError.Server(status = null, code = TOKEN_STORAGE, message = e.message)
                 return@withLock Outcome.Failure(error)
             }
+            // Before the app shows anything of this server: what was kept for another one goes.
+            serverCaches.forEach { it.keepOnlyFor(server.baseUrl) }
             current = Current(server.apiBaseUrl.toHttpUrl(), login.value.token)
             state.value = AuthState.SignedIn(server.baseUrl)
             Outcome.Success(login.value.session.toDomain())
