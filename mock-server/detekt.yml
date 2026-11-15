@@ -1,18 +1,19 @@
 # On top of detekt's defaults. The mock is one process holding a fake world in memory; its route
 # table and seed data are long by nature.
+# detekt 2 compares these limits with ">" where 1.x used ">=", so each is the 1.x threshold minus one.
 complexity:
   LongMethod:
-    threshold: 120
+    allowedLines: 119
   CyclomaticComplexMethod:
-    threshold: 30
+    allowedComplexity: 29
   LargeClass:
-    threshold: 900
+    allowedLines: 899
   TooManyFunctions:
-    thresholdInFiles: 40
-    thresholdInClasses: 40
+    allowedFunctionsPerFile: 39
+    allowedFunctionsPerClass: 39
   LongParameterList:
-    functionThreshold: 10
-    constructorThreshold: 20
+    allowedFunctionParameters: 9
+    allowedConstructorParameters: 19
 style:
   MagicNumber:
     active: false

@@ -6,12 +6,12 @@ vendored contract `api/openapi.yaml`. Behind it is a fixed household: one device
 two cats and a week of history, with a scenario engine that keeps things happening. A control API
 under `/mock` lets tests trigger events, move the clock and force errors.
 
-It is a standalone Gradle build (Kotlin, Ktor, JDK 17), with its own wrapper and version catalog.
+It is a standalone Gradle build (Kotlin, Ktor, JDK 25), with its own wrapper and version catalog.
 It is not part of the app's build.
 
 ## Run it
 
-With Gradle (JDK 17):
+With Gradle (JDK 25):
 
 ```sh
 cd mock-server

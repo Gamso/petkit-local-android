@@ -7,7 +7,7 @@
 #
 # Base images are pinned by digest; Dependabot (docker, /mock-server) raises them.
 
-FROM eclipse-temurin:17-jdk-noble@sha256:1bedb04434bd275ef072355e9caec2a22be5240fbe82ad51a59323f2bbcab4a6 AS build
+FROM eclipse-temurin:25-jdk-noble@sha256:80f67fb3d6f76e2d817d98a4cc2a9cf05f054d4e6adc5e2144bde671d722e63f AS build
 WORKDIR /src/mock-server
 # The wrapper and the build scripts first, so the Gradle distribution and the dependencies are a
 # cached layer that only a version change invalidates.
@@ -18,7 +18,7 @@ COPY api /src/api
 COPY mock-server/src ./src
 RUN ./gradlew --no-daemon --quiet installDist
 
-FROM eclipse-temurin:17-jre-alpine@sha256:e2ba4e947bd5e236a9866fbdda03e4936036cb9e9d16ea0d84d103d6634a5c21
+FROM eclipse-temurin:25-jre-alpine@sha256:e1898fd6a11fc965a994d8ace186fd3585aeb636cf8f05f47a723fcfee0b0918
 RUN addgroup -S mock && adduser -S -G mock -H -s /sbin/nologin mock
 COPY --from=build /src/mock-server/build/install/petkit-local-mock /opt/petkit-local-mock
 USER mock

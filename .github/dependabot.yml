@@ -30,10 +30,16 @@ updates:
         patterns: ["*"]
 
   # The mock server image's base images, pinned by digest in mock-server/Dockerfile.
+  # Patch and digest updates only: the Java major version is the build's toolchain
+  # (jvmToolchain in mock-server/build.gradle.kts, setup-java in the workflows) and the app's,
+  # so moving to the next LTS is a deliberate change made everywhere at once.
   - package-ecosystem: docker
     directory: /mock-server
     schedule:
       interval: weekly
+    ignore:
+      - dependency-name: eclipse-temurin
+        update-types: ["version-update:semver-major"]
 
   # Workflow actions, pinned by SHA in .github/workflows.
   - package-ecosystem: github-actions
