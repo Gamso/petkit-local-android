@@ -1,0 +1,139 @@
+# The gate of every pull request and of main (docs/ARCHITECTURE.md §7): four jobs in parallel,
+# each a required check. Locally, `./gradlew assembleDebug assembleRelease check` runs all of it.
+# The build runs on JDK 25 (gradle/gradle-daemon-jvm.properties); the app is Java 17 bytecode.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A newer push to the same branch or pull request makes the running build pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+# Gradle checks every downloaded artifact against gradle/verification-metadata.xml (strict by
+# default): a dependency whose checksum changed, or that is not listed, fails the build.
+
+jobs:
+  static:
+    name: static
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          distribution: temurin
+          java-version: "25"
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+      - name: ktlint, detekt, Android lint, module rules
+        run: ./gradlew ktlintCheck detekt lint checkModuleRules
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: static-reports
+          path: |
+            **/build/reports/ktlint/
+            **/build/reports/detekt/
+            **/build/reports/lint-results-*.*
+            **/build/reports/module-rules.txt
+          if-no-files-found: ignore
+          retention-days: 14
+
+  unit:
+    name: unit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          distribution: temurin
+          java-version: "25"
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+      # The JUnit 5 tests: unit, integration (MockWebServer) and contract (api/openapi.yaml).
+      - name: Unit, integration and contract tests, with coverage
+        run: ./gradlew test koverXmlReport koverHtmlReport -Ppetkit.testEngines=junit-jupiter
+      - name: Upload test and coverage reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: unit-reports
+          path: |
+            **/build/reports/tests/
+            build/reports/kover/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  compose:
+    name: compose
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          distribution: temurin
+          java-version: "25"
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+      # The JUnit 4 tests on Robolectric: Compose UI tests, and Roborazzi screenshots compared
+      # with the golden images in src/test/screenshots.
+      - name: Compose UI tests and screenshot verification
+        run: ./gradlew testDebugUnitTest -Ppetkit.testEngines=junit-vintage -Proborazzi.test.verify=true
+      - name: Upload screenshot diffs
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: screenshot-diffs
+          path: |
+            **/build/outputs/roborazzi/
+            **/build/reports/roborazzi/
+          if-no-files-found: ignore
+          retention-days: 14
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: compose-reports
+          path: "**/build/reports/tests/"
+          if-no-files-found: ignore
+          retention-days: 14
+
+  build:
+    name: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          distribution: temurin
+          java-version: "25"
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+      # The release build goes through R8; until release signing exists (issue 26) it is signed
+      # with the debug key, so this APK is for testing only.
+      - name: Debug and release builds
+        run: ./gradlew assembleDebug assembleRelease
+      - name: Upload APKs
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: apks
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            app/build/outputs/apk/release/*.apk
+            app/build/outputs/mapping/release/mapping.txt
+          retention-days: 14
