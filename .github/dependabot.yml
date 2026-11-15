@@ -19,6 +19,22 @@ updates:
       test:
         patterns: ["junit*", "org.junit*", "io.mockk*", "app.cash.turbine*", "org.robolectric*", "io.github.takahirom.roborazzi*"]
 
+  # The mock server is a separate Gradle build with its own catalog
+  # (mock-server/gradle/libs.versions.toml); its tests run in mock-server.yml.
+  - package-ecosystem: gradle
+    directory: /mock-server
+    schedule:
+      interval: weekly
+    groups:
+      mock-server:
+        patterns: ["*"]
+
+  # The mock server image's base images, pinned by digest in mock-server/Dockerfile.
+  - package-ecosystem: docker
+    directory: /mock-server
+    schedule:
+      interval: weekly
+
   # Workflow actions, pinned by SHA in .github/workflows.
   - package-ecosystem: github-actions
     directory: /
