@@ -33,8 +33,8 @@ import org.petkitlocal.feature.home.HomeTestTags
 import org.petkitlocal.feature.settings.SettingsTestTags
 
 /**
- * A device end to end, on a device, against the mock server (core:e2e): the generic screen of
- * the EverSweet Ultra AI follows the mock over `/ws`, its settings are written through
+ * A device end to end, on a device, against the mock server (core:e2e): the page of the
+ * EverSweet Ultra AI follows the mock over `/ws`, its settings are written through
  * `PUT /entities/{key}` and come back from the server's answer, its actions report how they
  * were delivered, and a session ended from the server while the socket is open (close code
  * 4401) sends the app back to sign-in.
