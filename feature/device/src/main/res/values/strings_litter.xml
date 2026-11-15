@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shared by the litter box and feeder pages (page_*). -->
+    <string name="page_refresh_failed">The server could not answer. Showing the last known data.</string>
+    <string name="page_unreachable">The server cannot be reached.</string>
+    <string name="page_load_failed">The server could not answer.</string>
+    <string name="page_session_ended">Your session has ended. Sign in again.</string>
+    <string name="page_not_found">This device is no longer on the server.</string>
+    <string name="page_close">Close</string>
+    <string name="page_all_settings">All settings</string>
+
+    <!-- Hotspot pills: the parts of a device, and what each reports. -->
+    <string name="page_part_litter">Litter</string>
+    <string name="page_part_waste_bin">Waste bin</string>
+    <string name="page_part_deodorizer">N50 pack</string>
+    <string name="page_part_spray">N60 spray</string>
+    <string name="page_part_pura_air">Pura Air · N60</string>
+    <string name="page_part_bags">Waste bags</string>
+    <string name="page_part_food">Food</string>
+    <string name="page_part_hopper1">Hopper 1</string>
+    <string name="page_part_hopper2">Hopper 2</string>
+    <string name="page_part_bowl">Bowl</string>
+    <string name="page_part_desiccant">Desiccant</string>
+    <string name="page_reading_percent">%1$d %%</string>
+    <plurals name="page_reading_days">
+        <item quantity="one">%1$d day left</item>
+        <item quantity="other">%1$d days left</item>
+    </plurals>
+    <!-- The same in a hotspot pill, where room is short. -->
+    <plurals name="page_reading_days_short">
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
+    <string name="page_condition_ok">OK</string>
+    <string name="page_condition_full">Full</string>
+    <string name="page_condition_removed">Removed</string>
+    <string name="page_condition_missing">Missing</string>
+    <string name="page_condition_low">Low</string>
+    <string name="page_attention">Needs attention</string>
+    <string name="page_explain_litter">How much litter the box holds. Top it up when it runs low, then level it.</string>
+    <string name="page_explain_waste_bin">The drawer the waste goes into. Empty it when it is full and put it back.</string>
+    <string name="page_explain_deodorizer">The N50 odour eliminator pack. Replace it when its days run out, then reset its counter.</string>
+    <string name="page_explain_spray">The N60 deodorizing spray. Refill it when its days run out, then reset its counter.</string>
+    <string name="page_explain_pura_air">The N60 cartridge of the Pura Air paired with this box. Refill it when it runs low, then reset its counter.</string>
+    <string name="page_explain_bags">The waste bags of the bag box. Replace the box when it runs out.</string>
+    <string name="page_explain_food">The food in the hopper. Refill it when it runs low and say so.</string>
+    <string name="page_explain_bowl">How much food is left in the bowl.</string>
+    <string name="page_explain_desiccant">The desiccant that keeps the food dry. Replace it when its days run out, then reset its counter.</string>
+    <string name="page_explain_other">A consumable this device reports.</string>
+
+    <!-- Litter box page (SPEC.md §5.3). -->
+    <string name="litter_today">Today</string>
+    <string name="litter_visits">Visits</string>
+    <string name="litter_average_visit">Average visit</string>
+    <string name="litter_vs_yesterday">%1$s vs yesterday</string>
+    <string name="litter_same_as_yesterday">Same as yesterday</string>
+    <string name="litter_no_visit_yesterday">No visit yesterday</string>
+    <string name="litter_no_average">–</string>
+    <string name="litter_chart_title">Visits over the day</string>
+    <string name="litter_chart_all">All</string>
+    <string name="litter_chart_minutes">min</string>
+    <string name="litter_chart_empty">No visit yet today.</string>
+    <plurals name="litter_chart_description">
+        <item quantity="one">Chart of %1$d visit today, by time and duration</item>
+        <item quantity="other">Chart of %1$d visits today, by time and duration</item>
+    </plurals>
+    <string name="litter_hour">%1$d h</string>
+    <string name="litter_activity">Activity</string>
+    <string name="litter_activity_empty">Nothing yet today.</string>
+    <string name="litter_see_history">See all in History</string>
+    <string name="litter_unknown_pet">Unrecognised pet</string>
+    <string name="litter_visit">Visit</string>
+</resources>
