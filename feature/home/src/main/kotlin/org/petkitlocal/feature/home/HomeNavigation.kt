@@ -10,6 +10,6 @@ data object HomeDestination
 
 fun NavController.navigateToHome() = navigate(HomeDestination)
 
-fun NavGraphBuilder.homeScreen(onShortcut: (HomeShortcut) -> Unit) {
-    composable<HomeDestination> { HomeRoute(onShortcut = onShortcut) }
+fun NavGraphBuilder.homeScreen(navigation: HomeNavigation) {
+    composable<HomeDestination> { HomeRoute(navigation = navigation) }
 }
