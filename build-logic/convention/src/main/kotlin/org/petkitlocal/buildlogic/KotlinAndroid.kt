@@ -15,6 +15,8 @@ internal fun Project.configureAndroidCommon(extension: CommonExtension) {
     extension.apply {
         compileSdk = libs.version("compileSdk").toInt()
         defaultConfig.minSdk = libs.version("minSdk").toInt()
+        // Instrumented tests (src/androidTest) run on an emulator: Gradle Managed Devices in CI.
+        defaultConfig.testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         compileOptions.sourceCompatibility = JavaVersion.VERSION_17
         compileOptions.targetCompatibility = JavaVersion.VERSION_17
         configureLint(lint)

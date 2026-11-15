@@ -6,6 +6,7 @@ import org.gradle.kotlin.dsl.configure
 import org.petkitlocal.buildlogic.apply
 import org.petkitlocal.buildlogic.configureAndroidCommon
 import org.petkitlocal.buildlogic.configureCompose
+import org.petkitlocal.buildlogic.configureManagedDevices
 import org.petkitlocal.buildlogic.configureQuality
 import org.petkitlocal.buildlogic.disableReleaseHostTests
 import org.petkitlocal.buildlogic.libs
@@ -18,6 +19,7 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
         extensions.configure<ApplicationExtension> {
             configureAndroidCommon(this)
             configureCompose(this)
+            configureManagedDevices(this)
             defaultConfig.targetSdk = libs.version("targetSdk").toInt()
             buildTypes.getByName("release") {
                 isMinifyEnabled = true
