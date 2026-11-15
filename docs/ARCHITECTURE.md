@@ -38,6 +38,7 @@ the project is created, and upgraded through Dependabot, as on the server.
 :core:designsystem        Theme (colors, type, shapes), reusable components, illustrations
 :core:ui                  Shared screen pieces: loading/empty/error states, formatting (weights, durations, dates)
 :core:testing             Fakes of every repository, test dispatchers, fixtures from the OpenAPI examples
+:core:e2e                 End-to-end test support: the mock server's address and control API, API clients
 :feature:auth             Sign-in, session expired, change password
 :feature:home             Home: device grid, pets row, alert banners
 :feature:device           Litter box, feeder, generic device, device settings

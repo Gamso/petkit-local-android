@@ -42,4 +42,15 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
 
     testImplementation(libs.kotlinx.coroutines.test)
+
+    // End-to-end tests on an emulator (src/androidTest), against the mock server: Gradle Managed
+    // Devices run them (build-logic ManagedDevices.kt, .github/workflows/e2e.yml).
+    androidTestImplementation(projects.core.e2e)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    // Compose's test library brings Espresso 3.5, whose event injection reflects
+    // InputManager.getInstance(), gone in SDK 37.
+    androidTestImplementation(libs.androidx.test.espresso.core)
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.androidx.test.runner)
 }
