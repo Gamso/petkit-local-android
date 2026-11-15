@@ -11,6 +11,7 @@ android {
         applicationId = "org.petkitlocal.android"
         versionCode = 1
         versionName = "0.1.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     // English and French only (SPEC.md §7): drops the other languages libraries bring along.
