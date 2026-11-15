@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="device_title">Appareil</string>
+    <string name="device_gone">Cet appareil n\'est plus sur le serveur.</string>
+    <string name="device_open_settings">Réglages</string>
+
+    <string name="device_status_idle">Au repos</string>
+    <string name="device_status_offline">Hors ligne</string>
+    <string name="device_status_error">Erreur : %1$s</string>
+    <string name="device_status_feeding">Distribution</string>
+    <string name="device_status_pet_inside">Animal à l\'intérieur</string>
+    <string name="device_transport_mqtt">Liaison directe (MQTT)</string>
+    <string name="device_transport_http">Se connecte en HTTP</string>
+    <string name="device_last_seen">Vu à %1$s</string>
+    <string name="device_firmware">Micrologiciel %1$s</string>
+
+    <string name="device_section_status">État</string>
+    <string name="device_show_diagnostics">Afficher le diagnostic (%1$d)</string>
+    <string name="device_hide_diagnostics">Masquer le diagnostic</string>
+    <string name="device_nothing_reported">Cet appareil ne signale rien d\'autre.</string>
+
+    <string name="device_value_none">Non signalé</string>
+    <string name="device_value_yes">Oui</string>
+    <string name="device_value_no">Non</string>
+    <string name="device_value_on">Activé</string>
+    <string name="device_value_off">Désactivé</string>
+    <string name="device_value_problem">Problème</string>
+    <string name="device_value_ok">OK</string>
+
+    <string name="device_actions_more">Plus</string>
+    <string name="device_actions_less">Moins</string>
+    <string name="device_actions_show_all">Afficher toutes les actions</string>
+    <string name="device_actions_hide">Masquer les autres actions</string>
+    <string name="device_actions_expanded">Développé</string>
+    <string name="device_actions_collapsed">Réduit</string>
+    <string name="device_actions_confirmed">Demande d\'abord confirmation</string>
+
+    <string name="device_feedback_sending">Envoi…</string>
+    <string name="device_feedback_mqtt">Envoyé à l\'appareil.</string>
+    <string name="device_feedback_queued">En attente : l\'appareil le prendra d\'ici 10 s environ.</string>
+    <string name="device_feedback_local">Enregistré sur le serveur.</string>
+    <string name="device_feedback_dismiss">Fermer</string>
+
+    <string name="device_error_network">Le serveur est injoignable.</string>
+    <string name="device_error_session">Votre session a pris fin. Reconnectez-vous.</string>
+    <string name="device_error_rate_limited">Trop de demandes. Réessayez dans un instant.</string>
+    <string name="device_error_unexpected">La réponse du serveur n\'a pas été comprise.</string>
+    <string name="device_error_server">Le serveur a échoué (%1$s).</string>
+    <string name="device_error_refused">Le serveur a refusé.</string>
+    <string name="device_error_not_found">L\'appareil n\'est plus sur le serveur.</string>
+
+    <string name="device_confirm_title">%1$s ?</string>
+    <string name="device_confirm_message">C\'est irréversible : cela utilise un consommable ou met l\'appareil hors service un moment.</string>
+
+    <string name="device_settings_title">Réglages</string>
+    <string name="device_settings_none">Cet appareil n\'a aucun réglage à modifier.</string>
+    <string name="device_editor_save">Enregistrer</string>
+    <string name="device_editor_saving">Enregistrement…</string>
+    <string name="device_editor_increase">Augmenter</string>
+    <string name="device_editor_decrease">Diminuer</string>
+    <string name="device_editor_range">Entre %1$s et %2$s</string>
+    <string name="device_editor_counter">%1$d / %2$d</string>
+    <string name="device_problem_below_min">La valeur doit être d\'au moins %1$s.</string>
+    <string name="device_problem_above_max">La valeur doit être d\'au plus %1$s.</string>
+    <string name="device_problem_wrong_type">Ce réglage n\'accepte pas cette valeur.</string>
+    <string name="device_problem_not_an_option">Choisissez l\'une des options.</string>
+    <string name="device_problem_invalid_time">Écrivez l\'heure au format HH:MM.</string>
+    <plurals name="device_problem_too_long">
+        <item quantity="one">%1$d caractère au plus.</item>
+        <item quantity="many">%1$d caractères au plus.</item>
+        <item quantity="other">%1$d caractères au plus.</item>
+    </plurals>
+    <string name="device_problem_not_settable">Ce réglage ne peut pas être modifié.</string>
+</resources>

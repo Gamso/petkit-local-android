@@ -1,0 +1,78 @@
+package org.petkitlocal.core.domain.device
+
+import org.petkitlocal.core.domain.model.DeviceAction
+
+/** A device's actions as its action sheet lays them out. */
+data class ActionLayout(
+    /** The everyday ones, always in view: at most [DeviceActionOrder.VISIBLE]. */
+    val main: List<DeviceAction>,
+    /** Everything else, behind "More": overflow, then maintenance, then what cannot be undone. */
+    val more: List<DeviceAction>,
+)
+
+/**
+ * Which actions a device page keeps in view, and in what order. The server lists a model's
+ * buttons in its own order; the app puts the ones used every day first (cleaning, deodorizing
+ * and levelling a litter box; feeding; refilling and flushing a fountain), by key and never by
+ * model, so an action the server adds later still shows, after the known ones.
+ *
+ * Maintenance (calibration, resets, maintenance mode, emptying the litter) and destructive
+ * actions are never in [ActionLayout.main]: they stay one tap further away, and a destructive
+ * one is still confirmed.
+ */
+object DeviceActionOrder {
+    /** The actions in view while the sheet is collapsed. */
+    const val VISIBLE = 3
+
+    /** Lower first. An action not listed ranks [DEFAULT_RANK], after every known everyday one. */
+    private val RANKS: Map<String, Int> = mapOf(
+        // Litter box.
+        "cleaning_start" to 0,
+        "deodorize" to 1,
+        "level_litter" to 2,
+        "pack_waste" to 6,
+        // Feeder.
+        "feed" to 0,
+        "feed_hopper_1" to 1,
+        "feed_hopper_2" to 2,
+        "food_replenished" to 4,
+        "cancel_manual_feed" to 7,
+        // Fountain.
+        "fountain_refill" to 0,
+        "fountain_flush" to 1,
+        // Any family.
+        "light" to 3,
+        "play_sound" to 5,
+        "power_on" to 8,
+        "power_off" to 8,
+        "pause" to 9,
+        "resume" to 9,
+        "ptz_left" to 10,
+        "ptz_right" to 10,
+    )
+    private const val DEFAULT_RANK = 20
+
+    /** Kept behind "More" even when there is room in view. */
+    private val MAINTENANCE_KEYS = setOf(
+        "finish_litter_calibration",
+        "dump_litter",
+        "open_sealed_door",
+        "fountain_reset_circulation_pump",
+    )
+    private val MAINTENANCE_PREFIXES = listOf("maintenance_", "reset")
+
+    fun isMaintenance(action: DeviceAction): Boolean =
+        action.key in MAINTENANCE_KEYS || MAINTENANCE_PREFIXES.any { action.key.startsWith(it) }
+
+    /** [actions] in the server's order, laid out for the sheet. */
+    fun layout(actions: List<DeviceAction>, visible: Int = VISIBLE): ActionLayout {
+        val (destructive, safe) = actions.partition { it.destructive }
+        val (maintenance, everyday) = safe.partition(::isMaintenance)
+        // sortedBy is stable: equal ranks keep the server's order.
+        val ranked = everyday.sortedBy { RANKS[it.key] ?: DEFAULT_RANK }
+        return ActionLayout(
+            main = ranked.take(visible),
+            more = ranked.drop(visible) + maintenance + destructive,
+        )
+    }
+}

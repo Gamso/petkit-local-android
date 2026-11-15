@@ -1,0 +1,215 @@
+package org.petkitlocal.feature.device.generic
+
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertContentDescriptionEquals
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
+import org.junit.Assert.assertEquals
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.petkitlocal.core.designsystem.theme.PkTheme
+import org.petkitlocal.feature.device.DeviceFixtures
+import org.petkitlocal.feature.device.common.DeviceTestTags
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+
+/** Compose UI test (Robolectric) of the stateless generic device screen. */
+@RunWith(RobolectricTestRunner::class)
+@Config(qualifiers = "w411dp-h2000dp")
+class GenericDeviceScreenTest {
+    @get:Rule
+    val compose = createComposeRule()
+
+    private val calls = mutableListOf<String>()
+
+    private val actions = GenericDeviceActions(
+        onBack = { calls += "back" },
+        onOpenSettings = { calls += "settings" },
+        onRefresh = { calls += "refresh" },
+        onAction = { calls += "action:${it.key}" },
+        onConfirmAction = { calls += "confirm" },
+        onDismissConfirmation = { calls += "dismiss-confirmation" },
+        onDismissFeedback = { calls += "dismiss-feedback" },
+    )
+
+    private fun show(state: GenericDeviceUiState) {
+        compose.setContent { PkTheme { GenericDeviceScreen(state, actions) } }
+    }
+
+    private fun scrollTo(text: String) {
+        compose.onNodeWithTag(DeviceTestTags.LIST).performScrollToNode(hasText(text, substring = true))
+    }
+
+    @Test
+    fun `status, readings in words and the way back`() {
+        show(DeviceFixtures.generic())
+
+        compose.onNodeWithText("EverSweet Ultra AI").assertIsDisplayed()
+        compose.onNode(hasText("Idle") and hasAnyAncestor(hasTestTag(DeviceTestTags.STATUS))).assertIsDisplayed()
+        compose.onNodeWithText("Live link (MQTT)", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("Firmware 1.263").assertIsDisplayed()
+        // Values in words and units: unreported, a temperature, an option label, a boolean.
+        compose.onNodeWithText("Not reported").assertExists()
+        compose.onNodeWithText("24.5 °C").assertExists()
+        // The status line, and the deep-clean stage's option label.
+        compose.onAllNodesWithText("Idle").assertCountEquals(2)
+        compose.onNodeWithText("No").assertExists()
+
+        compose.onNodeWithContentDescription("Back").performClick()
+        assertEquals(listOf("back"), calls)
+    }
+
+    @Test
+    fun `diagnostics are folded away until asked for`() {
+        show(DeviceFixtures.generic())
+
+        compose.onNodeWithText("WiFi Signal").assertDoesNotExist()
+        scrollTo("Show diagnostics (1)")
+        compose.onNodeWithText("Show diagnostics (1)").performClick()
+        scrollTo("WiFi Signal")
+        compose.onNodeWithText("-54 dBm").assertExists()
+    }
+
+    @Test
+    fun `the settings open from the header's gear, the only way to them`() {
+        show(DeviceFixtures.generic())
+
+        compose.onNodeWithContentDescription("Settings").performClick()
+
+        assertEquals(listOf("settings"), calls)
+        compose.onNodeWithText("Settings").assertDoesNotExist()
+    }
+
+    @Test
+    fun `the sheet shows the everyday actions and More, which shows the rest, destructive last`() {
+        show(DeviceFixtures.generic())
+
+        compose.onNode(
+            hasText("Refill") and hasAnyAncestor(hasTestTag(DeviceTestTags.ACTION_SHEET)),
+        ).assertIsDisplayed()
+        compose.onNode(hasText("Drain & Flush") and hasAnyAncestor(hasTestTag(DeviceTestTags.ACTION_SHEET)))
+            .assertIsDisplayed()
+        compose.onNodeWithText("Drain").assertDoesNotExist()
+        compose.onNodeWithTag(DeviceTestTags.SHEET_HANDLE)
+            .assertContentDescriptionEquals("Show all actions")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Collapsed"))
+
+        compose.onNodeWithTag(DeviceTestTags.SHEET_MORE).performClick()
+
+        compose.onNodeWithText("Drain").assertIsDisplayed()
+        compose.onNodeWithText("Asks for confirmation first").assertIsDisplayed()
+        compose.onNodeWithTag(DeviceTestTags.SHEET_HANDLE)
+            .assertContentDescriptionEquals("Hide the other actions")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Expanded"))
+        compose.onNodeWithText("Drain").performClick()
+
+        // A tap runs the action and folds the sheet back.
+        assertEquals(listOf("action:fountain_drain"), calls)
+        compose.onNodeWithText("Drain").assertDoesNotExist()
+    }
+
+    @Test
+    fun `the handle expands and collapses the sheet too`() {
+        show(DeviceFixtures.generic())
+
+        compose.onNodeWithTag(DeviceTestTags.SHEET_HANDLE).performClick()
+        compose.onNodeWithText("Drain").assertIsDisplayed()
+        compose.onNodeWithTag(DeviceTestTags.SHEET_HANDLE).performClick()
+        compose.onNodeWithText("Drain").assertDoesNotExist()
+    }
+
+    @Test
+    fun `three everyday actions or fewer need no More`() {
+        val few = DeviceFixtures.fountain.copy(actions = listOf(DeviceFixtures.flush, DeviceFixtures.refill))
+        show(DeviceFixtures.generic(device = few))
+
+        compose.onNodeWithTag(DeviceTestTags.SHEET_MORE).assertDoesNotExist()
+        compose.onNodeWithTag(DeviceTestTags.SHEET_HANDLE).assertDoesNotExist()
+        compose.onNodeWithText("Refill").assertIsDisplayed()
+    }
+
+    @Test
+    fun `actions come from the sheet, and a destructive one is confirmed in a dialog`() {
+        show(DeviceFixtures.generic(commands = DeviceFixtures.sent.copy(confirming = DeviceFixtures.drain)))
+
+        compose.onNodeWithText("Refill").performClick()
+        compose.onNodeWithText("Drain?").assertIsDisplayed()
+        compose.onNodeWithText("This cannot be undone", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("Cancel").performClick()
+
+        assertEquals(listOf("action:fountain_refill", "dismiss-confirmation"), calls)
+    }
+
+    @Test
+    fun `the confirm button names the action`() {
+        // The dialog's button, not the sheet's button of the same name.
+        show(DeviceFixtures.generic(commands = DeviceFixtures.sent.copy(confirming = DeviceFixtures.drain)))
+
+        compose.onNode(
+            hasText("Drain") and hasClickAction() and !hasAnyAncestor(hasTestTag(DeviceTestTags.ACTION_SHEET)),
+        )
+            .performClick()
+
+        assertEquals(listOf("confirm"), calls)
+    }
+
+    @Test
+    fun `a command says how it was delivered, and a tap dismisses it`() {
+        show(DeviceFixtures.generic(commands = DeviceFixtures.sent))
+
+        compose.onNodeWithText("Queued: the device takes it within about 10 s.").assertIsDisplayed()
+        compose.onNodeWithTag(DeviceTestTags.FEEDBACK).performClick()
+
+        assertEquals(listOf("dismiss-feedback"), calls)
+    }
+
+    @Test
+    fun `a refusal shows the server's own message`() {
+        show(DeviceFixtures.generic(commands = DeviceFixtures.refused))
+
+        compose.onNodeWithText("Fountain Time must be between 1 and 60").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a device with no setting and no action has neither shortcut nor sheet`() {
+        show(DeviceFixtures.generic(device = DeviceFixtures.purifier, offline = true))
+
+        compose.onNodeWithText("Server unreachable. Showing the last known data.").assertIsDisplayed()
+        compose.onNodeWithText("Liquid", substring = true).assertExists()
+        compose.onNodeWithContentDescription("Settings").assertDoesNotExist()
+        compose.onNodeWithTag(DeviceTestTags.ACTION_SHEET).assertDoesNotExist()
+    }
+
+    @Test
+    fun `a device that is gone says so`() {
+        show(GenericDeviceUiState(loaded = true, device = null))
+
+        compose.onNodeWithText("This device is no longer on the server.").assertIsDisplayed()
+    }
+
+    @Test
+    @Config(qualifiers = "fr-w411dp-h2000dp")
+    fun `in French`() {
+        show(DeviceFixtures.generic(commands = DeviceFixtures.sent))
+
+        compose.onNode(hasText("Au repos") and hasAnyAncestor(hasTestTag(DeviceTestTags.STATUS))).assertIsDisplayed()
+        compose.onNodeWithText("Liaison directe (MQTT)", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("En attente : l'appareil le prendra d'ici 10 s environ.").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Réglages").assertIsDisplayed()
+        compose.onNodeWithText("Plus").assertIsDisplayed()
+    }
+}

@@ -17,10 +17,14 @@ import androidx.navigation.compose.rememberNavController
 import org.petkitlocal.android.AppViewModel
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.auth.AuthState
+import org.petkitlocal.core.domain.repository.LiveUpdatesStatus
 import org.petkitlocal.feature.auth.SignInDestination
 import org.petkitlocal.feature.auth.signInScreen
+import org.petkitlocal.feature.device.DeviceNavigation
 import org.petkitlocal.feature.device.deviceScreen
+import org.petkitlocal.feature.device.deviceSettingsScreen
 import org.petkitlocal.feature.device.navigateToDevice
+import org.petkitlocal.feature.device.navigateToDeviceSettings
 import org.petkitlocal.feature.history.historyScreen
 import org.petkitlocal.feature.history.navigateToHistory
 import org.petkitlocal.feature.home.HomeDestination
@@ -44,8 +48,21 @@ fun PetkitApp(viewModel: AppViewModel) {
         // A few milliseconds at start, while the session is read: the window's own background.
         Box(Modifier.fillMaxSize().background(PkTheme.colors.background))
     } else {
-        PetkitNavHost(signedIn = authState is AuthState.SignedIn)
+        val signedIn = authState is AuthState.SignedIn
+        if (signedIn) LiveUpdates(viewModel)
+        PetkitNavHost(signedIn = signedIn)
     }
+}
+
+/**
+ * Keeps the live updates going while the app is signed in and visible: collection stops when the
+ * activity stops, and the socket closes a few seconds later, so the background costs no battery
+ * (SPEC.md §6). Every screen behind the gate shows devices, pets or their history, which `/ws`
+ * keeps current; a screen that shows whether it is live collects the same shared socket.
+ */
+@Composable
+private fun LiveUpdates(viewModel: AppViewModel) {
+    viewModel.liveUpdates.collectAsStateWithLifecycle(initialValue = LiveUpdatesStatus.Connecting)
 }
 
 /**
@@ -71,7 +88,13 @@ fun PetkitNavHost(
                 onOpenSettings = { navController.navigateToSettings() },
             ),
         )
-        deviceScreen(onBack = back)
+        deviceScreen(
+            DeviceNavigation(
+                onBack = back,
+                onOpenSettings = { deviceId -> navController.navigateToDeviceSettings(deviceId) },
+            ),
+        )
+        deviceSettingsScreen(onBack = back)
         historyScreen(onBack = back)
         petsScreen(onBack = back)
         liveScreen(onBack = back)

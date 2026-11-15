@@ -4,13 +4,30 @@ import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import kotlinx.serialization.Serializable
+import org.petkitlocal.feature.device.settings.DeviceSettingsRoute
 
-/** The device screen of one device. */
+/** The screen of one device: its family's own, or the generic one ([DeviceRoute]). */
 @Serializable
 data class DeviceDestination(val deviceId: Long)
 
+/** The settings of one device, from its settable entities. */
+@Serializable
+data class DeviceSettingsDestination(val deviceId: Long)
+
 fun NavController.navigateToDevice(deviceId: Long) = navigate(DeviceDestination(deviceId))
 
-fun NavGraphBuilder.deviceScreen(onBack: () -> Unit) {
-    composable<DeviceDestination> { DeviceRoute(onBack = onBack) }
+fun NavController.navigateToDeviceSettings(deviceId: Long) = navigate(DeviceSettingsDestination(deviceId))
+
+/** Where a device screen leads; the app wires each to a destination. */
+data class DeviceNavigation(val onBack: () -> Unit = {}, val onOpenSettings: (deviceId: Long) -> Unit = {})
+
+fun NavGraphBuilder.deviceScreen(navigation: DeviceNavigation) {
+    composable<DeviceDestination> { DeviceRoute(navigation) }
 }
+
+fun NavGraphBuilder.deviceSettingsScreen(onBack: () -> Unit) {
+    composable<DeviceSettingsDestination> { DeviceSettingsRoute(onBack = onBack) }
+}
+
+/** The [DeviceDestination] and [DeviceSettingsDestination] property the argument is stored under. */
+internal const val DEVICE_ID_KEY = "deviceId"
