@@ -5,8 +5,13 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
+import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.core.domain.Outcome
+import org.petkitlocal.core.domain.history.HistoryCursor
+import org.petkitlocal.core.domain.history.HistoryPage
+import org.petkitlocal.core.domain.history.HistoryQuery
 import org.petkitlocal.core.domain.model.Device
+import org.petkitlocal.core.domain.model.EventDetail
 import org.petkitlocal.core.domain.model.Pet
 import org.petkitlocal.core.domain.model.TimelineItem
 import org.petkitlocal.core.domain.repository.DeviceRepository
@@ -62,10 +67,45 @@ class FakeTimelineRepository :
     val days = MutableStateFlow<Map<LocalDate, List<TimelineItem>>>(emptyMap())
     val refreshedDays = mutableListOf<LocalDate>()
 
+    /** Every History page asked for, in order. */
+    val pageRequests = mutableListOf<Pair<HistoryQuery, HistoryCursor?>>()
+
+    /** What a page answers; by default the day's last page. A test may write [days] in it. */
+    var pageResult: (
+        HistoryQuery,
+        HistoryCursor?,
+    ) -> Outcome<HistoryPage> = { _, _ -> Outcome.Success(HistoryPage(null)) }
+
+    /** When set, every page waits for it before answering. */
+    var pageGate: CompletableDeferred<Unit>? = null
+
+    /** The events `getEvent` finds; any other id is not found. */
+    val events = mutableMapOf<Long, EventDetail>()
+    var eventGate: CompletableDeferred<Unit>? = null
+
+    /** When set, `getEvent` fails with it. */
+    var eventError: DomainError? = null
+
     override fun observeDay(day: LocalDate): Flow<List<TimelineItem>> = days.map { it[day].orEmpty() }
 
     override suspend fun refreshDay(day: LocalDate): Outcome<Unit> {
         refreshedDays += day
         return refreshed()
+    }
+
+    override fun observeHistory(query: HistoryQuery): Flow<List<TimelineItem>> =
+        days.map { cache -> cache[query.day].orEmpty().filter(query::matches) }
+
+    override suspend fun fetchHistoryPage(query: HistoryQuery, cursor: HistoryCursor?): Outcome<HistoryPage> {
+        pageRequests += query to cursor
+        pageGate?.await()
+        return pageResult(query, cursor)
+    }
+
+    override suspend fun getEvent(id: Long): Outcome<EventDetail> {
+        eventGate?.await()
+        eventError?.let { return Outcome.Failure(it) }
+        return events[id]?.let { Outcome.Success(it) }
+            ?: Outcome.Failure(DomainError.NotFound("event_not_found", "no such event"))
     }
 }

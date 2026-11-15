@@ -3,8 +3,8 @@ package org.petkitlocal.core.domain.model
 import java.time.Instant
 
 /**
- * One History card. Home reads the day's cards for its counts and 24-hour strips; History (M3)
- * shows them. Media and steps are not cached yet.
+ * One History card. Home reads the day's cards for its counts and 24-hour strips; History shows
+ * them, with their [media]. The steps of a card are not cached: the detail sheet reads its event.
  */
 data class TimelineItem(
     val id: Long,
@@ -26,6 +26,8 @@ data class TimelineItem(
     val durationSec: Int?,
     val weightG: Int?,
     val facts: List<String>,
+    /** Its photos and videos; null when it has none. */
+    val media: TimelineMedia? = null,
 ) {
     /** When the card happened, as a screen places it. */
     val shownAt: Instant? get() = displayTs ?: ts

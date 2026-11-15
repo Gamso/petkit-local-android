@@ -1,8 +1,8 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 2,
-    "identityHash": "b2df1280e12754c468d45ec13e6aa195",
+    "version": 3,
+    "identityHash": "084d029f62c353d9f4c4832c79d170ce",
     "entities": [
       {
         "tableName": "devices",
@@ -319,7 +319,7 @@
       },
       {
         "tableName": "timeline_items",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `day` TEXT NOT NULL, `kind` TEXT NOT NULL, `filters_json` TEXT NOT NULL, `device_id` INTEGER, `device_type` TEXT, `ts` REAL, `display_ts` REAL, `event_type` TEXT, `event_kind` TEXT, `label` TEXT, `pet_id` INTEGER, `pet_name` TEXT, `duration_sec` INTEGER, `weight_g` INTEGER, `facts_json` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `day` TEXT NOT NULL, `kind` TEXT NOT NULL, `filters_json` TEXT NOT NULL, `device_id` INTEGER, `device_type` TEXT, `ts` REAL, `display_ts` REAL, `event_type` TEXT, `event_kind` TEXT, `label` TEXT, `pet_id` INTEGER, `pet_name` TEXT, `duration_sec` INTEGER, `weight_g` INTEGER, `facts_json` TEXT NOT NULL, `media_json` TEXT, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -405,6 +405,11 @@
             "columnName": "facts_json",
             "affinity": "TEXT",
             "notNull": true
+          },
+          {
+            "fieldPath": "mediaJson",
+            "columnName": "media_json",
+            "affinity": "TEXT"
           }
         ],
         "primaryKey": {
@@ -437,7 +442,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b2df1280e12754c468d45ec13e6aa195')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '084d029f62c353d9f4c4832c79d170ce')"
     ]
   }
 }

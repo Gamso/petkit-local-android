@@ -6,8 +6,8 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 
 /**
- * A `TimelineItem`, filed under the local [day] it was fetched for. Its media and steps are not
- * cached yet: History (M3) adds them, with a migration.
+ * A `TimelineItem`, filed under the local [day] it was fetched for, with its media. Its steps are
+ * not cached: the detail sheet reads the event itself.
  */
 @Entity(
     tableName = "timeline_items",
@@ -34,4 +34,6 @@ data class TimelineItemRow(
     @ColumnInfo(name = "weight_g") val weightG: Int?,
     /** A JSON array of strings. */
     @ColumnInfo(name = "facts_json") val factsJson: String,
+    /** The `Media` object as the server sent it (API paths), or null when the card has none. */
+    @ColumnInfo(name = "media_json") val mediaJson: String? = null,
 )

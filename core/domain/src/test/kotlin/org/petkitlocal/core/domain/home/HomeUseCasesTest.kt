@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import org.petkitlocal.core.domain.DayOnlyTimeline
 import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.core.domain.Outcome
 import org.petkitlocal.core.domain.model.Device
@@ -20,7 +21,6 @@ import org.petkitlocal.core.domain.model.Pet
 import org.petkitlocal.core.domain.model.TimelineItem
 import org.petkitlocal.core.domain.repository.DeviceRepository
 import org.petkitlocal.core.domain.repository.PetRepository
-import org.petkitlocal.core.domain.repository.TimelineRepository
 
 class HomeUseCasesTest {
     private val zone = ZoneId.of("Europe/Paris")
@@ -98,7 +98,7 @@ class HomeUseCasesTest {
         override suspend fun refresh(): Outcome<Unit> = Outcome.Success(Unit)
     }
 
-    private class StubTimeline : TimelineRepository {
+    private class StubTimeline : DayOnlyTimeline() {
         var result: Outcome<Unit> = Outcome.Success(Unit)
         val observed = mutableListOf<LocalDate>()
         val refreshed = mutableListOf<LocalDate>()

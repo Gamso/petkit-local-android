@@ -4,30 +4,59 @@ import java.time.LocalDate
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.SerializationException
+import okhttp3.HttpUrl
 import org.petkitlocal.core.database.dao.TimelineDao
+import org.petkitlocal.core.database.dao.TimelineFilter
+import org.petkitlocal.core.database.dao.TimelineKey
 import org.petkitlocal.core.database.model.TimelineItemRow
 import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.core.domain.Outcome
+import org.petkitlocal.core.domain.history.HistoryCursor
+import org.petkitlocal.core.domain.history.HistoryPage
+import org.petkitlocal.core.domain.history.HistoryQuery
+import org.petkitlocal.core.domain.map
+import org.petkitlocal.core.domain.model.EventDetail
+import org.petkitlocal.core.domain.model.EventField
+import org.petkitlocal.core.domain.model.MediaFile
+import org.petkitlocal.core.domain.model.MediaKind
 import org.petkitlocal.core.domain.model.PetRef
 import org.petkitlocal.core.domain.model.TimelineCategory
 import org.petkitlocal.core.domain.model.TimelineItem
+import org.petkitlocal.core.domain.model.TimelineMedia
 import org.petkitlocal.core.domain.repository.TimelineRepository
 import org.petkitlocal.core.network.PetkitApi
+import org.petkitlocal.core.network.PetkitJson
+import org.petkitlocal.core.network.ServerAddressProvider
+import org.petkitlocal.core.network.dto.EventDetailDto
+import org.petkitlocal.core.network.dto.MediaDto
 import org.petkitlocal.core.network.dto.TimelineItemDto
 import org.petkitlocal.core.network.error.apiCall
 
-/** The timeline, cached by local day. [refreshDay] reads every page of `GET /timeline?day=`. */
-class TimelineRepositoryImpl @Inject constructor(private val api: PetkitApi, private val dao: TimelineDao) :
-    TimelineRepository {
+/**
+ * The timeline, cached by local day (ADR 0002). [refreshDay] reads every page of
+ * `GET /timeline?day=` for Home; History reads one page at a time ([fetchHistoryPage]) into the
+ * same rows, so a card is the same whichever screen fetched it, and live updates patch both.
+ * Media paths are cached as the server sent them and made absolute on the current server when read.
+ */
+class TimelineRepositoryImpl @Inject constructor(
+    private val api: PetkitApi,
+    private val dao: TimelineDao,
+    private val serverAddress: ServerAddressProvider,
+) : TimelineRepository {
     override fun observeDay(day: LocalDate): Flow<List<TimelineItem>> =
-        dao.observeDay(day.toString()).map { rows -> rows.map { it.toDomain() } }
+        dao.observeDay(day.toString()).map { rows -> rows.toDomain() }
 
     override suspend fun refreshDay(day: LocalDate): Outcome<Unit> {
         val key = day.toString()
         val items = mutableListOf<TimelineItemDto>()
         var cursor: String? = null
         repeat(MAX_PAGES) {
-            val page = when (val result = apiCall { api.getTimeline(day = key, limit = PAGE_SIZE, cursor = cursor) }) {
+            val page = when (
+                val result = apiCall {
+                    api.getTimeline(day = key, limit = DAY_PAGE_SIZE, cursor = cursor)
+                }
+            ) {
                 is Outcome.Failure -> return result
                 is Outcome.Success -> result.value
             }
@@ -42,12 +71,69 @@ class TimelineRepositoryImpl @Inject constructor(private val api: PetkitApi, pri
         return Outcome.Failure(DomainError.UnexpectedResponse("More than $MAX_PAGES pages of timeline for $key"))
     }
 
+    override fun observeHistory(query: HistoryQuery): Flow<List<TimelineItem>> =
+        dao.observeHistory(query.toFilter()).map { rows -> rows.toDomain() }
+
+    override suspend fun fetchHistoryPage(query: HistoryQuery, cursor: HistoryCursor?): Outcome<HistoryPage> {
+        val day = query.day.toString()
+        val result = apiCall {
+            api.getTimeline(
+                device = query.deviceId,
+                day = day,
+                kind = query.category?.key,
+                pet = query.petId,
+                limit = HISTORY_PAGE_SIZE,
+                cursor = cursor?.token,
+            )
+        }
+        return result.map { page ->
+            val rows = page.items.map { it.toRow(day) }
+            dao.writePage(
+                filter = query.toFilter(),
+                items = rows,
+                newerThan = cursor?.lastId?.let { TimelineKey(it, cursor.lastTs) },
+                lastPage = page.nextCursor == null,
+            )
+            val last = page.items.lastOrNull()
+            HistoryPage(
+                next = page.nextCursor?.let { token ->
+                    // After an empty page (which the server should not send), go on from where the page before ended.
+                    if (last !=
+                        null
+                    ) {
+                        HistoryCursor(token, last.ts, last.id)
+                    } else {
+                        HistoryCursor(token, cursor?.lastTs, cursor?.lastId)
+                    }
+                },
+            )
+        }
+    }
+
+    override suspend fun getEvent(id: Long): Outcome<EventDetail> =
+        apiCall { api.getTimelineEvent(id) }.map { it.event.toDomain(serverAddress.apiBaseUrl()) }
+
+    private fun List<TimelineItemRow>.toDomain(): List<TimelineItem> {
+        val base = serverAddress.apiBaseUrl()
+        return map { it.toDomain(base) }
+    }
+
     private companion object {
-        /** The most `GET /timeline` allows. */
-        const val PAGE_SIZE = 100
+        /** The most `GET /timeline` allows: Home reads a whole day. */
+        const val DAY_PAGE_SIZE = 100
+
+        /** History's pages: a screen and a half of cards. */
+        const val HISTORY_PAGE_SIZE = 25
         const val MAX_PAGES = 20
     }
 }
+
+internal fun HistoryQuery.toFilter() = TimelineFilter(
+    day = day.toString(),
+    deviceId = deviceId,
+    petId = petId,
+    filterKey = category?.key,
+)
 
 internal fun TimelineItemDto.toRow(day: String) = TimelineItemRow(
     id = id,
@@ -66,9 +152,10 @@ internal fun TimelineItemDto.toRow(day: String) = TimelineItemRow(
     durationSec = durationSec,
     weightG = weightG,
     factsJson = encodeStrings(facts),
+    mediaJson = media?.let { PetkitJson.encodeToString(MediaDto.serializer(), it) },
 )
 
-internal fun TimelineItemRow.toDomain() = TimelineItem(
+internal fun TimelineItemRow.toDomain(apiBase: HttpUrl?) = TimelineItem(
     id = id,
     kind = kind,
     categories = decodeStrings(filtersJson).mapNotNull(TimelineCategory::fromKey).toSet(),
@@ -83,4 +170,55 @@ internal fun TimelineItemRow.toDomain() = TimelineItem(
     durationSec = durationSec,
     weightG = weightG,
     facts = decodeStrings(factsJson),
+    media = mediaJson?.let(::decodeMedia)?.toDomain(apiBase),
 )
+
+private fun decodeMedia(json: String): MediaDto? = try {
+    PetkitJson.decodeFromString(MediaDto.serializer(), json)
+} catch (_: SerializationException) {
+    null
+} catch (_: IllegalArgumentException) {
+    null
+}
+
+internal fun EventDetailDto.toDomain(apiBase: HttpUrl?) = EventDetail(
+    id = id,
+    deviceId = deviceId,
+    deviceType = deviceType,
+    ts = ts?.let(::epochSecondsToInstant),
+    eventType = eventType,
+    eventKind = eventKind,
+    label = label,
+    pet = pet?.let { PetRef(it.id, it.name) },
+    fields = fields.map { EventField(it.key, it.label, it.text) },
+    media = media?.toDomain(apiBase),
+)
+
+/**
+ * The files of [MediaDto] in the order a viewer shows them, each with its thumbnail. Null when
+ * there is nothing to show; a file outside the API (or with no server configured) is left out,
+ * since it would be fetched without the bearer header.
+ */
+internal fun MediaDto.toDomain(apiBase: HttpUrl?): TimelineMedia? {
+    val slots = buildList {
+        snapshot?.let { add(MediaKind.Snapshot to it) }
+        waste.forEach { add(MediaKind.Waste to it) }
+        health.forEach { add(MediaKind.Health to it) }
+        highlight?.let { add(MediaKind.Highlight to it) }
+        playback?.let { add(MediaKind.Playback to it) }
+        timelapse?.let { add(MediaKind.Timelapse to it) }
+    }
+    val files = slots.mapNotNull { (kind, path) ->
+        val url = apiUrl(apiBase, path) ?: return@mapNotNull null
+        MediaFile(kind, url, thumbnailUrl = thumbnailPath(path)?.let { apiUrl(apiBase, it) })
+    }
+    return TimelineMedia(files, videoPending).takeIf { files.isNotEmpty() || videoPending }
+}
+
+private const val MEDIA_PREFIX = "/app/v1/media/"
+private const val THUMB_PREFIX = "/app/v1/media/thumb/"
+
+/** `GET /media/thumb/{path}` stands for any photo or video of the media tree at `/media/{path}`. */
+internal fun thumbnailPath(mediaPath: String): String? = mediaPath
+    .takeIf { it.startsWith(MEDIA_PREFIX) && !it.startsWith(THUMB_PREFIX) }
+    ?.let { THUMB_PREFIX + it.removePrefix(MEDIA_PREFIX) }
