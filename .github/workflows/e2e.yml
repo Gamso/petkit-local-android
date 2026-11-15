@@ -81,22 +81,10 @@ jobs:
         with:
           cache-read-only: ${{ github.ref != 'refs/heads/main' }}
 
-      # The system image Gradle downloads into the SDK, and the emulator it creates from it with a
-      # booted snapshot, so a warm run neither downloads ~1 GB nor cold-boots to make a snapshot.
-      - name: Locate the system image and the managed emulators
-        run: |
-          echo "SYSTEM_IMAGE_DIR=$ANDROID_HOME/system-images/${{ matrix.device.image }}" >> "$GITHUB_ENV"
-          echo "MANAGED_AVD_DIR=$HOME/.android/avd/gradle-managed" >> "$GITHUB_ENV"
-      - name: Cache the system image
-        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v6.1.0
-        with:
-          path: ${{ env.SYSTEM_IMAGE_DIR }}
-          key: system-image-${{ matrix.device.name }}-x86_64-v1
-      - name: Cache the managed emulator
-        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v6.1.0
-        with:
-          path: ${{ env.MANAGED_AVD_DIR }}
-          key: managed-avd-${{ matrix.device.name }}-${{ hashFiles('build-logic/convention/src/main/kotlin/org/petkitlocal/buildlogic/ManagedDevices.kt', 'gradle/libs.versions.toml') }}
+      # No cache for the system image or the managed emulator: with both restored, Gradle's
+      # pixel6Api37Setup failed on main ("Cannot query the value of this property because it has
+      # no value available") while the same run without them passed. Gradle downloads the image
+      # and creates the emulator itself, about a minute more per run.
 
       # The mock server, built from this checkout with the layer cache mock-server.yml fills, and
       # tagged with the name compose gives the image (<project>-<service>), so `up` starts this
@@ -232,7 +220,8 @@ jobs:
             exit 1
           fi
 
-      # The same system image as the e2e job's target-SDK device, restored from its cache.
+      # The system image the emulator runner installs, cached by this job (outside Gradle, which
+      # is why the e2e job's problem with a restored image does not apply here).
       - name: Locate the system image
         run: echo "SYSTEM_IMAGE_DIR=$ANDROID_HOME/system-images/android-37.0/aosp_atd" >> "$GITHUB_ENV"
       - name: Cache the system image
@@ -241,8 +230,8 @@ jobs:
           path: ${{ env.SYSTEM_IMAGE_DIR }}
           key: system-image-pixel6Api37-x86_64-v1
 
-      # At M0 the smoke test does not sign in: the release build allows HTTPS only, and the mock
-      # serves plain HTTP. Signing in to the server arrives with M1 (docs/ROADMAP.md).
+      # The smoke test does not sign in: it checks that the release build starts and draws its
+      # first screen. Signing in on a device is the e2e job's (SessionFlowTest).
       - name: Smoke test on the emulator
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
