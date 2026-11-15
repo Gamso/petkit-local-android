@@ -18,7 +18,7 @@ per feature. Decisions that are hard to undo are recorded as ADRs in `docs/adr/`
 | Images | Coil 3 with the shared OkHttp client | Media and thumbnails need the `Authorization` header |
 | Video | Media3 ExoPlayer: HLS natively; fMP4-over-WebSocket through a custom `DataSource` | One player, two transports |
 | Charts | Compose `Canvas` | Few, simple charts; no charting dependency |
-| Push | UnifiedPush connector (ntfy distributor) | No Google services required |
+| Notifications | A foreground service holding the server's notification WebSocket (OkHttp) | No other app, server or Google service required |
 | Navigation | Navigation Compose with type-safe routes | Standard, testable |
 | Static analysis | ktlint, detekt, Android lint | CI gate |
 | Tests | JUnit 5, MockK, Turbine, kotlinx-coroutines-test, Robolectric, Compose UI tests, screenshot tests | One layer each, below |
@@ -46,7 +46,7 @@ the project is created, and upgraded through Dependabot, as on the server.
 :feature:pets             Pet list and detail, weight chart
 :feature:live             Live video player
 :feature:settings         Server, notifications, language, theme, sign out
-:push                     UnifiedPush receiver and notification channels
+:push                     Notification connection service, channels and deep links
 ```
 
 **Dependency rule:**
@@ -122,18 +122,35 @@ in CI fails the build if a feature imports a data-layer package.
   - On close code `1013`, or after two failed starts, it switches to the HLS URL with the same header (`DefaultHttpDataSource` with request properties).
   - Close code `4409` (replaced) is silent.
 
-## 5. Push notifications
+## 5. Notifications
 
-- **Registration**:
-  - The `:push` module registers with UnifiedPush and sends the endpoint to the server
-    (`PUT /app/v1/push`) after sign-in and whenever the distributor rotates it.
-  - The server ties it to the session, so logout, revocation and expiry unregister it.
-  - This needs a petkit-local change (spec, decision 4).
+All in one (spec, decision 4; ADR 0007): the app keeps its own connection to petkit-local, as the
+ntfy app would to an ntfy server. The server side is petkit-local issue 89.
+
+- **Connection** (`:push`):
+  - A foreground service holds the server's notification WebSocket while the user is signed in and
+    notifications are on, with the bearer header like every other request.
+  - Service type `specialUse` (the app is not on the Play Store, so no store review applies),
+    which Android 14+ does not time-limit as it does `dataSync`. It starts after sign-in, at
+    boot (`BOOT_COMPLETED`) and after an app update (`MY_PACKAGE_REPLACED`).
+  - The socket carries notifications only, never device state: `/ws` stays a screen-time
+    connection, closed in the background.
+  - Reconnection with backoff, and immediately when the network comes back
+    (`ConnectivityManager` callback). The server pings inside Cloudflare's idle timeout.
+  - The last message id is kept in DataStore and passed back on reconnection, so the server
+    replays what was missed.
+  - Close code `4401` stops the service and ends the session (sign-in, with the reason).
+- **Battery**: the app asks once, with an explanation, to be exempted from battery optimisation
+  (`REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`); without it, Doze delays alerts. Settings shows the
+  state and the shortcut to fix it.
+- **Kinds**: the kinds chosen in Settings are sent to the server, which filters per phone; the
+  app does not drop what the server sent.
 - **Delivery**:
-  - Messages are small JSON documents: kind, device id, pet id, event code, timestamp.
-  - The receiver maps them through the same keyed translations as the UI and posts a notification on the channel for
-    its kind, in the phone's language.
+  - Messages are small JSON documents: kind, device id, pet id, event code, timestamp, id.
+  - The service maps them through the same keyed translations as the UI and posts a notification
+    on the channel for its kind, in the phone's language.
   - Tapping it opens the device or the History entry by deep link.
+  - The connection's own ongoing notification sits on a separate, minimum-importance channel.
 
 ## 6. Testing
 
@@ -180,4 +197,5 @@ Rules:
 3. Hand-written DTOs plus OpenAPI contract tests, rather than generated clients.
 4. Session token storage (Keystore-encrypted DataStore).
 5. Video transport: fMP4 over WebSocket first, HLS fallback, via Media3.
-6. Push through UnifiedPush and ntfy, no Firebase.
+6. Push through UnifiedPush and ntfy, no Firebase (superseded by 7).
+7. Notifications over the app's own connection to petkit-local.
