@@ -63,6 +63,18 @@ class HttpErrorMapperTest {
     }
 
     @Test
+    fun `409 accessory_unreachable says an accessory's relay is not on MQTT, any other 409 is a server error`() {
+        assertEquals(
+            DomainError.AccessoryUnreachable(),
+            HttpErrorMapper.map(409, error("accessory_unreachable"), null, true),
+        )
+        assertEquals(
+            DomainError.Server(409, "conflict", "text"),
+            HttpErrorMapper.map(409, error("conflict"), null, true),
+        )
+    }
+
+    @Test
     fun `404 keeps the code that says what was not found`() {
         assertEquals(
             DomainError.NotFound("feed_not_found", "text"),

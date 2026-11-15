@@ -83,6 +83,11 @@ internal fun errorText(error: DomainError): String = when (error) {
 
     is DomainError.NotFound -> error.message.ifBlank { stringResource(R.string.device_error_not_found) }
 
+    is DomainError.AccessoryUnreachable ->
+        error.relay
+            ?.let { stringResource(R.string.device_error_accessory_unreachable, it) }
+            ?: stringResource(R.string.device_error_accessory_unreachable_unnamed)
+
     is DomainError.Server -> error.message?.takeIf { it.isNotBlank() }
         ?: stringResource(R.string.device_error_server, error.status?.let { "HTTP $it" } ?: error.code.orEmpty())
 

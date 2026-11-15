@@ -32,6 +32,13 @@ sealed interface DomainError {
     /** No such device, pet, event or feed (HTTP 404). */
     data class NotFound(val code: String, val message: String) : DomainError
 
+    /**
+     * A Bluetooth accessory cannot be reached now (HTTP 409 `accessory_unreachable`): only the
+     * device relaying it can, and only while that one holds an MQTT session. Nothing was sent or
+     * queued. [relay] is that device's name, when the cache knows it.
+     */
+    data class AccessoryUnreachable(val relay: String? = null) : DomainError
+
     /** The server failed or answered with a status the app does not handle (5xx, 415, ...). */
     data class Server(val status: Int?, val code: String?, val message: String?) : DomainError
 

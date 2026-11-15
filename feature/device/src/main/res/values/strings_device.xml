@@ -49,6 +49,8 @@
     <string name="device_error_server">The server failed (%1$s).</string>
     <string name="device_error_refused">The server refused it.</string>
     <string name="device_error_not_found">The device is no longer on the server.</string>
+    <string name="device_error_accessory_unreachable">The %1$s must be online (MQTT) to reach this accessory.</string>
+    <string name="device_error_accessory_unreachable_unnamed">The device relaying this accessory must be online (MQTT) to reach it.</string>
 
     <string name="device_confirm_title">%1$s?</string>
     <string name="device_confirm_message">This cannot be undone: it spends a consumable or takes the device out of service for a while.</string>

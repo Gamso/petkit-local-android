@@ -48,6 +48,8 @@
     <string name="device_error_server">Le serveur a échoué (%1$s).</string>
     <string name="device_error_refused">Le serveur a refusé.</string>
     <string name="device_error_not_found">L\'appareil n\'est plus sur le serveur.</string>
+    <string name="device_error_accessory_unreachable">Le %1$s doit être en ligne (MQTT) pour joindre cet accessoire.</string>
+    <string name="device_error_accessory_unreachable_unnamed">L\'appareil qui relaie cet accessoire doit être en ligne (MQTT) pour le joindre.</string>
 
     <string name="device_confirm_title">%1$s ?</string>
     <string name="device_confirm_message">C\'est irréversible : cela utilise un consommable ou met l\'appareil hors service un moment.</string>
