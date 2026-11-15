@@ -62,7 +62,8 @@ class RouteContractTest {
     fun `every route of the document is called by the app, or is a known non-REST route`() {
         val inApp = routes.map { "${it.method} ${it.path}" }.toSet()
         val inSpec = spec.operations.map { it.toString() }.toSet()
-        assertEquals((inSpec - notRest.keys).sorted(), inApp.sorted())
+        assertEquals((inSpec - notRest.keys - PendingContract.ROUTES).sorted(), inApp.sorted())
+        assertTrue(inSpec.containsAll(PendingContract.ROUTES)) { "A pending route left the document" }
         assertTrue(inSpec.containsAll(notRest.keys)) { "A non-REST route left the document: ${notRest.keys - inSpec}" }
     }
 

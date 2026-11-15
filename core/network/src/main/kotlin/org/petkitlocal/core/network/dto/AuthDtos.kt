@@ -15,6 +15,30 @@ data class SessionDto(
     @SerialName("last_used") val lastUsed: Double,
     /** `last_used` + 90 days. */
     @SerialName("expires") val expires: Double,
+    /** `NotificationKinds`: the kinds this session receives, or null for every kind. */
+    @SerialName("kinds") val kinds: List<String>?,
+    /** Its UnifiedPush registration; null when there is none. */
+    @SerialName("push") val push: PushRegistrationDto?,
+)
+
+/** Values of `NotificationKind`. */
+object NotificationKind {
+    const val TOILET = "toilet"
+    const val FEED_SERVED = "feed_served"
+    const val FEED_FAILED = "feed_failed"
+    const val ERROR = "error"
+    const val FOOD_LOW = "food_low"
+    const val CONSUMABLE = "consumable"
+    const val OFFLINE = "offline"
+    val KNOWN = setOf(TOILET, FEED_SERVED, FEED_FAILED, ERROR, FOOD_LOW, CONSUMABLE, OFFLINE)
+}
+
+/** `PushRegistration`: a session's UnifiedPush endpoint, of which only the host is ever sent back. */
+@Serializable
+data class PushRegistrationDto(
+    @SerialName("host") val host: String,
+    @SerialName("kinds") val kinds: List<String>?,
+    @SerialName("registered") val registered: Double,
 )
 
 /** `Info`: server identity and clock, from `GET /info`. */

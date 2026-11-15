@@ -178,11 +178,12 @@ class RepositoriesTest {
 
     private fun summary(id: Long, kind: String, online: Boolean = true) =
         """{"id":$id,"type":"t4","model":"Model $id","kind":"$kind","online":$online,"transport":"http",
-           "last_seen":1794732641.452,"firmware":"1.652","is_camera":false}"""
+           "last_seen":1794732641.452,"firmware":"1.652","is_camera":false,
+           "connection":"wifi","parent_id":null,"accessories":[]}"""
 
     private fun detail(id: Long, kind: String) = """{"device":{"id":$id,"type":"t4","model":"Model $id",
         "kind":"$kind","online":true,"transport":"http","last_seen":1794732641.452,"firmware":"1.652",
-        "is_camera":false,"serial":"SN-$id",
+        "is_camera":false,"connection":"wifi","parent_id":null,"accessories":[],"serial":"SN-$id",
         "entities":[
           ${entity("device_status", "sensor", "-1", display = "\"idle\"")},
           ${entity("error", "sensor", "null")},

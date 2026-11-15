@@ -25,6 +25,11 @@ info:
     `delivered`: `mqtt`, `queued`, or `local` when only petkit-local's own state
     changed. A device confirms a write in its next report, which `/ws` relays.
 
+    Bluetooth accessories (W5/W4/CTW2/CTW3 fountains, the K3 Pura Air) are devices
+    here too, under their own id, as in Home Assistant: `connection` is `ble`,
+    `parent_id` names the device relaying them, and that device lists them in
+    `accessories`. They have entities and actions, never a schedule or live video.
+
     Adding a field to a response is a compatible change; removing or renaming one
     is not and requires `/app/v2`.
 servers:
@@ -42,6 +47,8 @@ tags:
   - name: pets
   - name: controls
   - name: feeding
+  - name: push
+  - name: notifications
 
 paths:
   /info:
@@ -158,7 +165,7 @@ paths:
     get:
       tags: [devices]
       operationId: listDevices
-      summary: Every device, ordered by id.
+      summary: Every device, Bluetooth accessories included, ordered by id.
       responses:
         "200":
           description: OK
@@ -178,6 +185,10 @@ paths:
       tags: [devices]
       operationId: getDevice
       summary: One device with the current value of each of its entities.
+      description: |
+        A Bluetooth accessory answers here as well. A K3's entities are its
+        `k3_liquid` (the cartridge level, %) and `k3_battery`; it has no actions. A
+        fountain's are its pump, filter and settings, as Home Assistant shows them.
       parameters:
         - { $ref: "#/components/parameters/DeviceId" }
       responses:
@@ -204,6 +215,10 @@ paths:
         consumable or takes the device out of service — and is refused with 422
         `confirmation_required` unless the body is `{"confirm": true}`. Any other
         action needs no body.
+
+        On a Bluetooth accessory the press is relayed by its parent, which can only
+        do so while it holds an MQTT session: it is sent at once (`delivered` is
+        `mqtt`) or refused with 409 `accessory_unreachable`, never queued.
       parameters:
         - { $ref: "#/components/parameters/DeviceId" }
         - name: action
@@ -225,6 +240,7 @@ paths:
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/AccessoryUnreachable" }
         "415": { $ref: "#/components/responses/UnsupportedMediaType" }
         "422": { $ref: "#/components/responses/Unprocessable" }
 
@@ -238,7 +254,8 @@ paths:
         number within `min`/`max` for `number`, one of `options` for `select`,
         `HH:MM` or `HH:MM:SS` for `time`, a string of at most 255 characters for
         `text`. The answer carries the entity with the value now stored; the
-        device's next report confirms or overwrites it.
+        device's next report confirms or overwrites it. A Bluetooth accessory's
+        setting is relayed by its parent, as an action is: sent now, or 409.
       parameters:
         - { $ref: "#/components/parameters/DeviceId" }
         - name: key
@@ -260,6 +277,7 @@ paths:
         "400": { $ref: "#/components/responses/BadRequest" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { $ref: "#/components/responses/NotFound" }
+        "409": { $ref: "#/components/responses/AccessoryUnreachable" }
         "415": { $ref: "#/components/responses/UnsupportedMediaType" }
         "422": { $ref: "#/components/responses/Unprocessable" }
 
@@ -673,13 +691,14 @@ paths:
         can send headers on the upgrade). Every frame the server sends is one JSON
         text message, an `UpdateMessage` told apart by `type`:
 
-        * `hello` — first, once: every device as `DeviceDetail`. Start from it rather
-          than from an earlier `GET`, so nothing falls between the two.
+        * `hello` — first, once: every device as `DeviceDetail`, Bluetooth
+          accessories included. Start from it rather than from an earlier `GET`, so
+          nothing falls between the two.
         * `state` — a device's entities whose value changed, and only those. A device
           is looked at at most once a second, so a burst of reports is one message.
         * `device` — a device's summary when anything other than `last_seen` changed
-          (online or offline, transport, firmware), or when a new device appears
-          (fetch `/devices/{id}` for its entities).
+          (online or offline, transport, firmware, an accessory linked or unlinked),
+          or when a new device appears (fetch `/devices/{id}` for its entities).
         * `device_removed`.
         * `timeline` — a timeline card that is new or changed (its photos or video
           arrived, a cleaning attached). Replace any card with the same `id`, and
@@ -703,6 +722,200 @@ paths:
               schema: { $ref: "#/components/schemas/UpdateMessage" }
         "400":
           description: Not a WebSocket upgrade request.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /push:
+    put:
+      tags: [push]
+      operationId: registerPush
+      summary: Register (or replace) this session's UnifiedPush endpoint.
+      description: |
+        One endpoint per session, stored with it: logout, revocation from the panel,
+        a password change and 90 days without use remove it. Registering again
+        replaces it.
+
+        For every notification that passes the server's own gates (the per-kind
+        switches set in the panel, one notification per event, a per-device rate
+        limit), the server POSTs a `PushMessage` to every registered endpoint whose
+        session's `kinds` allow it: `Content-Type: application/json`, `TTL: 86400`, `Urgency:
+        high` for faults, failed meals and offline devices (`normal` otherwise), no
+        redirect followed, TLS verified, 10 s timeout. An endpoint that answers 404
+        or 410 three times in a row is unregistered (`session.push` in `/info`
+        becomes `null`: register again).
+
+        The message carries stable keys only — no title, no text, no URL, no token —
+        so the app writes the notification itself, in the phone's language. See
+        `PushMessage`. The same message reaches the notification socket
+        (`/notifications/ws`); a phone needs only one of the two.
+
+        `kinds` are the session's, shared with the notification socket: sent here,
+        they replace its choice exactly as `PUT /notifications` does; left out, they
+        stay as they are (a new session starts with `null`, every kind).
+
+        The endpoint must be `https://` (plain `http://` only for a private address
+        or a local name such as `*.lan`), without credentials or a fragment, at most
+        2048 characters; a query is allowed. It may not point at the server itself,
+        loopback, or a link-local, multicast or reserved address. It is never sent
+        back: answers carry its host only.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PushRegistrationRequest" }
+      responses:
+        "200":
+          description: Registered.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [push]
+                properties:
+                  push: { $ref: "#/components/schemas/PushRegistration" }
+        "400":
+          description: "`invalid_push_endpoint`, `bad_parameter` (kinds) or `bad_json`."
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "415": { $ref: "#/components/responses/UnsupportedMediaType" }
+      callbacks:
+        pushMessage:
+          "{$request.body#/endpoint}":
+            post:
+              summary: One notification, POSTed by the server to the registered endpoint.
+              requestBody:
+                required: true
+                content:
+                  application/json:
+                    schema: { $ref: "#/components/schemas/PushMessage" }
+              responses:
+                "2XX": { description: Accepted by the push server. }
+                "404": { description: Gone; counted towards unregistering the endpoint. }
+                "410": { description: Gone; counted towards unregistering the endpoint. }
+    delete:
+      tags: [push]
+      operationId: unregisterPush
+      summary: Stop pushing to this session. Succeeds when none is registered too.
+      description: The session's `kinds` are kept; they also choose what its notification socket receives.
+      responses:
+        "200":
+          description: Unregistered.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Ok" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /notifications:
+    get:
+      tags: [notifications]
+      operationId: getNotificationSettings
+      summary: This session's notification kinds, and where its notification socket stands.
+      responses:
+        "200":
+          description: The settings.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NotificationSettings" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    put:
+      tags: [notifications]
+      operationId: setNotificationKinds
+      summary: Choose the kinds this session receives, on every channel.
+      description: |
+        The kinds apply to the notification socket and to the session's UnifiedPush
+        endpoint alike, and need no endpoint to be set. They narrow what the server
+        sends, never widen it: a kind switched off in the panel (`server_kinds`) is
+        sent to nobody. Stored with the session, so logout and the other ways a
+        session ends forget them.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NotificationKindsRequest" }
+      responses:
+        "200":
+          description: Set.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NotificationSettings" }
+        "400":
+          description: "`bad_parameter` (`kinds` missing, not a list or `null`, or longer than 32) or `bad_json`."
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "415": { $ref: "#/components/responses/UnsupportedMediaType" }
+
+  /notifications/ws:
+    get:
+      tags: [notifications]
+      operationId: openNotificationSocket
+      summary: Notifications over a WebSocket, with catch-up — no ntfy needed.
+      description: |
+        A socket for the app to keep open in the background, as a push distributor
+        would. It carries notifications only, never device state (that is `/ws`), so it
+        is silent until something happens. Upgrade with `Authorization: Bearer <token>`
+        on the request; a refusal (bad `after`, no session) happens before the upgrade,
+        as a normal JSON `Error`.
+
+        Every frame the server sends is one JSON text message, a `NotificationSocketMessage`
+        told apart by `type`:
+
+        * `hello` — first, once. `last_id` is the newest notification id the server has
+          logged (whether or not it was for this phone); `replayed` how many
+          `notification` messages with `replay: true` follow at once; `gap` whether
+          notifications after `after` were dropped from the log before this phone came
+          back for them (more than 500, or older than 3 days), so some are missing.
+        * `notification` — one notification: a monotonic `id` and the same
+          `PushMessage` a UnifiedPush endpoint would receive. `replay` is true for those
+          sent because of `after`, false for live ones.
+        * `pong` — the answer to a `{"type": "ping"}` the app sent; anything else it
+          sends is ignored.
+
+        Catch-up: pass `after`, the highest `id` received so far (or the hello's
+        `last_id`, whichever is higher). The server first sends, oldest first, every
+        logged notification after it that this session's kinds allow and that is not
+        older than the session itself, then goes live; nothing falls between the two
+        and nothing is sent twice. Leave `after` out on the very first connection, to
+        start from now. An `after` above `last_id` comes from a log the server no
+        longer has: everything it holds is replayed, with `gap: true`. The log holds the
+        last 500 notifications of at most 3 days and survives a restart; ids are not
+        reused unless the log file itself is lost, which the next `hello` reports as
+        a `gap`.
+
+        What is sent is what the ntfy topic and the UnifiedPush endpoints are sent: the
+        server's per-kind switches, one notification per event and the per-device rate
+        limit decide once for all three, then this session's `kinds`
+        (`PUT /notifications`) choose among it. A session is owed catch-up from the
+        first time it opens this socket until it ends.
+
+        The server pings every 45 s at the protocol level (`heartbeat_sec`), inside
+        Cloudflare's 100 s idle timeout. Treat two missed pings as a dead connection.
+
+        Close codes (as `/ws` and live video): `1001` server shutting down — reconnect
+        later; `4401` the session ended (logout, revoked in the panel, password changed
+        or removed, 90 days unused) — sign in again, do not retry; `4409` this session
+        opened another notification socket, which replaced this one — do not reconnect
+        from the replaced one; `1013` the app read too slowly and its queue filled —
+        reconnect with `after`, nothing is lost.
+      parameters:
+        - name: after
+          in: query
+          required: false
+          description: The highest notification `id` already received; omit on the first connection.
+          schema: { type: integer, minimum: 0, maximum: 999999999999999999 }
+      responses:
+        "101":
+          description: Switching to the WebSocket protocol; each message is a `NotificationSocketMessage`.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/NotificationSocketMessage" }
+        "400":
+          description: "`bad_parameter` (`after` is not a non-negative integer), or not a WebSocket upgrade request."
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
@@ -774,6 +987,14 @@ components:
       content:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
+    AccessoryUnreachable:
+      description: |
+        `accessory_unreachable`: a Bluetooth accessory is reached only through the
+        device relaying it, while that device holds an MQTT session, and it does
+        not now (or no registered device relays it). Nothing was sent or queued.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
     Unprocessable:
       description: |
         Understood and refused; nothing was changed. `error` says why:
@@ -826,13 +1047,193 @@ components:
 
     Session:
       type: object
-      required: [id, name, created, last_used, expires]
+      required: [id, name, created, last_used, expires, kinds, push]
       properties:
         id: { type: string, description: "Public id; the panel revokes by it." }
         name: { type: string, description: The `device_name` given at login. }
         created: { type: number }
         last_used: { type: number, description: Updated at most every 5 minutes. }
         expires: { type: number, description: "`last_used` + 90 days." }
+        kinds: { $ref: "#/components/schemas/NotificationKinds" }
+        push:
+          description: This session's push registration, `null` when there is none.
+          oneOf:
+            - { $ref: "#/components/schemas/PushRegistration" }
+            - { type: "null" }
+
+    PushRegistrationRequest:
+      type: object
+      required: [endpoint]
+      properties:
+        endpoint:
+          type: string
+          maxLength: 2048
+          description: The UnifiedPush endpoint the distributor gave the app.
+        kinds:
+          description: |
+            The `PushMessage.kind`s this phone wants, on every channel (the session's
+            kinds, as `PUT /notifications` sets them); `null` for every kind switched on
+            in the panel; left out, the session's current choice is kept. Kinds this
+            server does not know are ignored.
+          oneOf:
+            - type: array
+              maxItems: 32
+              items: { type: string }
+            - { type: "null" }
+
+    PushRegistration:
+      type: object
+      required: [host, kinds, registered]
+      properties:
+        host: { type: string, description: The endpoint's host. The endpoint itself is never returned. }
+        kinds: { $ref: "#/components/schemas/NotificationKinds" }
+        registered: { type: number }
+
+    NotificationKind:
+      type: string
+      enum: [toilet, feed_served, feed_failed, error, food_low, consumable, offline]
+      description: A notification kind; see `PushMessage.kind`.
+
+    NotificationKinds:
+      description: |
+        The session's notification kinds (known ones, in the server's order), or `null`
+        for every kind switched on in the panel. They apply to every channel.
+      oneOf:
+        - type: array
+          items: { $ref: "#/components/schemas/NotificationKind" }
+        - { type: "null" }
+
+    NotificationKindsRequest:
+      type: object
+      required: [kinds]
+      properties:
+        kinds:
+          description: |
+            The kinds this phone wants, or `null` for every kind switched on in the panel;
+            `[]` for none. Kinds this server does not know are ignored, so a newer app
+            may name kinds an older server has not got.
+          oneOf:
+            - type: array
+              maxItems: 32
+              items: { type: string }
+            - { type: "null" }
+
+    NotificationSettings:
+      type: object
+      required: [kinds, server_kinds, connected, last_id]
+      properties:
+        kinds: { $ref: "#/components/schemas/NotificationKinds" }
+        server_kinds:
+          type: array
+          description: |
+            Every kind the server sends, in its order, and whether the panel's switch for
+            it is on. A kind switched off there reaches no phone, whatever `kinds` says.
+          items:
+            type: object
+            required: [kind, enabled]
+            properties:
+              kind: { $ref: "#/components/schemas/NotificationKind" }
+              enabled: { type: boolean }
+        connected: { type: boolean, description: Whether this session holds the notification socket now. }
+        last_id:
+          type: integer
+          minimum: 0
+          description: The newest notification id logged for catch-up; 0 before the first.
+
+    NotificationSocketMessage:
+      description: One WebSocket message from `/notifications/ws`, told apart by `type`.
+      oneOf:
+        - { $ref: "#/components/schemas/NotificationHello" }
+        - { $ref: "#/components/schemas/NotificationDelivery" }
+        - { $ref: "#/components/schemas/NotificationPong" }
+      discriminator:
+        propertyName: type
+        mapping:
+          hello: "#/components/schemas/NotificationHello"
+          notification: "#/components/schemas/NotificationDelivery"
+          pong: "#/components/schemas/NotificationPong"
+
+    NotificationHello:
+      type: object
+      required: [type, server_time, heartbeat_sec, last_id, replayed, gap]
+      additionalProperties: false
+      properties:
+        type: { type: string, const: hello }
+        server_time: { type: number }
+        heartbeat_sec: { type: number, description: The protocol ping interval (45). }
+        last_id:
+          type: integer
+          minimum: 0
+          description: The newest notification id logged, whoever it was for; 0 before the first.
+        replayed:
+          type: integer
+          minimum: 0
+          description: How many `notification` messages with `replay` true follow at once.
+        gap:
+          type: boolean
+          description: |
+            Notifications after `after` were dropped from the log (its 500-entry or
+            3-day bound) or the log was lost: some this phone should have had are missing.
+
+    NotificationDelivery:
+      type: object
+      required: [type, id, replay, message]
+      additionalProperties: false
+      properties:
+        type: { type: string, const: notification }
+        id:
+          type: integer
+          minimum: 1
+          description: Monotonic. Pass the highest one received as `after` on reconnection.
+        replay: { type: boolean, description: "True when sent as catch-up, false when live." }
+        message: { $ref: "#/components/schemas/PushMessage" }
+
+    NotificationPong:
+      type: object
+      required: [type]
+      additionalProperties: false
+      properties:
+        type: { type: string, const: pong }
+
+    PushMessage:
+      type: object
+      description: |
+        The body the server POSTs to a registered endpoint (see `PUT /push`), and the
+        `message` of a `notification` on the notification socket (`/notifications/ws`);
+        compact JSON, a few hundred bytes at most. Stable keys only: build the notification
+        text from them. A new key may be added within `v` 1; ignore keys you do not
+        know. Nothing in it is secret.
+      required: [v, kind, device_id, pet_id, code, ts]
+      additionalProperties: false
+      properties:
+        v: { type: integer, const: 1 }
+        kind:
+          type: string
+          enum: [toilet, feed_served, feed_failed, error, food_low, consumable, offline]
+          description: |
+            `toilet` a litter-box visit; `feed_served` a meal dispensed (or skipped
+            because the bowl was not empty); `feed_failed` a meal that failed;
+            `error` a device fault; `food_low` a hopper empty; `consumable` a bin,
+            tray, filter, litter, water or deodorizer to see to; `offline` the device
+            stopped answering.
+        device_id: { type: [integer, "null"], description: "The device's `id`, as in `/devices`." }
+        pet_id:
+          type: [integer, "null"]
+          description: "The pet's `id`, as in `/pets`, when the event was attributed to one."
+        code:
+          type: [string, "null"]
+          maxLength: 64
+          description: |
+            What precisely happened, to be read with the device's `type`. For an event
+            (`toilet`, `feed_served`, `feed_failed`, `error`): the device's event code,
+            e.g. `"10"` for a litter-box visit — codes are per device category, so the
+            same code means different things on a litter box and a feeder. For a state
+            condition: the state key that triggered it — `foodLow`, `food1`, `food2`
+            (`food_low`); `boxFull`, `sandPercent`, `deodorantLeftDays`,
+            `sprayLeftDays`, `desiccantLeftDays`, `filterWarning`, `lackWarning`,
+            `stgFullState`, `liquidLack` (`consumable`); `errorMsg` (`error`, the
+            device's own fault text, which is not sent). `null` for `offline`.
+        ts: { type: integer, description: When it happened (Unix epoch seconds). }
 
     Info:
       type: object
@@ -882,19 +1283,58 @@ components:
 
     DeviceSummary:
       type: object
-      required: [id, type, model, kind, online, transport, last_seen, firmware, is_camera]
+      required: [id, type, model, kind, online, transport, last_seen, firmware, is_camera,
+                 connection, parent_id, accessories]
       properties:
         id: { type: integer }
-        type: { type: string, description: "Codename, e.g. `t5`, `d4sh`." }
+        type: { type: string, description: "Codename, e.g. `t5`, `d4sh`, `w5`, `k3`." }
         model: { type: string, description: "Commercial name; `Unknown` for an unlisted codename." }
         kind:
           type: string
           enum: [litter_box, feeder, fountain, purifier, other]
-        online: { type: boolean }
-        transport: { type: string, enum: [mqtt, http] }
-        last_seen: { type: [number, "null"], description: Latest contact over either transport. }
-        firmware: { type: [string, "null"] }
+        online:
+          type: boolean
+          description: For an accessory, whether the device relaying it is online.
+        transport:
+          type: string
+          enum: [mqtt, http]
+          description: For an accessory, its parent's (`http` when it has none).
+        last_seen:
+          type: [number, "null"]
+          description: |
+            Latest contact over either transport. For an accessory, when a frame from
+            it last decoded; always null for a K3, whose readings ride on its parent's
+            reports.
+        firmware: { type: [string, "null"], description: Null for an accessory. }
         is_camera: { type: boolean }
+        connection:
+          type: string
+          enum: [wifi, ble]
+          description: |
+            `ble` for an accessory with no network of its own, reached only through
+            the device in `parent_id`.
+        parent_id:
+          type: [integer, "null"]
+          description: |
+            The device relaying this accessory; null for a WiFi device, and for an
+            accessory linked to no registered device.
+        accessories:
+          type: array
+          description: |
+            The Bluetooth accessories this device relays; empty for an accessory. A
+            litter box with a `purifier` here has a Pura Air (K3) linked. The firmware
+            has one K3 slot, held by the first one listed.
+          items: { $ref: "#/components/schemas/AccessoryRef" }
+
+    AccessoryRef:
+      type: object
+      required: [id, type, kind]
+      properties:
+        id: { type: integer, description: "Its own id: `GET /devices/{id}` for its values." }
+        type: { type: string, description: "Codename: `w5`, `w4`, `ctw2`, `ctw3` or `k3`." }
+        kind:
+          type: string
+          enum: [fountain, purifier, other]
 
     DeviceDetail:
       allOf:
@@ -932,8 +1372,9 @@ components:
       type: string
       enum: [mqtt, queued, local]
       description: |
-        `mqtt`: published to the device now. `queued`: the device is not on MQTT and
-        takes it on its next HTTP poll. `local`: only petkit-local's state changed.
+        `mqtt`: published to the device now (for a Bluetooth accessory, to the
+        device relaying it). `queued`: the device is not on MQTT and takes it on its
+        next HTTP poll. `local`: only petkit-local's state changed.
 
     WriteResult:
       type: object

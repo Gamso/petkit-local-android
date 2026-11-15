@@ -1,6 +1,9 @@
 package org.petkitlocal.core.network.contract
 
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.nullable
+import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
@@ -12,6 +15,8 @@ import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestFactory
 import org.petkitlocal.core.network.PetkitJson
+import org.petkitlocal.core.network.dto.AccessoryKind
+import org.petkitlocal.core.network.dto.AccessoryRefDto
 import org.petkitlocal.core.network.dto.ActionDto
 import org.petkitlocal.core.network.dto.ActionRequestDto
 import org.petkitlocal.core.network.dto.ActionResultDto
@@ -21,6 +26,7 @@ import org.petkitlocal.core.network.dto.DeferredFeedDto
 import org.petkitlocal.core.network.dto.DeferredFeedRequestDto
 import org.petkitlocal.core.network.dto.DeferredFeedResultDto
 import org.petkitlocal.core.network.dto.Delivered
+import org.petkitlocal.core.network.dto.DeviceConnection
 import org.petkitlocal.core.network.dto.DeviceDetailDto
 import org.petkitlocal.core.network.dto.DeviceKind
 import org.petkitlocal.core.network.dto.DeviceSummaryDto
@@ -43,11 +49,13 @@ import org.petkitlocal.core.network.dto.LoginRequestDto
 import org.petkitlocal.core.network.dto.LoginResponseDto
 import org.petkitlocal.core.network.dto.MealDto
 import org.petkitlocal.core.network.dto.MediaDto
+import org.petkitlocal.core.network.dto.NotificationKind
 import org.petkitlocal.core.network.dto.OkDto
 import org.petkitlocal.core.network.dto.PetDetailDto
 import org.petkitlocal.core.network.dto.PetDto
 import org.petkitlocal.core.network.dto.PetRefDto
 import org.petkitlocal.core.network.dto.PetStatsDto
+import org.petkitlocal.core.network.dto.PushRegistrationDto
 import org.petkitlocal.core.network.dto.SessionDto
 import org.petkitlocal.core.network.dto.TimelineFilter
 import org.petkitlocal.core.network.dto.TimelineItemDto
@@ -77,6 +85,7 @@ class SchemaContractTest {
         "ChangePasswordResponse" to ChangePasswordResponseDto.serializer(),
         "DeviceSummary" to DeviceSummaryDto.serializer(),
         "DeviceDetail" to DeviceDetailDto.serializer(),
+        "AccessoryRef" to AccessoryRefDto.serializer(),
         "Action" to ActionDto.serializer(),
         "ActionRequest" to ActionRequestDto.serializer(),
         "WriteResult" to WriteResultDto.serializer(),
@@ -104,6 +113,9 @@ class SchemaContractTest {
         "PetStats" to PetStatsDto.serializer(),
         "PetDetail" to PetDetailDto.serializer(),
         "UpdateMessage" to UpdateMessageDto.serializer(),
+        "PushRegistration" to PushRegistrationDto.serializer(),
+        // A named `oneOf: [array, null]`, used by `Session.kinds`: a nullable list of kinds.
+        "NotificationKinds" to ListSerializer(String.serializer()).nullable,
     )
 
     /** The `UpdateMessage` members: DTO subclasses, checked with `type` as the discriminator. */
@@ -117,11 +129,14 @@ class SchemaContractTest {
     )
 
     /** String enums kept as Strings, with the values the app knows. */
-    private val stringEnums: Map<String, Set<String>> = mapOf("Delivered" to Delivered.KNOWN)
+    private val stringEnums: Map<String, Set<String>> = mapOf(
+        "Delivered" to Delivered.KNOWN,
+        "NotificationKind" to NotificationKind.KNOWN,
+    )
 
     @Test
     fun `every schema of the document has a DTO, and every DTO a schema`() {
-        val modelled = dtos.keys + updateMessages.keys + stringEnums.keys
+        val modelled = dtos.keys + updateMessages.keys + stringEnums.keys + PendingContract.SCHEMAS
         assertEquals(spec.schemas.keys.sorted(), modelled.sorted())
     }
 
@@ -182,6 +197,9 @@ class SchemaContractTest {
             .schema!!["enum"].asList().filterIsInstance<String>().toSet()
 
         assertEquals(enumOf("Delivered"), Delivered.KNOWN)
+        assertEquals(enumOf("NotificationKind"), NotificationKind.KNOWN)
+        assertEquals(enumOf("DeviceSummary", "connection"), DeviceConnection.KNOWN)
+        assertEquals(enumOf("AccessoryRef", "kind"), AccessoryKind.KNOWN)
         assertEquals(enumOf("DeviceSummary", "kind"), DeviceKind.KNOWN)
         assertEquals(enumOf("DeviceSummary", "transport"), DeviceTransport.KNOWN)
         assertEquals(enumOf("Entity", "component"), EntityComponent.KNOWN)

@@ -21,7 +21,38 @@ object DeviceTransport {
     val KNOWN = setOf(MQTT, HTTP)
 }
 
-/** `DeviceSummary`. */
+/** Values of `DeviceSummary.connection`. */
+object DeviceConnection {
+    const val WIFI = "wifi"
+
+    /** A Bluetooth accessory, reached only through the device in `parent_id`. */
+    const val BLE = "ble"
+    val KNOWN = setOf(WIFI, BLE)
+}
+
+/** Values of `AccessoryRef.kind`. */
+object AccessoryKind {
+    const val FOUNTAIN = "fountain"
+    const val PURIFIER = "purifier"
+    const val OTHER = "other"
+    val KNOWN = setOf(FOUNTAIN, PURIFIER, OTHER)
+}
+
+/** `AccessoryRef`: a Bluetooth accessory as the device relaying it lists it. */
+@Serializable
+data class AccessoryRefDto(
+    /** Its own device id: `GET /devices/{id}` for its values. */
+    @SerialName("id") val id: Long,
+    /** Codename: `w5`, `w4`, `ctw2`, `ctw3` or `k3`. */
+    @SerialName("type") val type: String,
+    /** One of [AccessoryKind.KNOWN]. */
+    @SerialName("kind") val kind: String,
+)
+
+/**
+ * `DeviceSummary`. A Bluetooth accessory is a device too: [connection] `ble`, [parentId] the device
+ * relaying it, and its `online`/`transport` are its parent's.
+ */
 @Serializable
 data class DeviceSummaryDto(
     @SerialName("id") val id: Long,
@@ -38,6 +69,12 @@ data class DeviceSummaryDto(
     @SerialName("last_seen") val lastSeen: Double?,
     @SerialName("firmware") val firmware: String?,
     @SerialName("is_camera") val isCamera: Boolean,
+    /** One of [DeviceConnection.KNOWN]. */
+    @SerialName("connection") val connection: String,
+    /** The device relaying this accessory; null for a WiFi device or an unlinked accessory. */
+    @SerialName("parent_id") val parentId: Long?,
+    /** The accessories this device relays; the first `purifier` holds the box's K3 slot. */
+    @SerialName("accessories") val accessories: List<AccessoryRefDto>,
 )
 
 /** `DeviceDetail`: `DeviceSummary` plus its serial, entities and actions. */
@@ -52,6 +89,9 @@ data class DeviceDetailDto(
     @SerialName("last_seen") val lastSeen: Double?,
     @SerialName("firmware") val firmware: String?,
     @SerialName("is_camera") val isCamera: Boolean,
+    @SerialName("connection") val connection: String,
+    @SerialName("parent_id") val parentId: Long?,
+    @SerialName("accessories") val accessories: List<AccessoryRefDto>,
     @SerialName("serial") val serial: String?,
     @SerialName("entities") val entities: List<EntityDto>,
     /** The buttons it offers, destructive ones last. */
