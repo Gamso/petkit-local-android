@@ -127,7 +127,7 @@ arrow mirrored in right-to-left languages.
 | `ModeChip` | Device header | Shows an on/off mode from a switch entity |
 | `StatCompareTile` | Device, Pet | Big figure and the difference from yesterday |
 | `DayScatterChart` | Litter, Fountain (W7H) | 24 h × duration dots (visits, drinks), coloured per pet, pet filter |
-| `ActionSheet` | Device pages | Pull handle, 4 actions per row, primary action filled |
+| `ActionSheet` | Device pages | Pull handle, 4 actions per row, primary action filled; none when the device has no everyday action and every other one is on a part's pill |
 | `ConfirmDialog` | Destructive actions | Explains the effect, danger-coloured confirm |
 | `TimelineRow` | History, device activity | Time rail, icon or pet avatar, title, details, media thumbnails |
 | `DayStrip` | History | 7 days, selected one filled |

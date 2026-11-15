@@ -24,8 +24,9 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * The fountain page in light/dark x EN/FR: the W7H with its drinks (the busiest state, also at
- * 130 % font scale), a Bluetooth W5 with its relay, a CTW3 in trouble with its actions unfolded,
- * and the W5's filter explanation. The golden images are in src/test/screenshots.
+ * 130 % font scale), a Bluetooth W5 with its relay, a CTW3 in trouble with the server's refusal
+ * (neither has an action sheet: their one button is on the filter's pill), and the W5's filter
+ * explanation. The golden images are in src/test/screenshots.
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -43,7 +44,7 @@ class FountainScreenshotTest(private val variant: ScreenshotVariant) {
 
     @Test
     fun trouble() {
-        if (variant.fontScale == 1f) capture("fountain_trouble") { Screen(FountainFixtures.trouble, expanded = true) }
+        if (variant.fontScale == 1f) capture("fountain_trouble") { Screen(FountainFixtures.trouble) }
     }
 
     @Test
@@ -58,8 +59,7 @@ class FountainScreenshotTest(private val variant: ScreenshotVariant) {
     }
 
     @Composable
-    private fun Screen(state: FountainUiState, expanded: Boolean = false) =
-        FountainScreen(state, DeviceNavigation(), FountainCallbacks(), initiallyExpanded = expanded)
+    private fun Screen(state: FountainUiState) = FountainScreen(state, DeviceNavigation(), FountainCallbacks())
 
     private fun capture(name: String, content: @Composable () -> Unit) {
         captureRoboImage(

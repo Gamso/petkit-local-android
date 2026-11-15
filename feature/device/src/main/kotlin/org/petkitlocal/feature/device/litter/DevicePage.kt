@@ -20,6 +20,7 @@ import org.petkitlocal.core.designsystem.component.PkErrorView
 import org.petkitlocal.core.designsystem.component.PkLoadingView
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.DomainError
+import org.petkitlocal.core.domain.devicepage.Hotspot
 import org.petkitlocal.core.domain.model.DeviceAction
 import org.petkitlocal.feature.device.R
 import org.petkitlocal.feature.device.common.ActionConfirmation
@@ -38,9 +39,10 @@ data class PageCommandCallbacks(
 )
 
 /**
- * A litter box or feeder page in the frame every device screen shares: the action sheet pinned
- * at the bottom (collapsed to one row, the rest behind More), the command feedback banner above
- * it, the confirmation of a destructive action, and pull to refresh over [content].
+ * A litter box, feeder or fountain page in the frame every device screen shares: the action sheet
+ * pinned at the bottom (collapsed to one row, the rest behind More; none when [hotspots] offer
+ * every action and none is for every day), the command feedback banner above it, the
+ * confirmation of a destructive action, and pull to refresh over [content].
  */
 @OptIn(ExperimentalMaterial3Api::class) // PullToRefreshBox
 @Composable
@@ -51,6 +53,7 @@ internal fun DevicePageScaffold(
     onRefresh: () -> Unit,
     callbacks: PageCommandCallbacks,
     modifier: Modifier = Modifier,
+    hotspots: List<Hotspot> = emptyList(),
     initiallyExpanded: Boolean = false,
     content: LazyListScope.() -> Unit,
 ) {
@@ -58,6 +61,7 @@ internal fun DevicePageScaffold(
         actions = actions,
         onAction = callbacks.onAction,
         initiallyExpanded = initiallyExpanded,
+        onParts = hotspots.flatMapTo(HashSet()) { hotspot -> hotspot.actions.map { it.key } },
         banner = {
             commands.feedback?.let { feedback ->
                 CommandFeedbackBanner(

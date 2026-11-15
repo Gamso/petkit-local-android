@@ -34,8 +34,8 @@ import org.petkitlocal.feature.home.HomeTestTags
 /**
  * The fountain page end to end, against the mock server: the EverSweet Ultra AI's pump follows a
  * button over `/ws` and a new drink reaches its pet's count; the EverSweet 3 Pro, relayed by the
- * YumShare Dual-Hopper (MQTT), names its relay and takes a confirmed filter reset, its filter
- * pill following the server.
+ * YumShare Dual-Hopper (MQTT), names its relay, has no action sheet (its one button is on its
+ * filter's pill) and takes a confirmed filter reset, its filter pill following the server.
  */
 @OptIn(ExperimentalTestApi::class) // waitUntil...Exists
 @RunWith(AndroidJUnit4::class)
@@ -77,6 +77,7 @@ class FountainFlowTest {
         open(EVERSWEET_3_PRO)
         waitFor(hasText("Reports through YumShare Dual-Hopper"))
         waitFor(hasContentDescription("Water level, OK"))
+        compose.onNodeWithTag(DeviceTestTags.ACTION_SHEET).assertDoesNotExist()
 
         // The filter's pill explains it and offers its reset, which cannot be undone.
         val filter = hasContentDescription("Filter, ", substring = true)

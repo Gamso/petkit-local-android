@@ -182,6 +182,29 @@ class FountainScreenTest {
     }
 
     @Test
+    fun `a fountain whose only action is on a pill has no action sheet`() {
+        // The W5's one button, Reset Filter, is on its filter's pill: a sheet would hold only More.
+        show(FountainFixtures.bluetooth)
+        compose.onNodeWithTag(DeviceTestTags.ACTION_SHEET).assertDoesNotExist()
+        compose.onNodeWithContentDescription("Filter, 64 %").performClick()
+
+        assertEquals(listOf("hotspot:${DevicePart.Filter}"), calls)
+    }
+
+    @Test
+    fun `an action on no pill keeps the sheet, so it stays within reach`() {
+        // The same W5 with its filter not reported: no pill offers the reset any more.
+        val w5 = FountainFixtures.w5.copy(
+            entities = FountainFixtures.w5.entities.filterNot {
+                it.key.startsWith("w5_filter")
+            },
+        )
+        show(FountainUiState(page = FountainFixtures.page(w5, relay = FountainFixtures.relay), loaded = true))
+        compose.onNodeWithTag(DeviceTestTags.ACTION_SHEET).assertExists()
+        compose.onNodeWithTag(DeviceTestTags.SHEET_MORE).assertExists()
+    }
+
+    @Test
     fun `with nothing cached and the server unreachable, it says so and offers to retry`() {
         show(FountainUiState(loaded = true, refreshError = DomainError.Network("timeout")))
 

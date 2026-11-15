@@ -64,6 +64,18 @@ object DeviceActionOrder {
     fun isMaintenance(action: DeviceAction): Boolean =
         action.key in MAINTENANCE_KEYS || MAINTENANCE_PREFIXES.any { action.key.startsWith(it) }
 
+    /** An action for every day: neither maintenance nor destructive. */
+    fun isEveryday(action: DeviceAction): Boolean = !action.destructive && !isMaintenance(action)
+
+    /**
+     * Whether a page needs its action sheet: when the device has an everyday action, or an action
+     * the page offers nowhere else. [onParts] holds the keys the page's hotspot pills offer. A
+     * device whose only buttons are maintenance or destructive ones, each on its part's pill (a
+     * Bluetooth fountain's filter reset), gets no sheet: it would hold nothing but "More".
+     */
+    fun needsSheet(actions: List<DeviceAction>, onParts: Set<String>): Boolean =
+        actions.any { isEveryday(it) || it.key !in onParts }
+
     /**
      * [actions] in the server's order, laid out for the sheet. [pinned] is the user's own choice
      * for this device ([QuickActionRow]), null when they made none: then the app chooses.

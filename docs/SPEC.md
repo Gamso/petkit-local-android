@@ -139,7 +139,9 @@ screen).
 - A Bluetooth fountain says when it last reported and through which device ("Reports through
   ..."), which opens that device; a write to it needs that device on MQTT.
 - Bottom action sheet from `DeviceDetail.actions` (refill, drain and flush, filter reset...);
-  destructive ones (drain, deep clean, filter reset) are confirmed.
+  destructive ones (drain, deep clean, filter reset) are confirmed. A device page shows no sheet
+  when its device has no everyday action and its pills offer every other one (a Bluetooth
+  fountain's filter reset is on its filter's pill).
 
 ## 6. Cross-cutting behaviour
 

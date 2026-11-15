@@ -10,6 +10,31 @@ class DeviceActionOrderTest {
     private fun ActionLayout.keys() = main.map { it.key } to more.map { it.key }
 
     @Test
+    fun `everyday actions are neither maintenance nor destructive`() {
+        assertEquals(true, DeviceActionOrder.isEveryday(action("fountain_refill")))
+        assertEquals(true, DeviceActionOrder.isEveryday(action("a_button_added_later")))
+        assertEquals(false, DeviceActionOrder.isEveryday(action("fountain_reset_circulation_pump")))
+        assertEquals(false, DeviceActionOrder.isEveryday(action("maintenance_start")))
+        assertEquals(false, DeviceActionOrder.isEveryday(action("w5_reset_filter", destructive = true)))
+        assertEquals(false, DeviceActionOrder.isEveryday(action("fountain_drain", destructive = true)))
+    }
+
+    @Test
+    fun `a page needs its sheet for an everyday action, or for one no pill offers`() {
+        val reset = action("ctw3_reset_filter", destructive = true)
+        // A Bluetooth fountain: its one button is on the filter's pill. No sheet.
+        assertEquals(false, DeviceActionOrder.needsSheet(listOf(reset), onParts = setOf(reset.key)))
+        // The same button on no pill would be out of reach without the sheet.
+        assertEquals(true, DeviceActionOrder.needsSheet(listOf(reset), onParts = emptySet()))
+        // An everyday action keeps the sheet, even when a pill offers it too.
+        val refill = action("fountain_refill")
+        val both = setOf("fountain_refill", "ctw3_reset_filter")
+        assertEquals(true, DeviceActionOrder.needsSheet(listOf(refill, reset), onParts = both))
+        // Nothing to press, nothing to show.
+        assertEquals(false, DeviceActionOrder.needsSheet(emptyList(), onParts = emptySet()))
+    }
+
+    @Test
     fun `a litter box keeps clean, deodorize and level in view, maintenance and destructive behind More`() {
         // The Pura Max's actions, in the server's order (mock catalog, t4).
         val t4 = listOf(

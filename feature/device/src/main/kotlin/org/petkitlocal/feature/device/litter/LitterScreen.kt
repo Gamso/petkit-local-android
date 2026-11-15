@@ -72,6 +72,7 @@ internal fun LitterScreen(
         onRefresh = callbacks.onRefresh,
         callbacks = callbacks.commands,
         modifier = modifier,
+        hotspots = page?.hotspots.orEmpty(),
         initiallyExpanded = initiallyExpanded,
     ) {
         if (page == null) {
