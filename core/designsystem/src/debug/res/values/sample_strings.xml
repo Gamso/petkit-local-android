@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copy for the debug-only component samples (previews and screenshot tests). -->
+<resources>
+    <string name="sample_clean_now">Clean now</string>
+    <string name="sample_feeding_plan">Feeding plan</string>
+    <string name="sample_sign_out">Sign out</string>
+    <string name="sample_cancel">Cancel</string>
+    <string name="sample_unavailable">Not available</string>
+    <string name="sample_today">Today</string>
+    <string name="sample_visits_compare">visits, 2 more than yesterday</string>
+    <string name="sample_device_name">Living room litter box</string>
+    <string name="sample_filter_all">All</string>
+    <string name="sample_filter_visits">Visits</string>
+    <string name="sample_filter_meals">Meals</string>
+    <string name="sample_mode_auto_clean">Auto clean</string>
+    <string name="sample_mode_deodorize">Deodorize</string>
+    <string name="sample_empty">No visits yet today.</string>
+    <string name="sample_error">The server did not answer.</string>
+    <string name="sample_action_clean">Clean</string>
+    <string name="sample_action_level">Level litter</string>
+    <string name="sample_action_deodorize">Deodorize</string>
+    <string name="sample_action_history">History</string>
+    <string name="sample_action_later">Feed later</string>
+    <string name="sample_confirm_title">Empty the litter?</string>
+    <string name="sample_confirm_message">The box tips all of its litter into the bin. This cannot be undone.</string>
+    <string name="sample_confirm_action">Empty</string>
+</resources>

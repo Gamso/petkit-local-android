@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pk_retry">Retry</string>
+    <string name="pk_cancel">Cancel</string>
+    <string name="pk_loading">Loading</string>
+    <string name="pk_offline_banner">Server unreachable. Showing the last known data.</string>
+    <string name="pk_mode_on">On</string>
+    <string name="pk_mode_off">Off</string>
+    <string name="pk_selected">Selected</string>
+    <string name="pk_action_sheet">Actions</string>
+</resources>

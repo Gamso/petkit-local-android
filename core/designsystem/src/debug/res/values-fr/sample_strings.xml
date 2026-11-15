@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sample_clean_now">Nettoyer</string>
+    <string name="sample_feeding_plan">Plan de repas</string>
+    <string name="sample_sign_out">Se déconnecter</string>
+    <string name="sample_cancel">Annuler</string>
+    <string name="sample_unavailable">Indisponible</string>
+    <string name="sample_today">Aujourd’hui</string>
+    <string name="sample_visits_compare">passages, 2 de plus qu’hier</string>
+    <string name="sample_device_name">Bac du salon</string>
+    <string name="sample_filter_all">Tout</string>
+    <string name="sample_filter_visits">Passages</string>
+    <string name="sample_filter_meals">Repas</string>
+    <string name="sample_mode_auto_clean">Nettoyage auto</string>
+    <string name="sample_mode_deodorize">Désodorisation</string>
+    <string name="sample_empty">Aucun passage aujourd’hui.</string>
+    <string name="sample_error">Le serveur n’a pas répondu.</string>
+    <string name="sample_action_clean">Nettoyer</string>
+    <string name="sample_action_level">Niveler la litière</string>
+    <string name="sample_action_deodorize">Désodoriser</string>
+    <string name="sample_action_history">Historique</string>
+    <string name="sample_action_later">Repas différé</string>
+    <string name="sample_confirm_title">Vider la litière ?</string>
+    <string name="sample_confirm_message">Le bac déverse toute sa litière dans la poubelle. Impossible d’annuler.</string>
+    <string name="sample_confirm_action">Vider</string>
+</resources>
