@@ -27,19 +27,26 @@ object HomeRules {
     private val waterLowKeys = listOf("water_missing", "water_lack")
 
     /**
+     * A Pura Air linked to a listed litter box has no card: it is that box's deodorizer, and its
+     * N60 level is on the box's page (the owner's call, so the box's card opens the box). A
+     * Bluetooth fountain keeps a card of its own, which names its relay. A Pura Air whose parent is
+     * not listed has nowhere else to be, so it keeps a card.
+     *
      * @param dayItems the cards of the local day being shown (today), any device.
      * @param zone the phone's time zone, which places each card on the 24-hour strip.
      */
     fun overview(devices: List<Device>, pets: List<Pet>, dayItems: List<TimelineItem>, zone: ZoneId): HomeOverview {
         val byDevice = dayItems.groupBy { it.deviceId }
+        val byId = devices.associateBy { it.id }
         return HomeOverview(
-            devices = devices.map { device ->
+            devices = devices.filterNot { it.isShownByItsParent(byId) }.map { device ->
                 val items = byDevice[device.id].orEmpty()
                 DeviceOverview(
                     device = device,
                     headline = headline(device, items),
                     status = status(device),
                     dayEvents = dayEvents(items, zone),
+                    relay = device.parentId?.takeIf { device.isAccessory }?.let(byId::get)?.model,
                 )
             },
             pets = pets.mapIndexed { index, pet ->
@@ -48,6 +55,10 @@ object HomeRules {
             alerts = HomeAlerts.alerts(devices),
         )
     }
+
+    /** A Pura Air whose litter box is listed: the box's page shows it, Home does not. */
+    private fun Device.isShownByItsParent(byId: Map<Long, Device>): Boolean =
+        isAccessory && family == DeviceFamily.Purifier && parentId?.let(byId::get) != null
 
     /** Toilet visits by [petId] among [dayItems]: the summaries of the local day. */
     fun visitsOf(petId: Long, dayItems: List<TimelineItem>): Int =

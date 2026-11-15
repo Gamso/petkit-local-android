@@ -4,7 +4,9 @@ import java.time.Instant
 import java.time.ZoneId
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import org.petkitlocal.core.domain.model.AccessoryRef
 import org.petkitlocal.core.domain.model.Device
+import org.petkitlocal.core.domain.model.DeviceConnection
 import org.petkitlocal.core.domain.model.DeviceFamily
 import org.petkitlocal.core.domain.model.DeviceTransport
 import org.petkitlocal.core.domain.model.Entity
@@ -71,6 +73,40 @@ class HomeRulesTest {
 
         assertEquals(Headline.Level("k3_liquid", "K3 Liquid", 63), HomeRules.headline(k3, emptyList()))
         assertEquals(Headline.None, HomeRules.headline(device(7, DeviceFamily.Other), emptyList()))
+    }
+
+    @Test
+    fun `a Pura Air with its litter box listed has no card, a Bluetooth fountain names its relay`() {
+        val box = device(1, DeviceFamily.LitterBox).copy(
+            accessories = listOf(
+                AccessoryRef(41, "k3", DeviceFamily.Purifier),
+                AccessoryRef(40, "k3", DeviceFamily.Purifier),
+            ),
+        )
+        val feeder = device(
+            2,
+            DeviceFamily.Feeder,
+        ).copy(accessories = listOf(AccessoryRef(30, "w5", DeviceFamily.Fountain)))
+        val fountain = device(30, DeviceFamily.Fountain).copy(connection = DeviceConnection.Ble, parentId = 2)
+        val low = device(40, DeviceFamily.Purifier, sensor("k3_liquid", EntityValue.Number(9.0), unit = "%"))
+            .copy(connection = DeviceConnection.Ble, parentId = 1)
+        val full = device(41, DeviceFamily.Purifier, sensor("k3_liquid", EntityValue.Number(80.0), unit = "%"))
+            .copy(connection = DeviceConnection.Ble, parentId = 1)
+        // Linked to no device the app knows: it has nowhere else to be shown.
+        val orphan = device(42, DeviceFamily.Purifier).copy(connection = DeviceConnection.Ble, parentId = 99)
+
+        val overview = HomeRules.overview(
+            listOf(box, feeder, fountain, low, full, orphan),
+            emptyList(),
+            emptyList(),
+            paris,
+        )
+
+        // The two Pura Airs of the box are on its page, not on Home; the orphan keeps a card.
+        assertEquals(listOf(1L, 2L, 30L, 42L), overview.devices.map { it.device.id })
+        assertEquals(null, overview.devices[0].relay)
+        assertEquals("Model 2", overview.devices[2].relay)
+        assertEquals(null, overview.devices[3].relay)
     }
 
     @Test

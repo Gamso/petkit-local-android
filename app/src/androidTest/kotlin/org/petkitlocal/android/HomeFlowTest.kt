@@ -53,10 +53,12 @@ class HomeFlowTest {
         val box = hasTestTag(HomeTestTags.device(PURA_MAX))
         waitFor(box)
 
-        // Every family of the mock: litter boxes, feeders, fountains, the purifier, and the pets.
+        // Every family of the mock: litter boxes, feeders, fountains, and the pets. The Pura Air
+        // has no card (its level is on the Pura Max's page); a Bluetooth fountain names its relay.
+        compose.onNodeWithTag(HomeTestTags.device(PURA_AIR)).assertDoesNotExist()
         list.scrollAndFind("Fresh Element Solo")
         list.scrollAndFind("EverSweet Ultra AI")
-        list.scrollAndFind("Pura Air K3")
+        list.scrollAndFind("via Fresh Element Solo")
         list.scrollAndFind("Mochi")
 
         // The server takes the Pura Max offline; Home shows it once the user pulls to refresh,
@@ -106,6 +108,7 @@ class HomeFlowTest {
 
     private companion object {
         const val PURA_MAX = 1002L
+        const val PURA_AIR = 4001L
 
         // Home's first refresh reads 13 device details and the day's timeline from the mock.
         const val TIMEOUT_MS = 30_000L

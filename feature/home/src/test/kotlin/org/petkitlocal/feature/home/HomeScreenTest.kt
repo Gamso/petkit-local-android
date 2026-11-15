@@ -65,10 +65,26 @@ class HomeScreenTest {
         scrollTo("Drinks today")
         scrollTo("EverSweet Max Cordless")
         compose.onNodeWithText("Offline", useUnmergedTree = true).assertExists()
-        // The purifier and the unknown kind.
-        scrollTo("Liquid")
-        compose.onNodeWithText("63 %", useUnmergedTree = true).assertExists()
+        // The unknown kind. (The Pura Air has no card: its level is on its litter box's page.)
         scrollTo("Nothing to report")
+    }
+
+    @Test
+    fun `a Pura Air shows nowhere on Home, a Bluetooth fountain's card says its relay`() {
+        show(HomeFixtures.content)
+
+        // No card of its own, and nothing of it on the Pura Max's: its level is on the box's page.
+        compose.onNodeWithTag(HomeTestTags.device(4001)).assertDoesNotExist()
+        compose.onNodeWithText("Pura Air", substring = true, useUnmergedTree = true).assertDoesNotExist()
+        compose.onNodeWithText("63 %", useUnmergedTree = true).assertDoesNotExist()
+        // The CTW3's card is its own, and names the feeder relaying it; the card opens the fountain.
+        scrollTo("via Fresh Element Solo")
+        compose.onNodeWithTag(HomeTestTags.device(3003)).performClick()
+        // The W5 is linked to no device: no relay to name.
+        compose.onNodeWithText("via", substring = true, useUnmergedTree = true).assertExists()
+        compose.onAllNodesWithText("via ", substring = true, useUnmergedTree = true).assertCountEquals(1)
+
+        assertEquals(listOf("device:3003"), opened)
     }
 
     @Test

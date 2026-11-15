@@ -26,6 +26,7 @@
     <string name="home_water_low">Basse</string>
     <string name="home_no_figure">Rien à signaler</string>
     <string name="home_percent">%1$d %%</string>
+    <string name="home_relay">via %1$s</string>
     <plurals name="home_meals">
         <item quantity="one">%1$d repas</item>
         <item quantity="many">%1$d repas</item>

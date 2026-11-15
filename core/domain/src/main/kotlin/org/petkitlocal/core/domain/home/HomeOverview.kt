@@ -20,6 +20,8 @@ data class DeviceOverview(
     val status: DeviceStatus,
     /** The day's cards of this device, oldest first, placed on the 24-hour strip. */
     val dayEvents: List<DayEvent>,
+    /** For a Bluetooth accessory with a card of its own (a fountain): the device relaying it. */
+    val relay: String? = null,
 )
 
 /** One pet chip. */
