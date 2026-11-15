@@ -24,10 +24,9 @@ import org.petkitlocal.feature.device.navigateToDevice
 import org.petkitlocal.feature.history.historyScreen
 import org.petkitlocal.feature.history.navigateToHistory
 import org.petkitlocal.feature.home.HomeDestination
-import org.petkitlocal.feature.home.HomeShortcut
+import org.petkitlocal.feature.home.HomeNavigation
 import org.petkitlocal.feature.home.homeScreen
 import org.petkitlocal.feature.live.liveScreen
-import org.petkitlocal.feature.live.navigateToLive
 import org.petkitlocal.feature.pets.navigateToPets
 import org.petkitlocal.feature.pets.petsScreen
 import org.petkitlocal.feature.settings.navigateToSettings
@@ -65,23 +64,12 @@ fun PetkitNavHost(
     NavHost(navController = navController, startDestination = start, modifier = modifier) {
         signInScreen()
         homeScreen(
-            onShortcut = { shortcut ->
-                when (shortcut) {
-                    // Sign-in belongs to the gate now. Until Home is rebuilt (M1), its shortcut
-                    // opens Settings, where signing out is.
-                    HomeShortcut.SignIn -> navController.navigateToSettings()
-
-                    HomeShortcut.Device -> navController.navigateToDevice(deviceId = PLACEHOLDER_DEVICE_ID)
-
-                    HomeShortcut.History -> navController.navigateToHistory()
-
-                    HomeShortcut.Pets -> navController.navigateToPets()
-
-                    HomeShortcut.Live -> navController.navigateToLive(deviceId = PLACEHOLDER_DEVICE_ID)
-
-                    HomeShortcut.Settings -> navController.navigateToSettings()
-                }
-            },
+            HomeNavigation(
+                onDeviceClick = { deviceId -> navController.navigateToDevice(deviceId) },
+                onOpenPets = { navController.navigateToPets() },
+                onOpenHistory = { navController.navigateToHistory() },
+                onOpenSettings = { navController.navigateToSettings() },
+            ),
         )
         deviceScreen(onBack = back)
         historyScreen(onBack = back)
@@ -104,6 +92,3 @@ internal fun NavController.followSession(signedIn: Boolean) {
         launchSingleTop = true
     }
 }
-
-/** Until Home lists real devices (M1), its shortcut opens device 1 to prove the argument. */
-private const val PLACEHOLDER_DEVICE_ID = 1L

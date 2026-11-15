@@ -11,7 +11,11 @@ dependencies {
     implementation(projects.core.database)
     implementation(projects.core.datastore)
 
+    // Repositories against a scripted server and a real in-memory Room database (Robolectric).
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.junit4)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.okhttp.mockwebserver)
+    testImplementation(libs.robolectric)
     testImplementation(libs.turbine)
 }

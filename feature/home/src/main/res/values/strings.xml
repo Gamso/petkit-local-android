@@ -1,10 +1,73 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="home_title">Home</string>
-    <string name="home_shortcut_sign_in">Sign in</string>
-    <string name="home_shortcut_device">A device</string>
-    <string name="home_shortcut_history">History</string>
-    <string name="home_shortcut_pets">Pets</string>
-    <string name="home_shortcut_live">Live video</string>
-    <string name="home_shortcut_settings">Settings</string>
+    <!-- The household; single, not switchable in v1 (SPEC.md §5.2). -->
+    <string name="home_title">My home</string>
+    <string name="home_open_history">History</string>
+    <string name="home_open_settings">Settings</string>
+    <string name="home_devices">Devices</string>
+    <string name="home_pets">Pets</string>
+    <string name="home_pets_see_all">See all</string>
+    <string name="home_no_devices">No devices yet. Add them in petkit-local\'s panel.</string>
+    <string name="home_refresh_failed">The server could not answer. Showing the last known data.</string>
+    <string name="home_session_ended">Your session has ended. Sign in again.</string>
+    <string name="home_server_error">The server could not answer.</string>
+    <string name="home_unreachable">The server cannot be reached.</string>
+    <plurals name="home_more_alerts">
+        <item quantity="one">Show %1$d more alert</item>
+        <item quantity="other">Show %1$d more alerts</item>
+    </plurals>
+    <string name="home_fewer_alerts">Show fewer</string>
+
+    <!-- Headline figures of the device cards. -->
+    <string name="home_visits_today">Visits today</string>
+    <string name="home_served_today">Served today</string>
+    <string name="home_drinks_today">Drinks today</string>
+    <string name="home_water">Water</string>
+    <string name="home_water_ok">OK</string>
+    <string name="home_water_low">Low</string>
+    <string name="home_no_figure">Nothing to report</string>
+    <string name="home_percent">%1$d %%</string>
+    <plurals name="home_meals">
+        <item quantity="one">%1$d meal</item>
+        <item quantity="other">%1$d meals</item>
+    </plurals>
+    <string name="home_meals_unit">meals</string>
+    <plurals name="home_strip_description">
+        <item quantity="one">%1$d event today</item>
+        <item quantity="other">%1$d events today</item>
+    </plurals>
+    <string name="home_strip_start">0h</string>
+    <string name="home_strip_middle">12h</string>
+    <string name="home_strip_end">24h</string>
+
+    <!-- Status band. -->
+    <string name="home_status_idle">Idle</string>
+    <string name="home_status_offline">Offline</string>
+    <string name="home_status_feeding">Feeding</string>
+    <string name="home_status_pet_inside">Pet inside</string>
+    <string name="home_status_error">Error: %1$s</string>
+
+    <!-- Alert banners: "<what> · <device>". -->
+    <string name="home_alert_line">%1$s · %2$s</string>
+    <string name="home_alert_offline">Offline</string>
+    <string name="home_alert_empty">%1$s empty</string>
+    <plurals name="home_alert_days_left">
+        <item quantity="one">%1$s: %2$d day left</item>
+        <item quantity="other">%1$s: %2$d days left</item>
+    </plurals>
+    <string name="home_consumable_desiccant">Desiccant</string>
+    <string name="home_consumable_n50">N50 deodorizer</string>
+    <string name="home_consumable_n60">N60 spray</string>
+    <string name="home_alert_low">%1$s low: %2$d %%</string>
+    <string name="home_consumable_litter">Litter</string>
+    <string name="home_consumable_filter">Filter</string>
+    <string name="home_consumable_liquid">Liquid</string>
+    <string name="home_consumable_battery">Battery</string>
+
+    <!-- Pet chips. -->
+    <plurals name="home_pet_visits">
+        <item quantity="one">%1$d visit</item>
+        <item quantity="other">%1$d visits</item>
+    </plurals>
+    <string name="home_pet_line">%1$s · %2$s</string>
 </resources>

@@ -1,10 +1,73 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="home_title">Accueil</string>
-    <string name="home_shortcut_sign_in">Connexion</string>
-    <string name="home_shortcut_device">Un appareil</string>
-    <string name="home_shortcut_history">Historique</string>
-    <string name="home_shortcut_pets">Animaux</string>
-    <string name="home_shortcut_live">Vidéo en direct</string>
-    <string name="home_shortcut_settings">Réglages</string>
+    <string name="home_title">Ma maison</string>
+    <string name="home_open_history">Historique</string>
+    <string name="home_open_settings">Réglages</string>
+    <string name="home_devices">Appareils</string>
+    <string name="home_pets">Animaux</string>
+    <string name="home_pets_see_all">Tout voir</string>
+    <string name="home_no_devices">Aucun appareil pour l\'instant. Ajoutez-les dans le panneau de petkit-local.</string>
+    <string name="home_refresh_failed">Le serveur n\'a pas pu répondre. Dernières données connues affichées.</string>
+    <string name="home_session_ended">Votre session a pris fin. Reconnectez-vous.</string>
+    <string name="home_server_error">Le serveur n\'a pas pu répondre.</string>
+    <string name="home_unreachable">Le serveur est injoignable.</string>
+    <plurals name="home_more_alerts">
+        <item quantity="one">Afficher %1$d autre alerte</item>
+        <item quantity="many">Afficher %1$d autres alertes</item>
+        <item quantity="other">Afficher %1$d autres alertes</item>
+    </plurals>
+    <string name="home_fewer_alerts">Afficher moins</string>
+
+    <string name="home_visits_today">Visites aujourd\'hui</string>
+    <string name="home_served_today">Servi aujourd\'hui</string>
+    <string name="home_drinks_today">Boissons aujourd\'hui</string>
+    <string name="home_water">Eau</string>
+    <string name="home_water_ok">OK</string>
+    <string name="home_water_low">Basse</string>
+    <string name="home_no_figure">Rien à signaler</string>
+    <string name="home_percent">%1$d %%</string>
+    <plurals name="home_meals">
+        <item quantity="one">%1$d repas</item>
+        <item quantity="many">%1$d repas</item>
+        <item quantity="other">%1$d repas</item>
+    </plurals>
+    <string name="home_meals_unit">repas</string>
+    <plurals name="home_strip_description">
+        <item quantity="one">%1$d événement aujourd\'hui</item>
+        <item quantity="many">%1$d événements aujourd\'hui</item>
+        <item quantity="other">%1$d événements aujourd\'hui</item>
+    </plurals>
+    <string name="home_strip_start">0h</string>
+    <string name="home_strip_middle">12h</string>
+    <string name="home_strip_end">24h</string>
+
+    <string name="home_status_idle">Au repos</string>
+    <string name="home_status_offline">Hors ligne</string>
+    <string name="home_status_feeding">Distribution</string>
+    <string name="home_status_pet_inside">Animal à l\'intérieur</string>
+    <string name="home_status_error">Erreur : %1$s</string>
+
+    <string name="home_alert_line">%1$s · %2$s</string>
+    <string name="home_alert_offline">Hors ligne</string>
+    <string name="home_alert_empty">%1$s vide</string>
+    <plurals name="home_alert_days_left">
+        <item quantity="one">%1$s : %2$d jour restant</item>
+        <item quantity="many">%1$s : %2$d jours restants</item>
+        <item quantity="other">%1$s : %2$d jours restants</item>
+    </plurals>
+    <string name="home_consumable_desiccant">Déshydratant</string>
+    <string name="home_consumable_n50">Désodorisant N50</string>
+    <string name="home_consumable_n60">Spray N60</string>
+    <string name="home_alert_low">%1$s bas : %2$d %%</string>
+    <string name="home_consumable_litter">Litière</string>
+    <string name="home_consumable_filter">Filtre</string>
+    <string name="home_consumable_liquid">Liquide</string>
+    <string name="home_consumable_battery">Batterie</string>
+
+    <plurals name="home_pet_visits">
+        <item quantity="one">%1$d visite</item>
+        <item quantity="many">%1$d visites</item>
+        <item quantity="other">%1$d visites</item>
+    </plurals>
+    <string name="home_pet_line">%1$s · %2$s</string>
 </resources>
