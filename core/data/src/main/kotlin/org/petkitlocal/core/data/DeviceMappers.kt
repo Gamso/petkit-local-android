@@ -13,8 +13,10 @@ import org.petkitlocal.core.database.model.ActionRow
 import org.petkitlocal.core.database.model.DeviceRow
 import org.petkitlocal.core.database.model.DeviceWithDetails
 import org.petkitlocal.core.database.model.EntityRow
+import org.petkitlocal.core.domain.model.AccessoryRef
 import org.petkitlocal.core.domain.model.Device
 import org.petkitlocal.core.domain.model.DeviceAction
+import org.petkitlocal.core.domain.model.DeviceConnection
 import org.petkitlocal.core.domain.model.DeviceFamily
 import org.petkitlocal.core.domain.model.DeviceTransport
 import org.petkitlocal.core.domain.model.Entity
@@ -22,6 +24,8 @@ import org.petkitlocal.core.domain.model.EntityCategory
 import org.petkitlocal.core.domain.model.EntityComponent
 import org.petkitlocal.core.domain.model.EntityValue
 import org.petkitlocal.core.network.PetkitJson
+import org.petkitlocal.core.network.dto.AccessoryRefDto
+import org.petkitlocal.core.network.dto.DeviceConnection as ApiDeviceConnection
 import org.petkitlocal.core.network.dto.DeviceDetailDto
 import org.petkitlocal.core.network.dto.DeviceKind
 import org.petkitlocal.core.network.dto.DeviceSummaryDto
@@ -35,6 +39,7 @@ import org.petkitlocal.core.network.dto.EntityComponent as ApiEntityComponent
  */
 
 private val stringList = ListSerializer(String.serializer())
+private val accessoryList = ListSerializer(AccessoryRefDto.serializer())
 
 internal fun DeviceSummaryDto.toRow(position: Int, serial: String?) = DeviceRow(
     id = id,
@@ -48,7 +53,35 @@ internal fun DeviceSummaryDto.toRow(position: Int, serial: String?) = DeviceRow(
     firmware = firmware,
     isCamera = isCamera,
     serial = serial,
+    connection = connection,
+    parentId = parentId,
+    accessoriesJson = PetkitJson.encodeToString(accessoryList, accessories),
 )
+
+/** The row of a `DeviceDetail` (a `hello` lists them), which is a `DeviceSummary` with more. */
+internal fun DeviceDetailDto.toRow(position: Int) = DeviceRow(
+    id = id,
+    position = position,
+    type = type,
+    model = model,
+    kind = kind,
+    online = online,
+    transport = transport,
+    lastSeen = lastSeen,
+    firmware = firmware,
+    isCamera = isCamera,
+    serial = serial,
+    connection = connection,
+    parentId = parentId,
+    accessoriesJson = PetkitJson.encodeToString(accessoryList, accessories),
+)
+
+/** A row's accessories; text that is not the list the server sent (it never should be) is none. */
+internal fun decodeAccessories(json: String): List<AccessoryRef> = try {
+    PetkitJson.decodeFromString(accessoryList, json).map { AccessoryRef(it.id, it.type, deviceFamily(it.kind)) }
+} catch (_: IllegalArgumentException) {
+    emptyList()
+}
 
 internal fun DeviceDetailDto.toDetailRows() = DeviceDetailRows(
     entities = entities.mapIndexed { index, entity ->
@@ -98,6 +131,9 @@ internal fun DeviceWithDetails.toDomain() = Device(
     serial = device.serial,
     entities = entities.sortedBy { it.position }.map { it.toDomain() },
     actions = actions.sortedBy { it.position }.map { DeviceAction(it.key, it.name, it.destructive) },
+    connection = if (device.connection == ApiDeviceConnection.BLE) DeviceConnection.Ble else DeviceConnection.Wifi,
+    parentId = device.parentId,
+    accessories = decodeAccessories(device.accessoriesJson),
 )
 
 internal fun deviceFamily(kind: String): DeviceFamily = when (kind) {

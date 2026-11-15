@@ -24,7 +24,6 @@ import org.petkitlocal.core.data.di.LiveUpdatesCoroutineScope
 import org.petkitlocal.core.database.dao.DeviceDao
 import org.petkitlocal.core.database.dao.EntityValuePatch
 import org.petkitlocal.core.database.dao.TimelineDao
-import org.petkitlocal.core.database.model.DeviceRow
 import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.core.domain.Outcome
 import org.petkitlocal.core.domain.auth.AuthRepository
@@ -35,7 +34,6 @@ import org.petkitlocal.core.network.LiveUpdate
 import org.petkitlocal.core.network.LiveUpdatesSocket
 import org.petkitlocal.core.network.PetkitApi
 import org.petkitlocal.core.network.PetkitJson
-import org.petkitlocal.core.network.dto.DeviceDetailDto
 import org.petkitlocal.core.network.dto.UpdateMessageDto
 import org.petkitlocal.core.network.error.apiCall
 
@@ -148,20 +146,6 @@ class LiveUpdatesRepositoryImpl @Inject constructor(
 }
 
 private fun JsonElement.toJsonText(): String = PetkitJson.encodeToString(JsonElement.serializer(), this)
-
-private fun DeviceDetailDto.toRow(position: Int) = DeviceRow(
-    id = id,
-    position = position,
-    type = type,
-    model = model,
-    kind = kind,
-    online = online,
-    transport = transport,
-    lastSeen = lastSeen,
-    firmware = firmware,
-    isCamera = isCamera,
-    serial = serial,
-)
 
 /**
  * How long to wait before reopening the socket: exponential from [base], capped at [cap], with

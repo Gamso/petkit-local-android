@@ -42,6 +42,25 @@ class LiveUpdatesDaoTest {
     }
 
     @Test
+    fun `a summary links and unlinks accessories, and keeps the device's place and serial`() = runTest {
+        val dao = db.deviceDao()
+        val accessories = """[{"id":2,"type":"k3","kind":"purifier"}]"""
+
+        dao.upsertSummary(device(1, position = 9).copy(accessoriesJson = accessories))
+        dao.upsertSummary(device(2, position = 9).copy(connection = "ble", parentId = 1))
+
+        val linked = dao.observeDevices().first().map { it.device }
+        assertEquals(listOf(accessories, "[]"), linked.map { it.accessoriesJson })
+        assertEquals(listOf("wifi", "ble"), linked.map { it.connection })
+        assertEquals(listOf(null, 1L), linked.map { it.parentId })
+        assertEquals(listOf(0, 1), linked.map { it.position })
+        assertEquals("SN-1", linked.first().serial)
+
+        dao.upsertSummary(device(1, position = 0))
+        assertEquals("[]", dao.getDevice(1)!!.accessoriesJson)
+    }
+
+    @Test
     fun `a value patch changes that entity's value and display, and nothing else`() = runTest {
         val dao = db.deviceDao()
 

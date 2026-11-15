@@ -14,7 +14,10 @@ import androidx.room.Relation
  * data layer maps them to domain models.
  */
 
-/** A `DeviceSummary`, plus the serial of its `DeviceDetail` once read. */
+/**
+ * A `DeviceSummary`, plus the serial of its `DeviceDetail` once read. [accessoriesJson] is its
+ * `accessories`, as the JSON array the server sent (`[{"id":4001,"type":"k3","kind":"purifier"}]`).
+ */
 @Entity(tableName = "devices")
 data class DeviceRow(
     @PrimaryKey val id: Long,
@@ -30,6 +33,10 @@ data class DeviceRow(
     val firmware: String?,
     @ColumnInfo(name = "is_camera") val isCamera: Boolean,
     val serial: String?,
+    /** `wifi` or `ble`. */
+    val connection: String = "wifi",
+    @ColumnInfo(name = "parent_id") val parentId: Long? = null,
+    @ColumnInfo(name = "accessories_json") val accessoriesJson: String = "[]",
 )
 
 /** One `Entity` of a device. */

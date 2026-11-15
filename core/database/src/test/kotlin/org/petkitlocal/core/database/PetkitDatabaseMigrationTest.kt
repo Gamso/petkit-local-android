@@ -18,8 +18,9 @@ import org.robolectric.RobolectricTestRunner
 
 /**
  * The migrations, against the schemas exported to core/database/schemas (read here as test
- * assets): every version ever shipped must open, migrated, as the current one, with its data.
- * A schema change that forgets its migration, or its export, fails here.
+ * assets): every supported version must open, migrated, as the current one, with its data. A
+ * schema change that forgets its migration, or its export, fails here. Before the first release
+ * the only supported version is the current one (PetkitDatabase).
  */
 @RunWith(RobolectricTestRunner::class)
 class PetkitDatabaseMigrationTest {
@@ -35,19 +36,19 @@ class PetkitDatabaseMigrationTest {
     )
 
     @Test
-    fun `the exported schemas are every version from 1 to the current one`() {
+    fun `the exported schemas are every supported version up to the current one`() {
         val exported = InstrumentationRegistry.getInstrumentation().context.assets
             .list(PetkitDatabase::class.java.name)
             .orEmpty()
             .map { it.removeSuffix(".json").toInt() }
             .sorted()
 
-        assertEquals((1..PetkitDatabase.VERSION).toList(), exported)
+        assertEquals((PetkitDatabase.OLDEST_SUPPORTED_VERSION..PetkitDatabase.VERSION).toList(), exported)
     }
 
     @Test
     fun `every exported version migrates to the current schema`() {
-        for (version in 1..PetkitDatabase.VERSION) {
+        for (version in PetkitDatabase.OLDEST_SUPPORTED_VERSION..PetkitDatabase.VERSION) {
             file.delete()
             helper.createDatabase(version).close()
             helper.runMigrationsAndValidate(PetkitDatabase.VERSION, PetkitDatabase.MIGRATIONS.toList()).close()
@@ -55,12 +56,13 @@ class PetkitDatabaseMigrationTest {
     }
 
     @Test
-    fun `a version 1 database keeps its data when the app opens it`() = runTest {
-        helper.createDatabase(1).apply {
+    fun `the oldest supported database keeps its data when the app opens it`() = runTest {
+        helper.createDatabase(PetkitDatabase.OLDEST_SUPPORTED_VERSION).apply {
             execSQL(
                 "INSERT INTO devices (id, position, type, model, kind, online, transport, last_seen, " +
-                    "firmware, is_camera, serial) " +
-                    "VALUES (1002, 0, 't4', 'Pura Max', 'litter_box', 1, 'http', NULL, NULL, 0, NULL)",
+                    "firmware, is_camera, serial, connection, parent_id, accessories_json) " +
+                    "VALUES (1002, 0, 't4', 'Pura Max', 'litter_box', 1, 'http', NULL, NULL, 0, NULL, " +
+                    "'wifi', NULL, '[]')",
             )
             execSQL(
                 "INSERT INTO pets (id, position, name, device_ids_json, entered_weight_g, weight_g, weight_learned, " +
