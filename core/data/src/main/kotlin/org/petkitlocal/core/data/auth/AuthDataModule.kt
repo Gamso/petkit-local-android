@@ -14,6 +14,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import org.petkitlocal.core.domain.auth.AuthRepository
 import org.petkitlocal.core.domain.auth.PhoneNameProvider
+import org.petkitlocal.core.domain.auth.ServerScopedCache
 import org.petkitlocal.core.domain.auth.SessionScopedCache
 import org.petkitlocal.core.network.ServerAddressProvider
 import org.petkitlocal.core.network.auth.SessionEndListener
@@ -45,6 +46,10 @@ abstract class AuthDataModule {
      */
     @Multibinds
     abstract fun sessionScopedCaches(): Set<SessionScopedCache>
+
+    /** What is kept across sessions for one server; a sign-in to another one clears it. */
+    @Multibinds
+    abstract fun serverScopedCaches(): Set<ServerScopedCache>
 
     companion object {
         @Provides
