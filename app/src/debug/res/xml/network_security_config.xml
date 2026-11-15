@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug builds only: overrides src/main/res/xml/network_security_config.xml. Plain HTTP is
+     allowed to 10.0.2.2, the emulator's address for the host, where the mock server runs for
+     development and for the end-to-end tests (e2e/docker-compose.yml). Every other host stays
+     HTTPS only, as in release. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">10.0.2.2</domain>
+    </domain-config>
+</network-security-config>
