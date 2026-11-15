@@ -1,5 +1,6 @@
 package org.petkitlocal.core.testing
 
+import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
@@ -13,7 +14,9 @@ import org.petkitlocal.core.domain.history.HistoryQuery
 import org.petkitlocal.core.domain.model.Device
 import org.petkitlocal.core.domain.model.EventDetail
 import org.petkitlocal.core.domain.model.Pet
+import org.petkitlocal.core.domain.model.PetActivity
 import org.petkitlocal.core.domain.model.TimelineItem
+import org.petkitlocal.core.domain.model.WeightSample
 import org.petkitlocal.core.domain.repository.DeviceRepository
 import org.petkitlocal.core.domain.repository.PetRepository
 import org.petkitlocal.core.domain.repository.TimelineRepository
@@ -55,9 +58,42 @@ class FakePetRepository(initial: List<Pet> = emptyList()) :
     PetRepository {
     val pets = MutableStateFlow(initial)
 
+    /** The cached activity, by pet. */
+    val activity = MutableStateFlow<Map<Long, PetActivity>>(emptyMap())
+
+    /** The cached weighed visits, by pet. */
+    val weights = MutableStateFlow<Map<Long, List<WeightSample>>>(emptyMap())
+
+    /** What [refreshPet] answers; [refreshPetGate], when set, is waited for first. */
+    var refreshPetResult: Outcome<Unit> = Outcome.Success(Unit)
+    var refreshPetGate: CompletableDeferred<Unit>? = null
+    val refreshedPets = mutableListOf<Long>()
+
+    /** What [refreshWeights] answers; [weightsGate], when set, is waited for first. */
+    var weightsResult: Outcome<Unit> = Outcome.Success(Unit)
+    var weightsGate: CompletableDeferred<Unit>? = null
+    val weightRequests = mutableListOf<Pair<Long, Instant>>()
+
     override fun observePets(): Flow<List<Pet>> = pets
 
     override suspend fun refresh(): Outcome<Unit> = refreshed()
+
+    override fun observeActivity(petId: Long): Flow<PetActivity?> = activity.map { it[petId] }
+
+    override suspend fun refreshPet(petId: Long): Outcome<Unit> {
+        refreshedPets += petId
+        refreshPetGate?.await()
+        return refreshPetResult
+    }
+
+    override fun observeWeights(petId: Long, since: Instant): Flow<List<WeightSample>> =
+        weights.map { cache -> cache[petId].orEmpty().filter { it.at >= since }.sortedBy { it.at } }
+
+    override suspend fun refreshWeights(petId: Long, since: Instant): Outcome<Unit> {
+        weightRequests += petId to since
+        weightsGate?.await()
+        return weightsResult
+    }
 }
 
 class FakeTimelineRepository :

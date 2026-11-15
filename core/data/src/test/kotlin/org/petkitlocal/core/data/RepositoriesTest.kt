@@ -1,5 +1,6 @@
 package org.petkitlocal.core.data
 
+import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.flow.first
@@ -34,7 +35,7 @@ class RepositoriesTest {
     val server = ScriptedServer()
 
     private val devices by lazy { DeviceRepositoryImpl(server.api, server.db.deviceDao()) }
-    private val pets by lazy { PetRepositoryImpl(server.api, server.db.petDao()) { server.base } }
+    private val pets by lazy { PetRepositoryImpl(server.api, server.db.petDao(), Clock.systemUTC()) { server.base } }
     private val timeline by lazy { TimelineRepositoryImpl(server.api, server.db.timelineDao()) { server.base } }
 
     @Test

@@ -1,8 +1,8 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 3,
-    "identityHash": "084d029f62c353d9f4c4832c79d170ce",
+    "version": 4,
+    "identityHash": "eefa9181bec6bfacac6c347b86562edd",
     "entities": [
       {
         "tableName": "devices",
@@ -318,6 +318,115 @@
         }
       },
       {
+        "tableName": "pet_activity",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`pet_id` INTEGER NOT NULL, `median_weight_g` REAL, `visits_today` INTEGER NOT NULL, `last_visit_ts` REAL, `last_visit_weight_g` REAL, `last_visit_duration_sec` REAL, `last_device_id` INTEGER, `recent_visits_json` TEXT NOT NULL, `fetched_at` INTEGER NOT NULL, PRIMARY KEY(`pet_id`))",
+        "fields": [
+          {
+            "fieldPath": "petId",
+            "columnName": "pet_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "medianWeightG",
+            "columnName": "median_weight_g",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "visitsToday",
+            "columnName": "visits_today",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastVisitTs",
+            "columnName": "last_visit_ts",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "lastVisitWeightG",
+            "columnName": "last_visit_weight_g",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "lastVisitDurationSec",
+            "columnName": "last_visit_duration_sec",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "lastDeviceId",
+            "columnName": "last_device_id",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "recentVisitsJson",
+            "columnName": "recent_visits_json",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fetchedAt",
+            "columnName": "fetched_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "pet_id"
+          ]
+        }
+      },
+      {
+        "tableName": "pet_weights",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`visit_id` INTEGER NOT NULL, `pet_id` INTEGER NOT NULL, `ts` REAL NOT NULL, `weight_g` INTEGER NOT NULL, PRIMARY KEY(`visit_id`))",
+        "fields": [
+          {
+            "fieldPath": "visitId",
+            "columnName": "visit_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "petId",
+            "columnName": "pet_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ts",
+            "columnName": "ts",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "weightG",
+            "columnName": "weight_g",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "visit_id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_pet_weights_pet_id_ts",
+            "unique": false,
+            "columnNames": [
+              "pet_id",
+              "ts"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_pet_weights_pet_id_ts` ON `${TABLE_NAME}` (`pet_id`, `ts`)"
+          }
+        ]
+      },
+      {
         "tableName": "timeline_items",
         "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `day` TEXT NOT NULL, `kind` TEXT NOT NULL, `filters_json` TEXT NOT NULL, `device_id` INTEGER, `device_type` TEXT, `ts` REAL, `display_ts` REAL, `event_type` TEXT, `event_kind` TEXT, `label` TEXT, `pet_id` INTEGER, `pet_name` TEXT, `duration_sec` INTEGER, `weight_g` INTEGER, `facts_json` TEXT NOT NULL, `media_json` TEXT, PRIMARY KEY(`id`))",
         "fields": [
@@ -442,7 +551,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '084d029f62c353d9f4c4832c79d170ce')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'eefa9181bec6bfacac6c347b86562edd')"
     ]
   }
 }
