@@ -77,6 +77,16 @@ class HistoryRulesTest {
     }
 
     @Test
+    fun `a day opened directly sits in the strip the arrows would reach it in`() {
+        assertEquals(today, HistoryDays.endShowing(today, today))
+        assertEquals(today, HistoryDays.endShowing(LocalDate.of(2026, 11, 9), today))
+        assertEquals(LocalDate.of(2026, 11, 8), HistoryDays.endShowing(LocalDate.of(2026, 11, 8), today))
+        assertEquals(LocalDate.of(2026, 11, 8), HistoryDays.endShowing(LocalDate.of(2026, 11, 2), today))
+        // A day after today (a clock that moved back) shows today's strip.
+        assertEquals(today, HistoryDays.endShowing(LocalDate.of(2026, 11, 16), today))
+    }
+
+    @Test
     fun `a query matches by chip, device and pet`() {
         val visit = item(1, setOf(TimelineCategory.Toileting), deviceId = 1002, petId = 1)
         assertTrue(HistoryQuery(today).matches(visit))
