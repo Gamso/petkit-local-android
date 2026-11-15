@@ -75,6 +75,10 @@ import org.petkitlocal.feature.device.R
  * height of the collapsed sheet (and of [banner], when one shows) as bottom padding, so nothing
  * is hidden behind it. Expanded, the sheet lays a scrim over the page; a tap on the scrim, Back
  * or a drag down collapses it.
+ *
+ * A page whose device has no everyday action, and offers each of its other actions on a part's
+ * pill ([onParts], the keys the pills offer), has no sheet at all ([DeviceActionOrder.needsSheet]):
+ * collapsed, it would show nothing but "More".
  */
 @Composable
 fun DeviceActionScaffold(
@@ -82,6 +86,7 @@ fun DeviceActionScaffold(
     onAction: (DeviceAction) -> Unit,
     modifier: Modifier = Modifier,
     initiallyExpanded: Boolean = false,
+    onParts: Set<String> = emptySet(),
     banner: @Composable () -> Unit = {},
     content: @Composable (bottomPadding: Dp) -> Unit,
 ) {
@@ -117,7 +122,7 @@ fun DeviceActionScaffold(
                 },
         ) {
             banner()
-            if (actions.isEmpty() || !quick.ready) {
+            if (!quick.ready || !DeviceActionOrder.needsSheet(actions, onParts)) {
                 Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
             } else {
                 DeviceActionSheet(

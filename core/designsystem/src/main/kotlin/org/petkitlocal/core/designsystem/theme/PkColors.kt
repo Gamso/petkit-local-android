@@ -31,6 +31,7 @@ data class PkColors(
     /** Hero gradient tints per device family, each fading into [background]. */
     val heroLitter: Color,
     val heroFeeder: Color,
+    val heroFountain: Color,
     val heroPet: Color,
     /** Pet colours in their fixed order, so charts and avatars agree everywhere. */
     val pets: List<Color>,
@@ -61,6 +62,7 @@ val LightPkColors = PkColors(
     outline = Color(0xFFD5D9DF),
     heroLitter = Color(0xFFE3F1EF),
     heroFeeder = Color(0xFFE8EEF7),
+    heroFountain = Color(0xFFE2EFF7),
     heroPet = Color(0xFFF6EBDF),
     pets = listOf(Color(0xFF0B7A72), Color(0xFF2E4C78), Color(0xFF7B4FA8), Color(0xFFA8436A)),
     isDark = false,
@@ -87,6 +89,7 @@ val DarkPkColors = PkColors(
     outline = Color(0xFF3A424C),
     heroLitter = Color(0xFF16302D),
     heroFeeder = Color(0xFF1B2433),
+    heroFountain = Color(0xFF15293A),
     heroPet = Color(0xFF33281C),
     pets = listOf(Color(0xFF5CC8BD), Color(0xFF9DB8E3), Color(0xFFC8A2EC), Color(0xFFF291B3)),
     isDark = true,

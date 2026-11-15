@@ -8,6 +8,7 @@ import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import org.junit.Assert.assertEquals
@@ -60,6 +61,35 @@ class ComponentBehaviourTest {
         compose.onNodeWithText("Empty").performClick()
 
         assertEquals(listOf("dismiss", "confirm"), calls)
+    }
+
+    @Test
+    fun `an arming confirm dialog ignores a tap that comes too soon, then takes one`() {
+        val calls = mutableListOf<String>()
+        compose.mainClock.autoAdvance = false
+        compose.setContent {
+            PkTheme {
+                PkConfirmDialog(
+                    title = "Reset Filter?",
+                    message = "This cannot be undone.",
+                    confirmLabel = "Reset Filter",
+                    onConfirm = { calls += "confirm" },
+                    onDismiss = { calls += "dismiss" },
+                    armDelayMillis = 600,
+                )
+            }
+        }
+        compose.mainClock.advanceTimeByFrame()
+
+        // A second tap of the one that opened it, 300 ms later: ignored, the dialog stays.
+        compose.mainClock.advanceTimeBy(300)
+        compose.onNodeWithTag(PkConfirmTestTags.CONFIRM_ARMING).performClick()
+        assertEquals(emptyList<String>(), calls)
+
+        // Once armed, a tap confirms; Cancel always works.
+        compose.mainClock.advanceTimeBy(400)
+        compose.onNodeWithTag(PkConfirmTestTags.CONFIRM).performClick()
+        assertEquals(listOf("confirm"), calls)
     }
 
     @Test

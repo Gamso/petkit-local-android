@@ -41,7 +41,7 @@ the project is created, and upgraded through Dependabot, as on the server.
 :core:e2e                 End-to-end test support: the mock server's address and control API, API clients
 :feature:auth             Sign-in, session expired, change password
 :feature:home             Home: device grid, pets row, alert banners
-:feature:device           Litter box, feeder, generic device, device settings
+:feature:device           Litter box, feeder, fountain, generic device, device settings
 :feature:history          Day strip, filters, timeline, event detail, media viewer
 :feature:pets             Pet list and detail, weight chart
 :feature:live             Live video player

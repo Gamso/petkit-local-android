@@ -42,7 +42,8 @@ screen and everything else with a generic one.
 |---|---|---|
 | Litter box | Pura Max (T4, confirmed on hardware), Pura X (T3), Purobot Max Pro 2 (T5), Purobot Ultra (T6), Crystal Duo (T7) | Dedicated (3) |
 | Feeder | Fresh Element Solo (D4), Gemini (D4S), YumShare Solo (D4H), YumShare Dual-Hopper (D4SH), older feeders | Dedicated (6) |
-| Fountain and others | EverSweet (W5, W7H, CTW3…), Pura Air (K2/K3) | Generic: status, entities, actions |
+| Fountain | EverSweet Ultra AI (W7H, Wi-Fi, confirmed on hardware), EverSweet 3 Pro (W5), EverSweet / W4X (W4), Solo 2 (CTW2), Max Cordless (CTW3): the last four Bluetooth-only, relayed by a litter box or feeder | Dedicated (9) |
+| Others | Pura Air (K2/K3) | Generic: status, entities, actions |
 
 Capabilities are read from the API (`DeviceDetail.actions`, entity `settable`, `is_camera`),
 never hard-coded per model, except for layout choices (which entity goes where on a dedicated
@@ -124,6 +125,23 @@ screen).
 - App: theme (system, light, dark), this phone's name. No language setting: the app follows the
   phone.
 - Change password (needs the current one; signs out every other phone), sign out.
+
+### 9 · Fountain
+- Header and hero as for the litter box. Hotspots only for the parts the model has (a table per
+  model, citing petkit-local): water level, filter and pump on the W5, W4 and CTW2, plus the
+  battery on the CTW3; drinking tray, clean and waste water tanks and pump on the W7H. A value the
+  fountain does not report draws no pill; "missing" or "low" only when it says so.
+- Mode chips from what the model has and reports: smart mode, do not disturb, child lock.
+- **Today**: on the W7H (camera, on-device recognition), drinks and their average duration
+  against yesterday, each pet's drinks, and the 24-hour chart of the drinks with a pet filter. A
+  Bluetooth fountain reports no drinks: its pump's running time today, as the fountain counts it
+  (no yesterday to compare with), and a line saying it reports no drinks.
+- A Bluetooth fountain says when it last reported and through which device ("Reports through
+  ..."), which opens that device; a write to it needs that device on MQTT.
+- Bottom action sheet from `DeviceDetail.actions` (refill, drain and flush, filter reset...);
+  destructive ones (drain, deep clean, filter reset) are confirmed. A device page shows no sheet
+  when its device has no everyday action and its pills offer every other one (a Bluetooth
+  fountain's filter reset is on its filter's pill).
 
 ## 6. Cross-cutting behaviour
 

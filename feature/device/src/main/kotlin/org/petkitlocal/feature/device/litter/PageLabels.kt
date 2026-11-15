@@ -12,7 +12,7 @@ import org.petkitlocal.core.ui.ServerLabels
 import org.petkitlocal.feature.device.R
 
 /*
- * The litter box and feeder pages' words for their parts and what each reads, by stable key
+ * The device pages' words for their parts and what each reads, by stable key
  * (through ServerLabels) where the server names them.
  */
 
@@ -22,6 +22,7 @@ internal fun hotspotLabel(hotspot: Hotspot, labels: ServerLabels): String =
     partLabel(hotspot.part)?.let { stringResource(it) } ?: labels.entity(hotspot.entityKey, hotspot.entityName)
 
 @StringRes
+@Suppress("CyclomaticComplexMethod") // One branch per part, which the compiler keeps exhaustive.
 private fun partLabel(part: DevicePart): Int? = when (part) {
     DevicePart.Litter -> R.string.page_part_litter
     DevicePart.WasteBin -> R.string.page_part_waste_bin
@@ -34,10 +35,18 @@ private fun partLabel(part: DevicePart): Int? = when (part) {
     DevicePart.Hopper2 -> R.string.page_part_hopper2
     DevicePart.Bowl -> R.string.page_part_bowl
     DevicePart.Desiccant -> R.string.page_part_desiccant
+    DevicePart.Water -> R.string.page_part_water
+    DevicePart.Filter -> R.string.page_part_filter
+    DevicePart.Pump -> R.string.page_part_pump
+    DevicePart.Battery -> R.string.page_part_battery
+    DevicePart.Tray -> R.string.page_part_tray
+    DevicePart.CleanTank -> R.string.page_part_clean_tank
+    DevicePart.WasteTank -> R.string.page_part_waste_tank
     DevicePart.Other -> null
 }
 
 @StringRes
+@Suppress("CyclomaticComplexMethod") // One branch per part, which the compiler keeps exhaustive.
 internal fun partExplanation(part: DevicePart): Int = when (part) {
     DevicePart.Litter -> R.string.page_explain_litter
     DevicePart.WasteBin -> R.string.page_explain_waste_bin
@@ -48,6 +57,13 @@ internal fun partExplanation(part: DevicePart): Int = when (part) {
     DevicePart.Food, DevicePart.Hopper1, DevicePart.Hopper2 -> R.string.page_explain_food
     DevicePart.Bowl -> R.string.page_explain_bowl
     DevicePart.Desiccant -> R.string.page_explain_desiccant
+    DevicePart.Water -> R.string.page_explain_water
+    DevicePart.Filter -> R.string.page_explain_filter
+    DevicePart.Pump -> R.string.page_explain_pump
+    DevicePart.Battery -> R.string.page_explain_battery
+    DevicePart.Tray -> R.string.page_explain_tray
+    DevicePart.CleanTank -> R.string.page_explain_clean_tank
+    DevicePart.WasteTank -> R.string.page_explain_waste_tank
     DevicePart.Other -> R.string.page_explain_other
 }
 
@@ -73,6 +89,8 @@ internal fun readingText(reading: PartReading, labels: ServerLabels, short: Bool
             PartCondition.Removed -> R.string.page_condition_removed
             PartCondition.Missing -> R.string.page_condition_missing
             PartCondition.Low -> R.string.page_condition_low
+            PartCondition.Running -> R.string.page_condition_running
+            PartCondition.Stopped -> R.string.page_condition_stopped
         },
     )
 }

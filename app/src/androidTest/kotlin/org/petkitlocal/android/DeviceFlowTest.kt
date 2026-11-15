@@ -25,6 +25,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.petkitlocal.core.designsystem.component.PkConfirmTestTags
 import org.petkitlocal.core.e2e.MockServer
 import org.petkitlocal.core.e2e.MockServerRule
 import org.petkitlocal.feature.auth.SignInTestTags
@@ -33,8 +34,8 @@ import org.petkitlocal.feature.home.HomeTestTags
 import org.petkitlocal.feature.settings.SettingsTestTags
 
 /**
- * A device end to end, on a device, against the mock server (core:e2e): the generic screen of
- * the EverSweet Ultra AI follows the mock over `/ws`, its settings are written through
+ * A device end to end, on a device, against the mock server (core:e2e): the page of the
+ * EverSweet Ultra AI follows the mock over `/ws`, its settings are written through
  * `PUT /entities/{key}` and come back from the server's answer, its actions report how they
  * were delivered, and a session ended from the server while the socket is open (close code
  * 4401) sends the app back to sign-in.
@@ -66,10 +67,10 @@ class DeviceFlowTest {
         compose.onNodeWithTag(DeviceTestTags.SHEET_MORE).performClick()
         compose.onNode(hasText("Drain") and hasAnyAncestor(hasTestTag(DeviceTestTags.ACTION_SHEET))).performClick()
         waitFor(hasText("Drain?"))
-        compose.onNode(
-            hasText("Drain") and hasClickAction() and !hasAnyAncestor(hasTestTag(DeviceTestTags.ACTION_SHEET)),
-        )
-            .performClick()
+        // The confirm button takes taps once the dialog has been open a moment.
+        val confirm = hasTestTag(PkConfirmTestTags.CONFIRM) and hasText("Drain")
+        waitFor(confirm)
+        compose.onNode(confirm).performClick()
         waitFor(hasTestTag(DeviceTestTags.FEEDBACK) and hasText("Drain") and hasText("Sent to the device."))
 
         // Settings: a switch, then a number through its editor.

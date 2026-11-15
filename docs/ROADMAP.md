@@ -54,6 +54,11 @@ tested build.
   - feed now;
   - feeding plan read, edit and pause;
   - one-off feeds.
+- Fountain screen:
+  - hero with the parts the model has;
+  - mode chips;
+  - today's drinks per pet and 24 h chart (W7H), pump time (Bluetooth models);
+  - the relay of a Bluetooth fountain.
 - Generic device screen; device settings from settable entities.
 - Live updates over `/ws`, patching the cache.
 

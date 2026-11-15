@@ -1,5 +1,6 @@
-package org.petkitlocal.feature.device.litter
+package org.petkitlocal.feature.device.common
 
+import androidx.annotation.PluralsRes
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -31,6 +32,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import kotlin.math.ceil
@@ -39,25 +41,44 @@ import org.petkitlocal.core.designsystem.component.PkCard
 import org.petkitlocal.core.designsystem.component.PkFilterChip
 import org.petkitlocal.core.designsystem.icon.PkIcons
 import org.petkitlocal.core.designsystem.theme.PkTheme
-import org.petkitlocal.core.domain.litter.LitterBoxPage
+import org.petkitlocal.core.domain.model.Pet
 import org.petkitlocal.feature.device.R
 
+/** One dot of a 24-hour chart: a litter box visit or a drink. */
+data class DayDot(
+    /** Local minute of the day, 0 to 1439. */
+    val minuteOfDay: Int,
+    val durationSec: Int?,
+    val petId: Long?,
+)
+
 /**
- * The 24-hour chart (docs/DESIGN.md, DayScatterChart): one dot per visit, at its time across and
- * its duration up, in its pet's colour, with a single-select pet filter. TalkBack reads the count;
- * the activity list below says the same visits in words, so nothing rests on colour.
+ * The 24-hour chart card (docs/DESIGN.md, DayScatterChart): one dot per visit or drink, at its
+ * time across and its duration up, in its pet's colour, with a single-select filter on [pets]
+ * (those with a dot). TalkBack reads the count, worded by [description]; the page says the same
+ * in words elsewhere, so nothing rests on colour.
+ *
+ * @param colorIndexOf a pet's place in the household's order, which picks its colour.
+ * @param minScaleMinutes the least the duration axis goes up to: five minutes for a visit, one
+ *   for a drink, which lasts seconds.
  */
 @Composable
-internal fun VisitsChartCard(
-    page: LitterBoxPage,
+internal fun DayChartCard(
+    title: String,
+    emptyText: String,
+    @PluralsRes description: Int,
+    dots: List<DayDot>,
+    pets: List<Pet>,
+    colorIndexOf: (Long?) -> Int?,
     petFilter: Long?,
     onPetFilter: (Long?) -> Unit,
+    chartTag: String,
     modifier: Modifier = Modifier,
+    minScaleMinutes: Int = MIN_SCALE_MINUTES,
 ) {
-    val chartPets = page.chartPets
     PkCard(modifier.fillMaxWidth()) {
-        CardTitle(stringResource(R.string.litter_chart_title))
-        if (chartPets.isNotEmpty()) {
+        Text(title, style = PkTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
+        if (pets.isNotEmpty()) {
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(PkTheme.spacing.xs),
                 modifier = Modifier.padding(top = PkTheme.spacing.s),
@@ -67,36 +88,53 @@ internal fun VisitsChartCard(
                         onPetFilter(null)
                     })
                 }
-                items(chartPets, key = { it.id }) { pet ->
+                items(pets, key = { it.id }) { pet ->
                     PetFilterChip(
                         name = pet.name,
-                        color = PkTheme.colors.pet(page.colorIndexOf(pet.id) ?: 0),
+                        color = PkTheme.colors.pet(colorIndexOf(pet.id) ?: 0),
                         selected = petFilter == pet.id,
                         onClick = { onPetFilter(pet.id) },
                     )
                 }
             }
         }
-        if (page.visits.isEmpty()) {
+        if (dots.isEmpty()) {
             Text(
-                stringResource(R.string.litter_chart_empty),
+                emptyText,
                 style = PkTheme.typography.bodyMedium,
                 color = PkTheme.colors.onSurfaceMuted,
                 modifier = Modifier.padding(top = PkTheme.spacing.xs),
             )
         }
-        DayScatterChart(page, petFilter, Modifier.padding(top = PkTheme.spacing.s))
+        DayScatterChart(
+            dots,
+            colorIndexOf,
+            petFilter,
+            description,
+            chartTag,
+            minScaleMinutes,
+            Modifier.padding(top = PkTheme.spacing.s),
+        )
     }
 }
 
+@Suppress("LongParameterList") // The dots, how to colour and filter them, and their words.
 @Composable
-private fun DayScatterChart(page: LitterBoxPage, petFilter: Long?, modifier: Modifier = Modifier) {
+private fun DayScatterChart(
+    dots: List<DayDot>,
+    colorIndexOf: (Long?) -> Int?,
+    petFilter: Long?,
+    @PluralsRes description: Int,
+    chartTag: String,
+    minScaleMinutes: Int,
+    modifier: Modifier = Modifier,
+) {
     val colors = PkTheme.colors
-    val shown = page.visits.filter { petFilter == null || it.petId == petFilter }
-    val description = pluralStringResource(R.plurals.litter_chart_description, shown.size, shown.size)
-    // The duration axis: whole minutes, at least five, enough for the longest visit.
-    val topMinutes = max(MIN_SCALE_MINUTES, ceil((page.visits.maxOfOrNull { it.durationSec ?: 0 } ?: 0) / 60.0).toInt())
-    Column(modifier.semantics(mergeDescendants = true) { contentDescription = description }) {
+    val shown = dots.filter { petFilter == null || it.petId == petFilter }
+    val spoken = pluralStringResource(description, shown.size, shown.size)
+    // The duration axis: whole minutes, at least the minimum, enough for the longest dot.
+    val topMinutes = max(minScaleMinutes, ceil((dots.maxOfOrNull { it.durationSec ?: 0 } ?: 0) / 60.0).toInt())
+    Column(modifier.semantics(mergeDescendants = true) { contentDescription = spoken }) {
         Row {
             Text(
                 "$topMinutes ${stringResource(R.string.litter_chart_minutes)}",
@@ -108,7 +146,7 @@ private fun DayScatterChart(page: LitterBoxPage, petFilter: Long?, modifier: Mod
             Modifier
                 .fillMaxWidth()
                 .height(CHART_HEIGHT)
-                .testTag(LitterTestTags.CHART),
+                .testTag(chartTag),
         ) {
             val radius = DOT_RADIUS.toPx()
             val plotTop = radius
@@ -119,11 +157,11 @@ private fun DayScatterChart(page: LitterBoxPage, petFilter: Long?, modifier: Mod
                 drawLine(colors.outline, Offset(0f, y), Offset(size.width, y), 1.dp.toPx(), pathEffect = dash)
             }
             drawLine(colors.outline, Offset(0f, plotBottom), Offset(size.width, plotBottom), 1.dp.toPx())
-            shown.forEach { visit ->
-                val x = radius + (size.width - 2 * radius) * visit.minuteOfDay / MINUTES_PER_DAY
-                val minutes = (visit.durationSec ?: 0) / 60f
+            shown.forEach { dot ->
+                val x = radius + (size.width - 2 * radius) * dot.minuteOfDay / MINUTES_PER_DAY
+                val minutes = (dot.durationSec ?: 0) / 60f
                 val y = plotBottom - (plotBottom - plotTop) * (minutes / topMinutes).coerceIn(0f, 1f)
-                val color = page.colorIndexOf(visit.petId)?.let(colors::pet) ?: colors.onSurfaceMuted
+                val color = colorIndexOf(dot.petId)?.let(colors::pet) ?: colors.onSurfaceMuted
                 drawCircle(colors.surface, radius + 1.5.dp.toPx(), Offset(x, y))
                 drawCircle(color, radius, Offset(x, y))
             }
@@ -174,11 +212,6 @@ private fun PetFilterChip(name: String, color: Color, selected: Boolean, onClick
             color = if (selected) colors.onAccentContainer else colors.onSurface,
         )
     }
-}
-
-/** Test tags of the litter box page. */
-object LitterTestTags {
-    const val CHART = "litter:chart"
 }
 
 private val CHART_HEIGHT = 120.dp

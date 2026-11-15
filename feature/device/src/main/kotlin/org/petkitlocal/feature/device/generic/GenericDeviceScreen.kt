@@ -93,7 +93,7 @@ internal fun GenericDeviceRoute(navigation: DeviceNavigation, viewModel: Generic
 }
 
 /**
- * Fountains, purifiers and any family without a screen of its own (SPEC.md §4): what the device
+ * Purifiers and any family without a screen of its own (SPEC.md §4): what the device
  * is doing and everything it reports; its settings behind the header's gear, its buttons in the
  * collapsible bottom action sheet.
  */

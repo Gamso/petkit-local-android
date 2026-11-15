@@ -33,6 +33,27 @@ enum class DevicePart {
     Hopper2,
     Bowl,
     Desiccant,
+
+    /** A fountain's water: low or not, as the fountain says. */
+    Water,
+
+    /** A fountain's filter cartridge, by its level or its days left. */
+    Filter,
+
+    /** A fountain's circulation pump, running or not. */
+    Pump,
+
+    /** A cordless fountain's battery. */
+    Battery,
+
+    /** The W7H's drinking tray. */
+    Tray,
+
+    /** The W7H's clean water tank, which refills the tray. */
+    CleanTank,
+
+    /** The W7H's waste water tank. */
+    WasteTank,
     Other,
 }
 
@@ -56,6 +77,12 @@ enum class PartCondition {
     Removed,
     Missing,
     Low,
+
+    /** A pump at work. */
+    Running,
+
+    /** A pump at rest: not a fault, a fountain in smart mode rests between runs. */
+    Stopped,
 }
 
 /**
@@ -74,8 +101,9 @@ data class Hotspot(
 
 /**
  * Reads hotspots from a device's entities by their stable keys: a part shows only when the device
- * reports a value for it (nothing reported is no pill, never a guess), and, for a litter box, only
- * when the model has that part ([LitterParts]): the server lists some consumables on every model.
+ * reports a value for it (nothing reported is no pill, never a guess), and, for a litter box or a
+ * fountain, only when the model has that part ([LitterParts], [FountainParts]): the server lists
+ * some entities on every model of a family.
  */
 object HotspotRules {
     /** Keys already shown by a family's own pills, so [otherConsumables] does not repeat them. */
@@ -128,6 +156,14 @@ object HotspotRules {
         device.percent("food_bowl_pct", DevicePart.Bowl, attentionAtOrBelow = null),
         device.daysLeft("desiccant_days", DevicePart.Desiccant, "reset_desiccant"),
     ) + otherConsumables(device)
+
+    /**
+     * A fountain's parts, read by the keys petkit-local gives them: the W5 family's `w5_*`, the
+     * CTW3's `ctw3_*`, the W7H's own, and the plain keys of a WiFi fountain it has no model for.
+     */
+    fun fountain(device: Device): List<Hotspot> =
+        fountainReadings(device).filter { FountainParts.has(device, it.part) } +
+            otherConsumables(device).filterNot { it.entityKey == FILTER_DAYS }
 
     private fun wasteBin(device: Device): Hotspot? {
         val full = device.entity("waste_bin")?.takeIf { it.value.asBoolean != null }
@@ -242,11 +278,11 @@ private fun Entity.optionHotspot(part: DevicePart, actions: List<DeviceAction>):
     return hotspot(part, PartReading.Option(label), attention = label == EMPTY_OPTION, actions = actions)
 }
 
-private fun Entity.hotspot(part: DevicePart, reading: PartReading, attention: Boolean, actions: List<DeviceAction>) =
+internal fun Entity.hotspot(part: DevicePart, reading: PartReading, attention: Boolean, actions: List<DeviceAction>) =
     Hotspot(part, key, name, reading, attention, actions)
 
 /** The device's actions among [keys], in the device's order. */
-private fun Device.actionsFor(vararg keys: String): List<DeviceAction> = actions.filter { it.key in keys }
+internal fun Device.actionsFor(vararg keys: String): List<DeviceAction> = actions.filter { it.key in keys }
 
 /** A hopper's option label when it has no food left. */
 private const val EMPTY_OPTION = "Empty"

@@ -21,6 +21,7 @@ import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.core.domain.devicepage.DevicePart
 import org.petkitlocal.feature.device.DeviceNavigation
+import org.petkitlocal.feature.device.common.CONFIRM_ARM_MS
 import org.petkitlocal.feature.device.common.CommandState
 import org.petkitlocal.feature.device.common.DeviceTestTags
 import org.robolectric.RobolectricTestRunner
@@ -111,6 +112,7 @@ class LitterScreenTest {
     fun `a destructive action is confirmed in the shared dialog naming it`() {
         val dump = LitterFixtures.actionsT4.first { it.key == "dump_litter" }
         show(LitterFixtures.content.copy(commands = CommandState(confirming = dump)))
+        compose.mainClock.advanceTimeBy(CONFIRM_ARM_MS)
 
         compose.onNodeWithText("This cannot be undone", substring = true).assertExists()
         compose.onNode(hasText("Dump Litter") and hasClickAction() and hasAnyAncestor(isDialog())).performClick()

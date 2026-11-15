@@ -38,7 +38,7 @@ exposed through a `PkTheme` composition local; screens never use raw values.
 | `outline` | `#D5D9DF` | Field borders, separators |
 
 Device pages use a soft vertical gradient behind the hero, tinted per family: litter
-`#E3F1EF`, feeder `#E8EEF7`, pet `#F6EBDF`, each fading into `background`.
+`#E3F1EF`, feeder `#E8EEF7`, fountain `#E2EFF7`, pet `#F6EBDF`, each fading into `background`.
 
 Three "on" tokens complete the table for text and icons on filled colours: `onAccent`
 `#FFFFFF` (5.2:1), `onSecondary` `#FFFFFF` (8.7:1), `onDanger` `#FFFFFF` (6.6:1).
@@ -70,7 +70,7 @@ palettes and fails the build below 4.5:1. Ratios are against `surface` unless st
 | `onDanger` | `#3A0904` | 7.6:1 on `danger` |
 | `outline` | `#3A424C` | Separators only, like its light value |
 
-Hero tints in dark: litter `#16302D`, feeder `#1B2433`, pet `#33281C`. In dark, filled colours
+Hero tints in dark: litter `#16302D`, feeder `#1B2433`, fountain `#15293A`, pet `#33281C`. In dark, filled colours
 are light and their "on" colours dark, the reverse of the light palette. The live-video screen
 is always dark.
 
@@ -122,12 +122,12 @@ arrow mirrored in right-to-left languages.
 | `DeviceCard` | Home | Glyph, name, headline figure, 24 h strip, status band (idle / busy / offline / error) |
 | `AlertBanner` | Home | Warning container, one line, chevron to the device |
 | `PetChip` | Home, Pets | Avatar (photo or initial on pet colour), name, weight, visits today |
-| `DeviceHero` | Litter, Feeder | Illustration plus positioned `HotspotPill`s; positions defined per family in a small layout table |
+| `DeviceHero` | Litter, Feeder, Fountain | Illustration plus positioned `HotspotPill`s; positions defined per family in a small layout table |
 | `HotspotPill` | Device pages | Label and value, a dot on the illustrated part, colour by state, tappable |
 | `ModeChip` | Device header | Shows an on/off mode from a switch entity |
 | `StatCompareTile` | Device, Pet | Big figure and the difference from yesterday |
-| `DayScatterChart` | Litter | 24 h × duration dots, coloured per pet, pet filter |
-| `ActionSheet` | Device pages | Pull handle, 4 actions per row, primary action filled |
+| `DayScatterChart` | Litter, Fountain (W7H) | 24 h × duration dots (visits, drinks), coloured per pet, pet filter |
+| `ActionSheet` | Device pages | Pull handle, 4 actions per row, primary action filled; none when the device has no everyday action and every other one is on a part's pill |
 | `ConfirmDialog` | Destructive actions | Explains the effect, danger-coloured confirm |
 | `TimelineRow` | History, device activity | Time rail, icon or pet avatar, title, details, media thumbnails |
 | `DayStrip` | History | 7 days, selected one filled |

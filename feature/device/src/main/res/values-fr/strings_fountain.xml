@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Les parties d'une fontaine, sur les pastilles et leurs explications (page_*, comme les autres pages). -->
+    <string name="page_part_water">Niveau d\'eau</string>
+    <string name="page_part_filter">Filtre</string>
+    <string name="page_part_pump">Pompe</string>
+    <string name="page_part_battery">Batterie</string>
+    <string name="page_part_tray">Plateau</string>
+    <string name="page_part_clean_tank">Bac d\'eau propre</string>
+    <string name="page_part_waste_tank">Bac d\'eau usée</string>
+    <string name="page_condition_running">En marche</string>
+    <string name="page_condition_stopped">À l\'arrêt</string>
+    <string name="page_explain_water">L\'eau de la fontaine. Remplissez-la quand la fontaine signale qu\'elle est basse.</string>
+    <string name="page_explain_filter">La cartouche filtrante, selon ce qu\'il en reste. Remplacez-la quand elle est usée, puis remettez son compteur à zéro.</string>
+    <string name="page_explain_pump">La pompe qui fait circuler l\'eau. En mode intelligent, elle se repose entre deux cycles : à l\'arrêt n\'est pas une panne.</string>
+    <string name="page_explain_battery">La batterie de cette fontaine sans fil. Rechargez-la quand elle est faible.</string>
+    <string name="page_explain_tray">Le plateau où boivent les animaux. Videz-le et nettoyez-le quand il est plein, puis remettez-le en place.</string>
+    <string name="page_explain_clean_tank">Le bac d\'eau propre qui remplit le plateau. Remplissez-le et remettez-le en place.</string>
+    <string name="page_explain_waste_tank">Le bac où s\'écoule l\'eau usée. Videz-le et remettez-le en place.</string>
+
+    <!-- Page fontaine. -->
+    <string name="fountain_mode_smart">Mode intelligent</string>
+    <string name="fountain_mode_dnd">Ne pas déranger</string>
+    <string name="fountain_mode_lock">Sécurité enfant</string>
+    <string name="fountain_today">Aujourd\'hui</string>
+    <string name="fountain_drinks">Boissons</string>
+    <string name="fountain_average_drink">Durée moyenne</string>
+    <string name="fountain_no_drink_yesterday">Aucune boisson hier</string>
+    <string name="fountain_pump_today">Pompe en marche</string>
+    <!-- Sous le temps de la pompe : la fontaine ne garde pas la veille pour comparer. -->
+    <string name="fountain_pump_since_midnight">Depuis minuit, selon la fontaine</string>
+    <string name="fountain_hours_minutes">%1$d h %2$02d</string>
+    <string name="fountain_minutes">%1$d min</string>
+    <string name="fountain_no_drinks_reported">Cette fontaine ne signale pas les boissons, seulement son propre état.</string>
+    <plurals name="fountain_pet_drinks">
+        <item quantity="one">%1$d boisson</item>
+        <item quantity="many">%1$d boissons</item>
+        <item quantity="other">%1$d boissons</item>
+    </plurals>
+    <plurals name="fountain_pet_yesterday">
+        <item quantity="one">%1$d hier</item>
+        <item quantity="many">%1$d hier</item>
+        <item quantity="other">%1$d hier</item>
+    </plurals>
+    <string name="fountain_chart_title">Boissons de la journée</string>
+    <string name="fountain_chart_empty">Aucune boisson aujourd\'hui.</string>
+    <plurals name="fountain_chart_description">
+        <item quantity="one">Graphique de %1$d boisson aujourd\'hui, par heure et durée</item>
+        <item quantity="many">Graphique de %1$d boissons aujourd\'hui, par heure et durée</item>
+        <item quantity="other">Graphique de %1$d boissons aujourd\'hui, par heure et durée</item>
+    </plurals>
+</resources>

@@ -7,6 +7,7 @@ import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onLast
@@ -21,6 +22,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.petkitlocal.core.designsystem.component.PkConfirmTestTags
 import org.petkitlocal.core.e2e.MockServer
 import org.petkitlocal.core.e2e.MockServerRule
 import org.petkitlocal.feature.auth.SignInTestTags
@@ -74,15 +76,17 @@ class AccessoryFlowTest {
         open(EVERSWEET_MAX)
         waitFor(hasText("Reports through Fresh Element Solo"))
 
-        // Its filter reset is destructive: behind More, confirmed, then refused by the server.
-        compose.onNodeWithTag(DeviceTestTags.SHEET_MORE).performClick()
-        compose.onNode(
-            hasText("Reset Filter") and hasAnyAncestor(hasTestTag(DeviceTestTags.ACTION_SHEET)),
-        ).performClick()
+        // Its one button, the filter reset, is on the filter's pill (no action sheet): it is
+        // destructive, so confirmed, then refused by the server.
+        compose.onNodeWithTag(DeviceTestTags.ACTION_SHEET).assertDoesNotExist()
+        val filter = hasContentDescription("Filter, ", substring = true)
+        waitFor(filter)
+        compose.onNode(filter).performClick()
+        compose.onNode(hasText("Reset Filter") and hasAnyAncestor(isDialog())).performClick()
         waitFor(hasText("Reset Filter?"))
-        compose.onNode(
-            hasText("Reset Filter") and hasClickAction() and !hasAnyAncestor(hasTestTag(DeviceTestTags.ACTION_SHEET)),
-        ).performClick()
+        val confirm = hasTestTag(PkConfirmTestTags.CONFIRM) and hasText("Reset Filter")
+        waitFor(confirm)
+        compose.onNode(confirm).performClick()
         waitFor(
             hasTestTag(DeviceTestTags.FEEDBACK) and
                 hasText("The Fresh Element Solo must be online (MQTT) to reach this accessory."),

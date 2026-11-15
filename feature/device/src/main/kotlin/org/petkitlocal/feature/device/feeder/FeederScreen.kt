@@ -107,6 +107,7 @@ internal fun FeederScreen(
             onAction = { action -> onSheetAction(action, navigation, callbacks) },
         ),
         modifier = modifier,
+        hotspots = page?.hotspots.orEmpty(),
         initiallyExpanded = initiallyExpanded,
     ) {
         if (page == null) {
