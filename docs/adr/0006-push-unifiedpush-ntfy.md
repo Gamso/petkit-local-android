@@ -1,6 +1,6 @@
 # ADR 0006: Push through UnifiedPush and ntfy, without Firebase
 
-Status: accepted (M0; implemented in M5)
+Status: superseded by ADR 0007 (2026-11-15), before implementation
 
 ## Context
 

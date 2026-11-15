@@ -74,10 +74,12 @@ tested build.
 - Recent clips.
 
 ## M5 — Notifications and release
-- UnifiedPush registration, notification channels per kind, deep links.
+- Notifications all in one (ADR 0007): the foreground service holding the server's notification
+  socket, catch-up on reconnection, battery-optimisation exemption, start at boot, notification
+  channels per kind, deep links.
 - Settings screen complete:
   - server info;
-  - notification kinds;
+  - notifications: on/off, connection state, kinds;
   - theme;
   - change password.
 - End-to-end test against a petkit-local container in CI.
@@ -85,6 +87,9 @@ tested build.
   the non-affiliation notice.
 
 ## Server-side follow-ups (petkit-local)
-- **Needed before M5**: `PUT/DELETE /app/v1/push` to register the app's UnifiedPush endpoint per
-  session, and the notifier posting structured JSON to every registered endpoint (spec, decision 4).
+- **Needed before M5**: notifications over the app API's own WebSocket, with per-phone kinds and
+  catch-up after a disconnection (petkit-local issue 89; spec, decision 4).
+- Done: UnifiedPush endpoint registration per session (`PUT/DELETE /app/v1/push`). The app does
+  not use it in v1; it stays for people who already run ntfy.
+- The mock server gains the notification channel once the server's contract has it.
 - Stable keys or translations for event labels, if keying them in the app proves brittle.
