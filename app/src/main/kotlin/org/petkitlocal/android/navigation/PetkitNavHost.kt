@@ -20,8 +20,11 @@ import org.petkitlocal.core.domain.auth.AuthState
 import org.petkitlocal.core.domain.repository.LiveUpdatesStatus
 import org.petkitlocal.feature.auth.SignInDestination
 import org.petkitlocal.feature.auth.signInScreen
+import org.petkitlocal.feature.device.DeviceNavigation
 import org.petkitlocal.feature.device.deviceScreen
+import org.petkitlocal.feature.device.deviceSettingsScreen
 import org.petkitlocal.feature.device.navigateToDevice
+import org.petkitlocal.feature.device.navigateToDeviceSettings
 import org.petkitlocal.feature.history.historyScreen
 import org.petkitlocal.feature.history.navigateToHistory
 import org.petkitlocal.feature.home.HomeDestination
@@ -85,7 +88,13 @@ fun PetkitNavHost(
                 onOpenSettings = { navController.navigateToSettings() },
             ),
         )
-        deviceScreen(onBack = back)
+        deviceScreen(
+            DeviceNavigation(
+                onBack = back,
+                onOpenSettings = { deviceId -> navController.navigateToDeviceSettings(deviceId) },
+            ),
+        )
+        deviceSettingsScreen(onBack = back)
         historyScreen(onBack = back)
         petsScreen(onBack = back)
         liveScreen(onBack = back)
