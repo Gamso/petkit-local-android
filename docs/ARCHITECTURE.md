@@ -13,7 +13,7 @@ per feature. Decisions that are hard to undo are recorded as ADRs in `docs/adr/`
 | HTTP | Retrofit + OkHttp + kotlinx.serialization | Mature; OkHttp also gives the WebSocket client |
 | Live updates | OkHttp WebSocket | Same client, same auth interceptor |
 | Local cache | Room | Last known devices, pets and timeline pages for offline display |
-| Preferences | DataStore | Server address, language, theme, notification kinds |
+| Preferences | DataStore | Server address, theme, notification kinds (the language is the phone's) |
 | Secret storage | Android Keystore (AES-GCM key) encrypting the session token in DataStore | No deprecated crypto library |
 | Images | Coil 3 with the shared OkHttp client | Media and thumbnails need the `Authorization` header |
 | Video | Media3 ExoPlayer: HLS natively; fMP4-over-WebSocket through a custom `DataSource` | One player, two transports |
@@ -45,7 +45,7 @@ the project is created, and upgraded through Dependabot, as on the server.
 :feature:history          Day strip, filters, timeline, event detail, media viewer
 :feature:pets             Pet list and detail, weight chart
 :feature:live             Live video player
-:feature:settings         Server, notifications, language, theme, sign out
+:feature:settings         Server, notifications, theme, sign out
 :push                     Notification connection service, channels and deep links
 ```
 

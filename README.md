@@ -30,8 +30,9 @@ Java 17 bytecode. Gradle installs the SDK platform it needs if it is missing. Al
 ./gradlew assembleDebug assembleRelease check   # everything CI checks
 ```
 
-`check` runs ktlint, detekt, Android lint, the module dependency rule (`checkModuleRules`), all
-host tests and the screenshot comparison. `./gradlew ktlintFormat` fixes formatting.
+`check` runs ktlint, detekt, Android lint, the module dependency rule (`checkModuleRules`), the
+French translation check (`checkTranslations`), all host tests and the screenshot comparison.
+`./gradlew ktlintFormat` fixes formatting.
 
 ## Tests
 
@@ -52,8 +53,12 @@ weekly from the latest release and opens a pull request.
 
 These run on an Android emulator, against the [mock server](mock-server/README.md) (a fake
 petkit-local) started with Docker on your machine. The emulator reaches your machine as
-`10.0.2.2`, and only the debug build allows plain HTTP to it. CI runs both in
-`.github/workflows/e2e.yml`.
+`10.0.2.2`. CI runs both in `.github/workflows/e2e.yml`.
+
+Plain HTTP is accepted for a private LAN address only, a rule the app applies itself before any
+request (`ServerAddresses`, core:domain); off the LAN it is HTTPS. On Android 17 and later,
+reaching a private address also needs the `ACCESS_LOCAL_NETWORK` permission: the tests grant it
+(`MockServerRule`), and the app asks for it at sign-in when the server is on the LAN.
 
 **End to end** (`app/src/androidTest`): the instrumented tests, run by Gradle on a managed
 emulator that it downloads, creates and boots by itself (hardware acceleration needed: KVM on
@@ -86,11 +91,20 @@ CI signs that APK with its own key, passed to Gradle as Android Studio does
 (`-Pandroid.injected.signing.store.file=...`, see the workflow); without the key it makes a
 throwaway one.
 
+## Languages
+
+Every string the user sees exists in English (`values/`) and French (`values-fr/`), plurals
+included; `checkTranslations` fails the build on a string missing from either side. The labels
+the server sends in English (entity and action names, select options, event kinds) are
+translated by their stable keys in `core/ui` (`ServerLabels`, `server_labels.xml`); a key the
+app does not know shows the server's own text. The app follows the phone's language and has no
+switch of its own; from Android 13, Android's own per-app setting can still pick the other one.
+
 ## Screenshots
 
 Every design-system component is rendered by Roborazzi on Robolectric in light/dark × English/
-French × 100 %/130 % font scale. The golden images are committed in
-`core/designsystem/src/test/screenshots/`; `check` fails when a rendering differs, and CI uploads
+French × 100 %/130 % font scale, and every screen in light/dark × English/French. The golden
+images are committed in each module's `src/test/screenshots/`; `check` fails when a rendering differs, and CI uploads
 the diffs. After an intended visual change, record new ones and commit them:
 
 ```sh
