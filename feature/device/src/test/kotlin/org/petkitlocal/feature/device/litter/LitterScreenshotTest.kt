@@ -40,6 +40,26 @@ class LitterScreenshotTest(private val variant: ScreenshotVariant) {
         if (variant.fontScale == 1f) capture("litter_trouble") { Screen(LitterFixtures.trouble, expanded = true) }
     }
 
+    /** A Pura Max with its Pura Air's N60, and that pill's dialog: EN light and FR dark. */
+    @Test
+    fun puraAir() {
+        if (variant.toString() !in setOf("light_en_100", "dark_fr_100")) return
+        capture("litter_pura_air") { Screen(LitterFixtures.withPuraAir) }
+        val hotspot = LitterFixtures.withPuraAir.page!!.hotspots.first { it.part == DevicePart.PuraAirSpray }
+        capture("litter_pura_air_hotspot") {
+            Box(Modifier.background(PkTheme.colors.background).padding(16.dp)) {
+                HotspotDialogContent(
+                    hotspot,
+                    sending = emptySet(),
+                    onAction = {},
+                    onOpenSettings = {},
+                    onDismiss = {},
+                    accessory = LitterFixtures.puraAir,
+                )
+            }
+        }
+    }
+
     @Test
     fun hotspot() {
         if (variant.fontScale != 1f) return

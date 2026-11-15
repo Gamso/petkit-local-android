@@ -49,6 +49,7 @@ object LitterRules {
             visits = visits(mine, zone),
             pets = pets,
             activity = mine,
+            puraAir = puraAir,
         )
     }
 
