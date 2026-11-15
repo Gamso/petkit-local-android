@@ -13,8 +13,7 @@ numbered as on the canvas.
   act on it, follow what the pets did — against a server they run themselves.
 - Work from anywhere: the server is reached through the user's own domain (Cloudflare tunnel,
   reverse proxy). No VPN.
-- Two languages from day one: English and French, following the phone's language, switchable in
-  the app.
+- Two languages from day one: English and French, following the phone's language.
 
 ## 2. Non-goals for v1
 
@@ -59,8 +58,10 @@ screen).
   - no password set on the server, which tells the user to set it in the panel's "Phone app access" card;
   - wrong password;
   - locked out for N seconds (HTTP 429 `Retry-After`);
-  - unreachable server.
-- The language switch is reachable before signing in.
+  - unreachable server;
+  - local network access refused. From Android 17, reaching a server on the LAN needs the
+    `ACCESS_LOCAL_NETWORK` runtime permission; without it packets are silently dropped. The app
+    asks for it, with its reason, before probing a LAN address.
 
 ### 2 · Home
 - Title (the household; single, not switchable in v1), notification bell, alert banners for
@@ -120,7 +121,8 @@ screen).
 - Server: address, connection state, server version.
 - Notifications: on/off, connection state (connected, reconnecting, battery optimisation still
   on, notification permission refused, each with the action that fixes it) and the kinds to show.
-- App: language (system, English, French), theme (system, light, dark), this phone's name.
+- App: theme (system, light, dark), this phone's name. No language setting: the app follows the
+  phone.
 - Change password (needs the current one; signs out every other phone), sign out.
 
 ## 6. Cross-cutting behaviour
@@ -152,7 +154,9 @@ screen).
 
 - English and French string resources; plurals and number/date formats from the locale; weights in
   kg, durations in m:ss.
-- Per-app language (Android 13+ system setting, in-app switch everywhere).
+- The language is the phone's. The app has no switch of its own; from Android 13 the system's own
+  per-app setting (Settings > Apps > Petkit Local > Language) can still give it the other one,
+  because the app declares the two languages it ships (`locales_config.xml`).
 - **Server-provided labels are English** (entity names, event labels). The app translates by
   **stable keys** (entity `key`, event kind and code) and falls back to the server's text for
   anything it does not know. A missing translation is a bug report, never a crash.
@@ -175,7 +179,6 @@ screen).
    - Updates are installed by hand from the releases page.
 3. **Minimum Android: 10 (API 29).** Nothing in the plan needs a higher floor.
    - Compose, Media3, Room, Keystore and foreground services all work there.
-   - The per-app language picker uses AppCompat's backport below Android 13.
    - Notification permission is asked at runtime from Android 13.
    - Raise the floor only if a library drops 29.
 4. **Notifications: all in one, over the app's own connection to petkit-local** (ADR 0007; needs

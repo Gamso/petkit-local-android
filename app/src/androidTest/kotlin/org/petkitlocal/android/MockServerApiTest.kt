@@ -16,7 +16,7 @@ import org.petkitlocal.core.network.dto.LoginRequestDto
 /**
  * End to end, on an emulator: the app's own HTTP stack (core:network: OkHttp, Retrofit, the
  * interceptors, the DTOs and their serialization, all as built into the app) reaches the mock
- * server on the host through 10.0.2.2, over the plain HTTP that only the debug build allows.
+ * server on the host through 10.0.2.2, over plain HTTP, which the app accepts for a private LAN address.
  * Sign-in through the UI arrives with M1 and builds on this.
  */
 @RunWith(AndroidJUnit4::class)

@@ -6,6 +6,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import org.petkitlocal.core.network.auth.AuthInterceptor
+import org.petkitlocal.core.network.auth.SessionEndListener
 import org.petkitlocal.core.network.auth.SessionTokenProvider
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
@@ -38,13 +39,14 @@ object PetkitHttpClient {
     fun okHttpClient(
         serverAddress: ServerAddressProvider,
         tokenProvider: SessionTokenProvider,
+        sessionEnded: SessionEndListener = SessionEndListener { _, _ -> },
         builder: OkHttpClient.Builder = OkHttpClient.Builder(),
     ): OkHttpClient = builder
         .connectTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
         .readTimeout(READ_TIMEOUT_SECONDS, TimeUnit.SECONDS)
         // Order matters: the auth interceptor must see the real server URL to decide.
         .addInterceptor(ServerUrlInterceptor(serverAddress))
-        .addInterceptor(AuthInterceptor(serverAddress, tokenProvider))
+        .addInterceptor(AuthInterceptor(serverAddress, tokenProvider, sessionEnded))
         .build()
 
     /** [validateEagerly] checks every method's annotations now rather than on first call. */

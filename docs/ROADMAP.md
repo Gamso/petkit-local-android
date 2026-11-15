@@ -41,7 +41,7 @@ tested build.
 - Encrypted session storage; sign-out; session-ended routing (401, `4401`).
 - Home: device grid from `GET /devices`, with pull to refresh and the offline banner.
 - Room cache for devices.
-- English and French resources; in-app language switch.
+- English and French resources, following the phone's language; server labels translated by key.
 
 ## M2 — Device pages and actions
 - Litter box screen:

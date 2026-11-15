@@ -11,6 +11,7 @@ android {
         applicationId = "org.petkitlocal.android"
         versionCode = 1
         versionName = "0.1.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     // English and French only (SPEC.md §7): drops the other languages libraries bring along.
@@ -38,10 +39,12 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.kotlinx.serialization.json)
 
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(projects.core.testing)
 
     // End-to-end tests on an emulator (src/androidTest), against the mock server: Gradle Managed
     // Devices run them (build-logic ManagedDevices.kt, .github/workflows/e2e.yml).

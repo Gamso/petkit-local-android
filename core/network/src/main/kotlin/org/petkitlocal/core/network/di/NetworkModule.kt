@@ -9,20 +9,23 @@ import okhttp3.OkHttpClient
 import org.petkitlocal.core.network.PetkitApi
 import org.petkitlocal.core.network.PetkitHttpClient
 import org.petkitlocal.core.network.ServerAddressProvider
+import org.petkitlocal.core.network.auth.SessionEndListener
 import org.petkitlocal.core.network.auth.SessionTokenProvider
 
 /**
- * The shared HTTP stack. [ServerAddressProvider] and [SessionTokenProvider] are bound by
- * core:data once the session store exists (M1); until something asks for the client, Hilt does
- * not need them.
+ * The shared HTTP stack. [ServerAddressProvider], [SessionTokenProvider] and
+ * [SessionEndListener] are bound by core:data, on top of the session store.
  */
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
     @Provides
     @Singleton
-    fun okHttpClient(serverAddress: ServerAddressProvider, tokenProvider: SessionTokenProvider): OkHttpClient =
-        PetkitHttpClient.okHttpClient(serverAddress, tokenProvider)
+    fun okHttpClient(
+        serverAddress: ServerAddressProvider,
+        tokenProvider: SessionTokenProvider,
+        sessionEnded: SessionEndListener,
+    ): OkHttpClient = PetkitHttpClient.okHttpClient(serverAddress, tokenProvider, sessionEnded)
 
     @Provides
     @Singleton

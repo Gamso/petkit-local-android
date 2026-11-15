@@ -10,8 +10,8 @@
 #
 # Environment:
 #   SMOKE_EXPECT_TEXT     text the first screen must show, an extended regex (default
-#                         "Home|Accueil": the title of the first screen until sign-in arrives in
-#                         M1, in the app's two languages, whichever the device speaks)
+#                         "Petkit Local": a fresh install is signed out, so the first screen is
+#                         sign-in, whose heading is the app's name, the same in both languages)
 #   SMOKE_SETTLE_SECONDS  how long the app runs before it is checked (default 10)
 #   ANDROID_SERIAL        which device, when adb sees several
 set -euo pipefail
@@ -20,7 +20,7 @@ export MSYS_NO_PATHCONV=1
 
 apk=${1:?usage: smoke-test.sh <apk> [output dir]}
 out=${2:-build/smoke}
-expect=${SMOKE_EXPECT_TEXT:-Home|Accueil}
+expect=${SMOKE_EXPECT_TEXT:-Petkit Local}
 settle=${SMOKE_SETTLE_SECONDS:-10}
 package=org.petkitlocal.android
 activity=$package/.MainActivity

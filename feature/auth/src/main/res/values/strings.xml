@@ -1,4 +1,49 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="auth_title">Sign in</string>
+    <!-- The app's name, the screen's heading: the same in every language (spec decision 1). -->
+    <string name="auth_app_name" translatable="false">Petkit Local</string>
+    <string name="auth_tagline">Your pets\' devices, on your own server.</string>
+
+    <string name="auth_address_label">Server address</string>
+    <string name="auth_address_placeholder" translatable="false">https://pets.example.com</string>
+    <string name="auth_password_label">Password</string>
+    <string name="auth_password_show">Show password</string>
+    <string name="auth_password_hide">Hide password</string>
+    <string name="auth_phone_name_label">This phone\'s name</string>
+    <string name="auth_phone_name_help">Shown in the panel\'s list of signed-in phones.</string>
+    <string name="auth_phone_name_row">Phone name: %1$s</string>
+    <string name="auth_phone_name_title">Phone name</string>
+    <string name="auth_phone_name_edit">Change</string>
+    <string name="auth_phone_name_close">Close</string>
+    <string name="auth_plain_http_warning">Plain HTTP: the password and the session travel unencrypted. Use it only on your home network.</string>
+
+    <string name="auth_submit">Sign in</string>
+    <string name="auth_submitting">Signing in…</string>
+    <plurals name="auth_retry_in">
+        <item quantity="one">Try again in %d second</item>
+        <item quantity="other">Try again in %d seconds</item>
+    </plurals>
+
+    <string name="auth_error_address_empty">Enter the server\'s address.</string>
+    <string name="auth_error_address_malformed">This is not a server address.</string>
+    <string name="auth_error_address_scheme">Use an address that starts with https://.</string>
+    <string name="auth_error_address_https_required">HTTPS is required outside your home network.</string>
+    <string name="auth_error_wrong_password">Wrong password.</string>
+    <string name="auth_error_password_missing">Enter the password.</string>
+    <string name="auth_error_not_petkit_local">No petkit-local server answers at this address. Check it, and the path of your reverse proxy if it has one.</string>
+    <string name="auth_error_password_not_set">This server has no password yet. Set one in the panel\'s “Phone app access” card, then sign in.</string>
+    <string name="auth_error_incompatible">This server speaks version %1$d of the phone-app API and this app speaks version %2$d. Update petkit-local or the app.</string>
+    <string name="auth_error_locked_out">Too many wrong passwords. Wait before trying again.</string>
+    <string name="auth_error_unreachable">The server cannot be reached. Check the address and your connection.</string>
+    <string name="auth_error_server">The server ran into an error. Try again later.</string>
+    <string name="auth_error_server_status">The server ran into an error (HTTP %1$d). Try again later.</string>
+    <string name="auth_error_server_message">The server refused: %1$s</string>
+
+    <string name="auth_local_network_rationale">Your server is on your home network. Android asks you to allow this app to reach devices on the local network, without which it cannot reach the server.</string>
+    <string name="auth_local_network_allow">Allow local network access</string>
+    <string name="auth_error_local_network_denied">Local network access was refused, so the app cannot reach a server on your home network. Allow it in this app\'s Android settings, or use an HTTPS address reachable from the internet.</string>
+    <string name="auth_open_app_settings">Open Android settings</string>
+
+    <string name="auth_session_ended">You were signed out: this phone\'s session was revoked in the panel, the password was changed, or it went unused for 90 days.</string>
+    <string name="auth_session_ended_password_removed">You were signed out: the password was removed in the panel. Set a new one there to sign in again.</string>
 </resources>
