@@ -15,6 +15,10 @@ These rules are binding for every contributor, human or agent.
   enforces it.
 - **Room is the single source of truth, no optimistic UI** (ADR 0002): a command updates the cache
   only with what the server answered; the device's next report does the rest.
+- **No database migrations before the first release.** Until a version is released, change the Room
+  schema in place at version 1 (regenerate its exported JSON) and let the builder recreate an old
+  dev database (it is only a cache, refetched from the server). From the first release on, every
+  schema change bumps the version with a tested migration, and that fallback goes.
 - **Build JDK 25, app bytecode 17, minSdk 29, target/compile 37.** Robolectric runs on SDK 37;
   screenshot tests on SDK 36 (SDK 37 renders blank images).
 - **Strict Gradle dependency verification**: a new dependency needs its entries in
