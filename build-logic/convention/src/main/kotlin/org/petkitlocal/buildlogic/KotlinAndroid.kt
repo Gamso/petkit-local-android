@@ -25,6 +25,7 @@ internal fun Project.configureAndroidCommon(extension: CommonExtension) {
     }
     configureKotlinCompile()
     configureUnitTests()
+    configureTranslationCheck()
 }
 
 private fun Project.configureLint(lint: Lint) {
