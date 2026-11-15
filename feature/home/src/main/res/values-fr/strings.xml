@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_title">Accueil</string>
+    <string name="home_shortcut_sign_in">Connexion</string>
+    <string name="home_shortcut_device">Un appareil</string>
+    <string name="home_shortcut_history">Historique</string>
+    <string name="home_shortcut_pets">Animaux</string>
+    <string name="home_shortcut_live">Vidéo en direct</string>
+    <string name="home_shortcut_settings">Réglages</string>
+</resources>
