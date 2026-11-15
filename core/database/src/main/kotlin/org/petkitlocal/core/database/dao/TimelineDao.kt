@@ -20,6 +20,20 @@ abstract class TimelineDao {
         upsert(items)
     }
 
+    /**
+     * A card from a live `timeline` message: written (or rewritten, by id) under [item]'s day, and
+     * the cards it [replaces] are dropped, whatever day they were filed under.
+     */
+    @Transaction
+    open suspend fun upsertLive(item: TimelineItemRow, replaces: List<Long>) {
+        val gone = replaces.filter { it != item.id }
+        if (gone.isNotEmpty()) deleteIds(gone)
+        upsert(listOf(item))
+    }
+
+    @Query("DELETE FROM timeline_items WHERE id IN (:ids)")
+    protected abstract suspend fun deleteIds(ids: List<Long>)
+
     @Query("DELETE FROM timeline_items WHERE day = :day")
     protected abstract suspend fun deleteDay(day: String)
 
