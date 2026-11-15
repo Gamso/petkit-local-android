@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The languages the app ships (SPEC.md §7), for the Android 13+ per-app language setting. -->
+<!-- The languages the app ships (SPEC.md §7). The app follows the phone's language and has no
+     switch of its own; this list is what lets Android 13+ offer its own per-app choice in the
+     system settings (Apps > Petkit Local > Language), for someone whose phone is in one
+     language and who wants the app in the other. -->
 <locale-config xmlns:android="http://schemas.android.com/apk/res/android">
     <locale android:name="en" />
     <locale android:name="fr" />
