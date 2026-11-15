@@ -1,0 +1,77 @@
+# The mock server (mock-server/, its own Gradle build) and the contract it serves (api/).
+# Tests validate every response against api/openapi.yaml, so a contract refresh runs here too.
+name: mock-server
+
+on:
+  pull_request:
+    paths:
+      - "mock-server/**"
+      - "api/**"
+      - ".github/workflows/mock-server.yml"
+  push:
+    branches: [main]
+    paths:
+      - "mock-server/**"
+      - "api/**"
+      - ".github/workflows/mock-server.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mock-server-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: ktlint, detekt, tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: mock-server
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+      - run: ./gradlew check --console=plain
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: mock-server-reports
+          path: mock-server/build/reports/
+
+  image:
+    name: Docker image
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: mock-server/Dockerfile
+          tags: petkit-local-mock:ci
+          load: true
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Smoke test
+        run: |
+          docker run -d --name mock -p 8097:8097 -e PETKIT_MOCK_SCENARIO_INTERVAL=0 petkit-local-mock:ci
+          for i in $(seq 1 30); do curl -fsS http://localhost:8097/app/v1/info && break; sleep 1; done
+          token=$(curl -fsS -X POST -H 'Content-Type: application/json' -d '{"password":"demo"}' \
+            http://localhost:8097/app/v1/auth/login | jq -r .token)
+          count=$(curl -fsS -H "Authorization: Bearer $token" http://localhost:8097/app/v1/devices | jq '.devices | length')
+          echo "devices: $count"
+          test "$count" -eq 13
+      - name: Server log
+        if: always()
+        run: docker logs mock || true
