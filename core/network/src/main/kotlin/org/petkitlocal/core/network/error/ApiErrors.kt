@@ -107,6 +107,9 @@ object HttpErrorMapper {
         else -> DomainError.Unauthorized(UnauthorizedReason.Other, wait)
     }
 
+    /** The `Error.error` code of [body], or null when it is not petkit-local's `Error`. */
+    fun errorCode(body: String?): String? = body?.let(::parseError)?.error
+
     private fun parseError(body: String): ErrorDto? = try {
         PetkitJson.decodeFromString(ErrorDto.serializer(), body)
     } catch (_: IllegalArgumentException) { // a proxy's HTML page, an empty body

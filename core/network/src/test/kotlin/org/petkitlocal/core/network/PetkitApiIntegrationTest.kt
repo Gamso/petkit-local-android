@@ -18,6 +18,7 @@ import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.core.domain.Outcome
 import org.petkitlocal.core.domain.SessionEndReason
 import org.petkitlocal.core.network.dto.ActionRequestDto
+import org.petkitlocal.core.network.dto.ChangePasswordRequestDto
 import org.petkitlocal.core.network.dto.LoginRequestDto
 import org.petkitlocal.core.network.error.apiCall
 
@@ -28,6 +29,7 @@ import org.petkitlocal.core.network.error.apiCall
 class PetkitApiIntegrationTest {
     private val server = MockWebServer()
     private var token: String? = "secret-token"
+    private val ended = mutableListOf<Pair<SessionEndReason, String>>()
     private lateinit var base: HttpUrl
     private lateinit var client: OkHttpClient
     private lateinit var api: PetkitApi
@@ -37,7 +39,7 @@ class PetkitApiIntegrationTest {
         server.start()
         // Behind a reverse proxy, below a path prefix: the prefix must survive the rewrite.
         base = server.url("/petkit/app/v1/")
-        client = PetkitHttpClient.okHttpClient({ base }, { token })
+        client = PetkitHttpClient.okHttpClient({ base }, { token }, { reason, sent -> ended += reason to sent })
         api = PetkitHttpClient.api(client)
     }
 
@@ -113,6 +115,44 @@ class PetkitApiIntegrationTest {
         val result = apiCall { api.listPets() }
 
         assertEquals(Outcome.Failure(DomainError.SessionEnded(SessionEndReason.InvalidToken)), result)
+        assertEquals(listOf(SessionEndReason.InvalidToken to "secret-token"), ended)
+    }
+
+    @Test
+    fun `401 password_not_set on a signed-in call reports the password removed`() = runTest {
+        json(401, """{"error":"password_not_set","message":"Set a password in the panel"}""")
+
+        apiCall { api.listDevices() }
+
+        assertEquals(listOf(SessionEndReason.PasswordRemoved to "secret-token"), ended)
+    }
+
+    @Test
+    fun `a wrong current password while signed in does not end the session`() = runTest {
+        json(401, """{"error":"invalid_password","message":"wrong password"}""", "Retry-After" to "1")
+
+        apiCall { api.changePassword(ChangePasswordRequestDto("wrong", "new-password")) }
+
+        assertEquals(emptyList<Any>(), ended)
+    }
+
+    @Test
+    fun `a proxy's own 401 page says nothing about the session`() = runTest {
+        server.enqueue(MockResponse.Builder().code(401).body("<html>Access denied</html>").build())
+
+        apiCall { api.listDevices() }
+
+        assertEquals(emptyList<Any>(), ended)
+    }
+
+    @Test
+    fun `a 401 to an unsigned request ends nothing`() = runTest {
+        token = null
+        json(401, """{"error":"invalid_password","message":"wrong password"}""")
+
+        apiCall { api.login(LoginRequestDto("pw")) }
+
+        assertEquals(emptyList<Any>(), ended)
     }
 
     @Test
