@@ -22,6 +22,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.petkitlocal.core.designsystem.component.PkConfirmTestTags
 import org.petkitlocal.core.e2e.MockServer
 import org.petkitlocal.core.e2e.MockServerRule
 import org.petkitlocal.feature.auth.SignInTestTags
@@ -83,7 +84,10 @@ class FountainFlowTest {
         compose.onNode(filter).performClick()
         compose.onNode(hasText("Reset Filter") and hasAnyAncestor(isDialog())).performClick()
         waitFor(hasText("Reset Filter?"))
-        compose.onNode(hasText("Reset Filter") and hasClickAction() and hasAnyAncestor(isDialog())).performClick()
+        // The confirm button takes taps once the dialog has been open a moment.
+        val confirm = hasTestTag(PkConfirmTestTags.CONFIRM) and hasText("Reset Filter")
+        waitFor(confirm)
+        compose.onNode(confirm).performClick()
 
         // The relay is on MQTT: sent, and the fountain's next report shows a new filter.
         waitFor(hasTestTag(DeviceTestTags.FEEDBACK) and hasText("Sent to the device."))

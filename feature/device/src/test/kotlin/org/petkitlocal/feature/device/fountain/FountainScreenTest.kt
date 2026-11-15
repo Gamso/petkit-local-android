@@ -21,6 +21,7 @@ import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.core.domain.devicepage.DevicePart
 import org.petkitlocal.feature.device.DeviceNavigation
+import org.petkitlocal.feature.device.common.CONFIRM_ARM_MS
 import org.petkitlocal.feature.device.common.CommandState
 import org.petkitlocal.feature.device.common.DeviceTestTags
 import org.petkitlocal.feature.device.litter.PageCommandCallbacks
@@ -143,8 +144,13 @@ class FountainScreenTest {
         val reset = FountainFixtures.w5.actions.single()
         show(FountainFixtures.bluetooth.copy(commands = CommandState(confirming = reset)))
         compose.onNodeWithText("This cannot be undone", substring = true).assertExists()
-        compose.onNode(hasText("Reset Filter") and hasClickAction() and hasAnyAncestor(isDialog())).performClick()
+        val confirm = hasText("Reset Filter") and hasClickAction() and hasAnyAncestor(isDialog())
+        // A second tap of the pill's Reset Filter, landing where the confirm button now is: ignored.
+        compose.onNode(confirm).performClick()
+        assertEquals(emptyList<String>(), calls)
 
+        compose.mainClock.advanceTimeBy(CONFIRM_ARM_MS)
+        compose.onNode(confirm).performClick()
         assertEquals(listOf("confirm"), calls)
     }
 

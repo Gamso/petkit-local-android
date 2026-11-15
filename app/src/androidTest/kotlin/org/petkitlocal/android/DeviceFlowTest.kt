@@ -25,6 +25,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.petkitlocal.core.designsystem.component.PkConfirmTestTags
 import org.petkitlocal.core.e2e.MockServer
 import org.petkitlocal.core.e2e.MockServerRule
 import org.petkitlocal.feature.auth.SignInTestTags
@@ -66,10 +67,10 @@ class DeviceFlowTest {
         compose.onNodeWithTag(DeviceTestTags.SHEET_MORE).performClick()
         compose.onNode(hasText("Drain") and hasAnyAncestor(hasTestTag(DeviceTestTags.ACTION_SHEET))).performClick()
         waitFor(hasText("Drain?"))
-        compose.onNode(
-            hasText("Drain") and hasClickAction() and !hasAnyAncestor(hasTestTag(DeviceTestTags.ACTION_SHEET)),
-        )
-            .performClick()
+        // The confirm button takes taps once the dialog has been open a moment.
+        val confirm = hasTestTag(PkConfirmTestTags.CONFIRM) and hasText("Drain")
+        waitFor(confirm)
+        compose.onNode(confirm).performClick()
         waitFor(hasTestTag(DeviceTestTags.FEEDBACK) and hasText("Drain") and hasText("Sent to the device."))
 
         // Settings: a switch, then a number through its editor.

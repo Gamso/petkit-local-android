@@ -21,6 +21,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.petkitlocal.core.designsystem.component.PkConfirmTestTags
 import org.petkitlocal.core.e2e.MockServer
 import org.petkitlocal.core.e2e.MockServerRule
 import org.petkitlocal.feature.auth.SignInTestTags
@@ -80,9 +81,9 @@ class AccessoryFlowTest {
             hasText("Reset Filter") and hasAnyAncestor(hasTestTag(DeviceTestTags.ACTION_SHEET)),
         ).performClick()
         waitFor(hasText("Reset Filter?"))
-        compose.onNode(
-            hasText("Reset Filter") and hasClickAction() and !hasAnyAncestor(hasTestTag(DeviceTestTags.ACTION_SHEET)),
-        ).performClick()
+        val confirm = hasTestTag(PkConfirmTestTags.CONFIRM) and hasText("Reset Filter")
+        waitFor(confirm)
+        compose.onNode(confirm).performClick()
         waitFor(
             hasTestTag(DeviceTestTags.FEEDBACK) and
                 hasText("The Fresh Element Solo must be online (MQTT) to reach this accessory."),

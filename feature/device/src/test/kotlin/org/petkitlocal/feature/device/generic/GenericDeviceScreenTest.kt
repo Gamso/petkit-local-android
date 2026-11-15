@@ -24,6 +24,7 @@ import org.junit.runner.RunWith
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.feature.device.DeviceFixtures
+import org.petkitlocal.feature.device.common.CONFIRM_ARM_MS
 import org.petkitlocal.feature.device.common.CommandFeedback
 import org.petkitlocal.feature.device.common.CommandResult
 import org.petkitlocal.feature.device.common.CommandState
@@ -189,6 +190,8 @@ class GenericDeviceScreenTest {
     fun `the confirm button names the action`() {
         // The dialog's button, not the sheet's button of the same name.
         show(DeviceFixtures.generic(commands = DeviceFixtures.sent.copy(confirming = DeviceFixtures.drain)))
+        // The confirm button takes taps once the dialog has been open a moment.
+        compose.mainClock.advanceTimeBy(CONFIRM_ARM_MS)
 
         compose.onNode(
             hasText("Drain") and hasClickAction() and !hasAnyAncestor(hasTestTag(DeviceTestTags.ACTION_SHEET)),

@@ -65,7 +65,12 @@ private val ACTION_ICON_PREFIXES: List<Pair<String, ImageVector>> = listOf(
     "maintenance_" to PkIcons.Settings,
 )
 
-/** Asks before an action that cannot be undone; the confirm button names it. */
+/**
+ * Asks before an action that cannot be undone; the confirm button names it. The button that
+ * opens it (a sheet tile, a pill's action) can sit where the confirm button appears, so the
+ * confirm button ignores taps for [CONFIRM_ARM_MS] after it opens: a repeated tap does not
+ * confirm what the user never saw.
+ */
 @Composable
 fun ActionConfirmation(action: DeviceAction, onConfirm: () -> Unit, onDismiss: () -> Unit) {
     val name = rememberServerLabels().action(action.key, action.name)
@@ -75,8 +80,12 @@ fun ActionConfirmation(action: DeviceAction, onConfirm: () -> Unit, onDismiss: (
         confirmLabel = name,
         onConfirm = onConfirm,
         onDismiss = onDismiss,
+        armDelayMillis = CONFIRM_ARM_MS,
     )
 }
+
+/** Long enough to outlast a double tap or a repeated one, short enough to go unnoticed. */
+const val CONFIRM_ARM_MS = 600L
 
 /**
  * What became of the last command (SPEC.md §6): sending, then how petkit-local passed it on

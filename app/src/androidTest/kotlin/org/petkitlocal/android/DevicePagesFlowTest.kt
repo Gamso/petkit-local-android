@@ -25,6 +25,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.ExternalResource
 import org.junit.runner.RunWith
+import org.petkitlocal.core.designsystem.component.PkConfirmTestTags
 import org.petkitlocal.core.e2e.MockServer
 import org.petkitlocal.core.e2e.MockServerRule
 import org.petkitlocal.feature.auth.SignInTestTags
@@ -65,9 +66,10 @@ class DevicePagesFlowTest {
             hasText("Dump Litter") and hasAnyAncestor(hasTestTag(DeviceTestTags.ACTION_SHEET)),
         ).performClick()
         waitFor(hasText("Dump Litter?"))
-        compose.onNode(
-            hasText("Dump Litter") and hasClickAction() and !hasAnyAncestor(hasTestTag(DeviceTestTags.ACTION_SHEET)),
-        ).performClick()
+        // The confirm button takes taps once the dialog has been open a moment.
+        val confirm = hasTestTag(PkConfirmTestTags.CONFIRM) and hasText("Dump Litter")
+        waitFor(confirm)
+        compose.onNode(confirm).performClick()
         // The Pura Max polls over HTTP: queued, then its cycle shows when the mock reports it.
         waitFor(hasTestTag(DeviceTestTags.FEEDBACK) and hasText("Queued", substring = true))
         waitFor(hasText("Dumping", ignoreCase = true) and hasAnyAncestor(hasTestTag(DeviceTestTags.STATUS)))
