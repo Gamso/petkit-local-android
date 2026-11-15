@@ -417,6 +417,9 @@ class Seed(
                 "state.totalTime" to 0,
                 "state.rssi" to -54,
                 "state.boxState" to 1,
+                // An N60 is in the box: a real T5 reports sprayState 1 in every captured snapshot,
+                // and only the camera boxes (T5, T6, T7) publish the entity that reads it.
+                "state.sprayState" to 1,
                 "settings.stillTime" to 300,
                 "settings.sandType" to 1,
                 "settings.autoIntervalMin" to 0,
