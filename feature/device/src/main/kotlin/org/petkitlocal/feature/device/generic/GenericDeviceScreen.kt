@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.width
@@ -57,12 +58,15 @@ import org.petkitlocal.feature.device.common.DeviceSectionTitle
 import org.petkitlocal.feature.device.common.DeviceStatusLine
 import org.petkitlocal.feature.device.common.DeviceTestTags
 import org.petkitlocal.feature.device.common.EntityRow
+import org.petkitlocal.feature.device.common.RelayLink
 import org.petkitlocal.feature.device.deviceFallbackTitle
 
 /** What the generic screen's user can do; the route wires each to the ViewModel or navigation. */
 data class GenericDeviceActions(
     val onBack: () -> Unit = {},
     val onOpenSettings: () -> Unit = {},
+    /** Another device's screen: for an accessory, the device relaying it. */
+    val onOpenDevice: (deviceId: Long) -> Unit = {},
     val onRefresh: () -> Unit = {},
     val onAction: (DeviceAction) -> Unit = {},
     val onConfirmAction: () -> Unit = {},
@@ -78,6 +82,7 @@ internal fun GenericDeviceRoute(navigation: DeviceNavigation, viewModel: Generic
         GenericDeviceActions(
             onBack = navigation.onBack,
             onOpenSettings = { uiState.device?.let { navigation.onOpenSettings(it.id) } },
+            onOpenDevice = navigation.onOpenDevice,
             onRefresh = viewModel::onRefresh,
             onAction = viewModel::onAction,
             onConfirmAction = viewModel::onConfirmAction,
@@ -169,12 +174,17 @@ private fun DeviceList(uiState: GenericDeviceUiState, actions: GenericDeviceActi
         when {
             !uiState.loaded -> item(key = "loading") { PkLoadingView(cards = 2) }
             device == null -> item(key = "gone") { DeviceGoneView() }
-            else -> deviceContent(uiState, device, labels)
+            else -> deviceContent(uiState, device, labels, actions)
         }
     }
 }
 
-private fun LazyListScope.deviceContent(uiState: GenericDeviceUiState, device: Device, labels: ServerLabels) {
+private fun LazyListScope.deviceContent(
+    uiState: GenericDeviceUiState,
+    device: Device,
+    labels: ServerLabels,
+    actions: GenericDeviceActions,
+) {
     val sections = uiState.sections ?: return
     item(key = "hero") {
         PkCard(Modifier.fillMaxWidth()) {
@@ -192,6 +202,10 @@ private fun LazyListScope.deviceContent(uiState: GenericDeviceUiState, device: D
                             .testTag(DeviceTestTags.STATUS),
                     )
                 }
+            }
+            uiState.relay?.let { relay ->
+                Spacer(Modifier.height(PkTheme.spacing.xs))
+                RelayLink(relay.model, onClick = { actions.onOpenDevice(relay.id) })
             }
         }
     }

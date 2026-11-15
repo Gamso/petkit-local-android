@@ -93,6 +93,7 @@ fun PetkitNavHost(
                 onBack = back,
                 onOpenSettings = { deviceId -> navController.navigateToDeviceSettings(deviceId) },
                 onOpenHistory = { navController.navigateToHistory() },
+                onOpenDevice = { deviceId -> navController.navigateToDevice(deviceId) },
             ),
         )
         deviceSettingsScreen(onBack = back)

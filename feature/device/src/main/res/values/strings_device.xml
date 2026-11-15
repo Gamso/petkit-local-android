@@ -12,6 +12,7 @@
     <string name="device_status_pet_inside">Pet inside</string>
     <string name="device_transport_mqtt">Live link (MQTT)</string>
     <string name="device_transport_http">Checks in over HTTP</string>
+    <string name="device_transport_ble">Bluetooth</string>
     <string name="device_last_seen">Last seen %1$s</string>
     <string name="device_firmware">Firmware %1$s</string>
 
@@ -49,6 +50,9 @@
     <string name="device_error_server">The server failed (%1$s).</string>
     <string name="device_error_refused">The server refused it.</string>
     <string name="device_error_not_found">The device is no longer on the server.</string>
+    <!-- A Bluetooth accessory's screen: the device relaying it, which the line opens. -->
+    <string name="device_relay">Reports through %1$s</string>
+    <string name="device_relay_open">Open the %1$s</string>
     <string name="device_error_accessory_unreachable">The %1$s must be online (MQTT) to reach this accessory.</string>
     <string name="device_error_accessory_unreachable_unnamed">The device relaying this accessory must be online (MQTT) to reach it.</string>
 

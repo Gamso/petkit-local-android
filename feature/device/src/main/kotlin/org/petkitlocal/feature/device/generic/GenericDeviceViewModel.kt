@@ -7,10 +7,15 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Clock
 import java.time.ZoneId
 import javax.inject.Inject
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.petkitlocal.core.domain.DomainError
@@ -39,6 +44,8 @@ data class GenericDeviceUiState(
     val device: Device? = null,
     val status: DeviceStatus? = null,
     val sections: DeviceSections? = null,
+    /** For a Bluetooth accessory: the device relaying it, once the cache holds it. */
+    val relay: Device? = null,
     /** The server cannot be reached: what is shown is the last known data. */
     val offline: Boolean = false,
     val refreshing: Boolean = false,
@@ -52,6 +59,7 @@ data class GenericDeviceUiState(
  * (ADR 0002). Collecting the live-updates status keeps `/ws` open while the screen is visible,
  * and says when the server is out of reach.
  */
+@OptIn(ExperimentalCoroutinesApi::class) // flatMapLatest
 @HiltViewModel
 class GenericDeviceViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
@@ -68,18 +76,25 @@ class GenericDeviceViewModel @Inject constructor(
     private val refreshError = MutableStateFlow<DomainError?>(null)
     private val zone = clock.zone
 
+    /** The device, and the one relaying it when it is a Bluetooth accessory. */
+    private val deviceAndRelay: Flow<Pair<Device?, Device?>> = observeDevice(deviceId).flatMapLatest { device ->
+        val parentId = device?.parentId?.takeIf { device.isAccessory } ?: return@flatMapLatest flowOf(device to null)
+        observeDevice(parentId).map { device to it }
+    }
+
     val uiState: StateFlow<GenericDeviceUiState> = combine(
-        observeDevice(deviceId),
+        deviceAndRelay,
         observeLiveUpdates(),
         refreshing,
         refreshError,
         commands.state,
-    ) { device, live, refreshing, refreshError, commands ->
+    ) { (device, relay), live, refreshing, refreshError, commands ->
         GenericDeviceUiState(
             loaded = true,
             device = device,
             status = device?.let(HomeRules::status),
             sections = device?.let(DeviceSections::of),
+            relay = relay,
             offline = live.isUnreachable() || refreshError is DomainError.Network,
             refreshing = refreshing,
             commands = commands,

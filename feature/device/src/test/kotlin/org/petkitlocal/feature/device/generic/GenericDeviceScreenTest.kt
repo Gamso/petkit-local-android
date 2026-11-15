@@ -22,7 +22,12 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.petkitlocal.core.designsystem.theme.PkTheme
+import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.feature.device.DeviceFixtures
+import org.petkitlocal.feature.device.common.CommandFeedback
+import org.petkitlocal.feature.device.common.CommandResult
+import org.petkitlocal.feature.device.common.CommandState
+import org.petkitlocal.feature.device.common.CommandSubject
 import org.petkitlocal.feature.device.common.DeviceTestTags
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
@@ -44,6 +49,7 @@ class GenericDeviceScreenTest {
         onConfirmAction = { calls += "confirm" },
         onDismissConfirmation = { calls += "dismiss-confirmation" },
         onDismissFeedback = { calls += "dismiss-feedback" },
+        onOpenDevice = { calls += "device:$it" },
     )
 
     private fun show(state: GenericDeviceUiState) {
@@ -52,6 +58,31 @@ class GenericDeviceScreenTest {
 
     private fun scrollTo(text: String) {
         compose.onNodeWithTag(DeviceTestTags.LIST).performScrollToNode(hasText(text, substring = true))
+    }
+
+    @Test
+    fun `an accessory says which device it reports through, and that line opens it`() {
+        show(DeviceFixtures.generic(DeviceFixtures.purifier).copy(relay = DeviceFixtures.puraMax))
+
+        compose.onNodeWithText("Reports through Pura Max").assertIsDisplayed()
+        compose.onNodeWithTag(DeviceTestTags.RELAY).performClick()
+
+        assertEquals(listOf("device:1002"), calls)
+    }
+
+    @Test
+    fun `an accessory out of reach says which device must be online`() {
+        val feedback = CommandFeedback(
+            CommandSubject.Setting("ctw3_light", "Light"),
+            CommandResult.Failed(DomainError.AccessoryUnreachable("Fresh Element Solo")),
+            id = 1,
+        )
+        show(DeviceFixtures.generic(DeviceFixtures.purifier, commands = CommandState(feedback = feedback)))
+
+        compose.onNodeWithText(
+            "The Fresh Element Solo must be online (MQTT) to reach this accessory.",
+            useUnmergedTree = true,
+        ).assertExists()
     }
 
     @Test
