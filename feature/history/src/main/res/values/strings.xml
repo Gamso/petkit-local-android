@@ -1,4 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="history_title">History</string>
+    <string name="history_all_devices">All devices</string>
+    <string name="history_all_pets">All pets</string>
+    <string name="history_pick_device">Show the history of</string>
+    <string name="history_pick_pet">Show the cards of</string>
+    <string name="history_previous_week">Previous week</string>
+    <string name="history_next_week">Next week</string>
+    <string name="history_today">Today</string>
+    <string name="history_empty_day">Nothing happened on this day.</string>
+    <string name="history_empty_filtered">Nothing on this day with these filters.</string>
+    <string name="history_unreachable">The server cannot be reached.</string>
+    <string name="history_session_ended">Your session has ended. Sign in again.</string>
+    <string name="history_server_error">The server could not answer. Try again in a moment.</string>
+    <string name="history_loading_more">Loading more cards</string>
+    <string name="history_load_more_failed">The next cards could not be loaded.</string>
+    <string name="history_unknown_pet">Unknown pet</string>
+    <string name="history_unknown_device">Removed device</string>
+    <string name="history_visit">Visit</string>
+    <string name="history_video_pending">The recording is still being put together.</string>
+    <string name="history_photos">Photos</string>
+    <string name="history_clips">Videos</string>
+    <string name="history_details">Details</string>
+    <plurals name="history_more_details">
+        <item quantity="one">Show %1$d more field</item>
+        <item quantity="other">Show %1$d more fields</item>
+    </plurals>
+    <string name="history_fewer_details">Show fewer fields</string>
+    <string name="history_details_failed">The details of this event could not be loaded.</string>
+    <string name="history_no_details">This event has no other detail.</string>
+    <string name="history_close">Close</string>
+    <string name="history_media_snapshot">Snapshot</string>
+    <string name="history_media_waste">Waste check</string>
+    <string name="history_media_health">Health check</string>
+    <string name="history_media_highlight">Highlight</string>
+    <string name="history_media_playback">Full recording</string>
+    <string name="history_media_timelapse">Timelapse</string>
+    <string name="history_photo_position">Photo %1$d of %2$d</string>
+    <string name="history_play">Play</string>
+    <string name="history_pause">Pause</string>
+    <string name="history_replay">Play again</string>
+    <string name="history_clip_failed">This video could not be played.</string>
+    <string name="history_clip_position">Position in the video</string>
 </resources>
