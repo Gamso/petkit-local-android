@@ -10,7 +10,7 @@ group = "io.github.gamso.petkitlocal"
 version = "0.1.0"
 
 kotlin {
-    jvmToolchain(17)
+    jvmToolchain(25)
     compilerOptions {
         allWarningsAsErrors.set(true)
     }
@@ -70,14 +70,4 @@ ktlint {
 detekt {
     buildUponDefaultConfig = true
     config.setFrom(files("detekt.yml"))
-}
-
-// detekt 1.23.8 embeds the Kotlin 2.0.21 compiler and refuses to run when Gradle aligns it with
-// the build's own Kotlin version, so its configuration keeps the compiler it was built against.
-configurations.matching { it.name == "detekt" }.configureEach {
-    resolutionStrategy.eachDependency {
-        if (requested.group == "org.jetbrains.kotlin") {
-            useVersion("2.0.21")
-        }
-    }
 }
