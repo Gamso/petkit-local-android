@@ -7,6 +7,7 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import org.junit.Assert.assertEquals
@@ -22,6 +23,23 @@ import org.robolectric.annotation.Config
 class ComponentBehaviourTest {
     @get:Rule
     val compose = createComposeRule()
+
+    @Test
+    fun `the back button is read as Back and reaches its callback`() {
+        var clicks = 0
+        compose.setContent { PkTheme { PkBackButton(onClick = { clicks++ }) } }
+
+        compose.onNodeWithContentDescription("Back").performClick()
+
+        assertEquals(1, clicks)
+    }
+
+    @Test
+    @Config(qualifiers = "fr")
+    fun `the back button is read as Retour in French`() {
+        compose.setContent { PkTheme { PkBackButton(onClick = {}) } }
+        compose.onNodeWithContentDescription("Retour").assertExists()
+    }
 
     @Test
     fun `confirm dialog sends confirm and dismiss to their callbacks`() {

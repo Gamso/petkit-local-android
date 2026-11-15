@@ -33,6 +33,15 @@ fun PkButtonSamples() {
 }
 
 @Composable
+fun PkIconButtonSamples() {
+    Row(horizontalArrangement = Arrangement.spacedBy(PkTheme.spacing.s)) {
+        PkBackButton(onClick = {})
+        PkIconButton(PkIcons.History, stringResource(R.string.sample_action_history), onClick = {})
+        PkIconButton(PkIcons.Settings, stringResource(R.string.sample_settings), onClick = {})
+    }
+}
+
+@Composable
 fun PkCardSamples() {
     Column(verticalArrangement = Arrangement.spacedBy(PkTheme.spacing.cardGap)) {
         PkCard(Modifier.fillMaxWidth()) {

@@ -23,4 +23,5 @@
     <string name="sample_confirm_title">Vider la litière ?</string>
     <string name="sample_confirm_message">Le bac déverse toute sa litière dans la poubelle. Impossible d’annuler.</string>
     <string name="sample_confirm_action">Vider</string>
+    <string name="sample_settings">Réglages</string>
 </resources>

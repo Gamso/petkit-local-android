@@ -35,6 +35,9 @@ class ComponentScreenshotTest(private val variant: ScreenshotVariant) {
     fun buttons() = capture("buttons") { PkButtonSamples() }
 
     @Test
+    fun iconButtons() = capture("icon_buttons") { PkIconButtonSamples() }
+
+    @Test
     fun cards() = capture("cards") { PkCardSamples() }
 
     @Test

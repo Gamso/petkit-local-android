@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="pk_back">Retour</string>
     <string name="pk_retry">Réessayer</string>
     <string name="pk_cancel">Annuler</string>
     <string name="pk_loading">Chargement</string>
