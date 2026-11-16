@@ -5,7 +5,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import kotlinx.serialization.Serializable
 
-/** The live video screen of one device. */
+/** The live video screen of one camera (SPEC.md §5.7). */
 @Serializable
 data class LiveDestination(val deviceId: Long)
 

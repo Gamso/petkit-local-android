@@ -20,8 +20,12 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.PetkitLocal"
         tools:targetApi="33">
+        <!-- Turning the phone (the live video's full screen is landscape) or resizing the window
+             recomposes the screens instead of recreating the activity, so a playing video keeps
+             its player and its socket. -->
         <activity
             android:name=".MainActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
