@@ -1,5 +1,6 @@
 package org.petkitlocal.feature.history
 
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasText
@@ -21,7 +22,9 @@ import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.core.domain.model.TimelineCategory
 import org.petkitlocal.core.testing.Household
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 /** Compose UI test (Robolectric) of the stateless History screen and its detail sheet. */
 @RunWith(RobolectricTestRunner::class)
@@ -73,6 +76,28 @@ class HistoryScreenTest {
         compose.onNodeWithText("Fresh Element Solo", substring = true).assertIsDisplayed()
 
         assertEquals(listOf("open:12"), calls)
+    }
+
+    // Real text measurement: Robolectric's default graphics mode measures one pixel per character.
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(qualifiers = "en-rUS-w360dp-h2400dp")
+    fun `a 12-hour time stays on one line, even at 130 percent`() {
+        RuntimeEnvironment.setFontScale(1.3f)
+        show(HistoryFixtures.state())
+        scrollTo("Purobot Max Pro 2 · 4:00 · 4.3")
+
+        val node = compose.onNodeWithTag(HistoryTestTags.time(12), useUnmergedTree = true).fetchSemanticsNode()
+        val layouts = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
+        node.config[SemanticsActions.GetTextLayoutResult].action?.invoke(layouts)
+
+        val layout = layouts.single()
+        assertTrue(layout.layoutInput.text.text, layout.layoutInput.text.text.endsWith("M"))
+        assertEquals(1, layout.lineCount)
+        assertTrue(
+            "the time needs ${layout.multiParagraph.intrinsics.maxIntrinsicWidth} px but has ${layout.size.width}",
+            layout.multiParagraph.intrinsics.maxIntrinsicWidth <= layout.size.width,
+        )
     }
 
     @Test
