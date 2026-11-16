@@ -80,6 +80,8 @@ object HistoryTestTags {
 
     fun card(id: Long) = "history_card_$id"
 
+    fun time(id: Long) = "history_time_$id"
+
     fun filter(key: String) = "history_filter_$key"
 }
 
@@ -281,6 +283,7 @@ internal fun HistoryCard(entry: HistoryEntry, zone: ZoneId, onClick: () -> Unit,
         item.durationSec?.let(::formatDurationMinSec),
         item.weightG?.let { formatWeightKg(it.toDouble(), locale) },
     ).joinToString(" · ")
+    val timeWidth = rememberTimeColumnWidth(locale)
     PkCard(modifier.fillMaxWidth().testTag(HistoryTestTags.card(item.id)), onClick = onClick) {
         // The card is one button: TalkBack reads its time, title and details together.
         Row(verticalAlignment = Alignment.Top) {
@@ -288,7 +291,9 @@ internal fun HistoryCard(entry: HistoryEntry, zone: ZoneId, onClick: () -> Unit,
                 item.shownAt?.let { formatTimeOfDay(it.toKotlinInstant(), zone, locale) }.orEmpty(),
                 style = PkTheme.typography.labelLarge,
                 color = colors.onSurfaceMuted,
-                modifier = Modifier.width(TIME_WIDTH).padding(top = 2.dp),
+                maxLines = 1,
+                softWrap = false,
+                modifier = Modifier.width(timeWidth).padding(top = 2.dp).testTag(HistoryTestTags.time(item.id)),
             )
             EntryMark(entry)
             Column(Modifier.padding(start = PkTheme.spacing.s).weight(1f)) {
@@ -309,7 +314,7 @@ internal fun HistoryCard(entry: HistoryEntry, zone: ZoneId, onClick: () -> Unit,
             Row(
                 horizontalArrangement = Arrangement.spacedBy(PkTheme.spacing.xs),
                 modifier = Modifier.padding(
-                    start = TIME_WIDTH + MARK_SIZE + PkTheme.spacing.s,
+                    start = timeWidth + MARK_SIZE + PkTheme.spacing.s,
                     top = PkTheme.spacing.s,
                 ),
             ) {
@@ -320,7 +325,6 @@ internal fun HistoryCard(entry: HistoryEntry, zone: ZoneId, onClick: () -> Unit,
     }
 }
 
-private val TIME_WIDTH = 56.dp
 private val MARK_SIZE = 24.dp
 private const val MAX_THUMBNAILS = 3
 
