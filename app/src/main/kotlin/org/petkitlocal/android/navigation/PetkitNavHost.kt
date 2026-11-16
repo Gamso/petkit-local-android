@@ -25,6 +25,7 @@ import org.petkitlocal.feature.device.deviceScreen
 import org.petkitlocal.feature.device.deviceSettingsScreen
 import org.petkitlocal.feature.device.navigateToDevice
 import org.petkitlocal.feature.device.navigateToDeviceSettings
+import org.petkitlocal.feature.history.clipScreen
 import org.petkitlocal.feature.history.historyScreen
 import org.petkitlocal.feature.history.navigateToHistory
 import org.petkitlocal.feature.home.HomeDestination
@@ -103,6 +104,7 @@ fun PetkitNavHost(
         )
         deviceSettingsScreen(onBack = back)
         historyScreen(onBack = back)
+        clipScreen(onBack = back)
         petsScreens(
             PetsNavigation(
                 onBack = back,
