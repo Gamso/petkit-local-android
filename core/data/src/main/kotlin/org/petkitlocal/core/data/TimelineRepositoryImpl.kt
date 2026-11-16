@@ -1,6 +1,8 @@
 package org.petkitlocal.core.data
 
+import java.time.Clock
 import java.time.LocalDate
+import java.time.ZoneId
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -36,12 +38,15 @@ import org.petkitlocal.core.network.error.apiCall
 /**
  * The timeline, cached by local day (ADR 0002). [refreshDay] reads every page of
  * `GET /timeline?day=` for Home; History reads one page at a time ([fetchHistoryPage]) into the
- * same rows, so a card is the same whichever screen fetched it, and live updates patch both.
+ * same rows, so a card is the same whichever screen fetched it, and live updates patch both. A
+ * camera's recent clips read the device's newest cards, every day together ([refreshRecentClips]),
+ * each filed under its own local day.
  * Media paths are cached as the server sent them and made absolute on the current server when read.
  */
 class TimelineRepositoryImpl @Inject constructor(
     private val api: PetkitApi,
     private val dao: TimelineDao,
+    private val clock: Clock,
     private val serverAddress: ServerAddressProvider,
 ) : TimelineRepository {
     override fun observeDay(day: LocalDate): Flow<List<TimelineItem>> =
@@ -110,6 +115,31 @@ class TimelineRepositoryImpl @Inject constructor(
         }
     }
 
+    override fun observeRecentClips(deviceId: Long, limit: Int): Flow<List<TimelineItem>> =
+        dao.observeRecentClips(deviceId, limit).map { rows -> rows.toDomain() }
+
+    override suspend fun refreshRecentClips(deviceId: Long, count: Int): Outcome<Unit> {
+        val items = mutableListOf<TimelineItemDto>()
+        var cursor: String? = null
+        var pages = 0
+        do {
+            val page = when (
+                val result = apiCall { api.getTimeline(device = deviceId, limit = CLIP_PAGE_SIZE, cursor = cursor) }
+            ) {
+                is Outcome.Failure -> return result
+                is Outcome.Success -> result.value
+            }
+            items += page.items
+            cursor = page.nextCursor
+            pages++
+        } while (cursor != null && pages < MAX_CLIP_PAGES && items.count { it.media?.hasClip == true } < count)
+        // Read for no day: each card is filed under its own, as a live update files it.
+        val today = LocalDate.now(clock)
+        val rows = items.map { it.toRow(it.localDay(clock.zone, today).toString()) }
+        dao.writeDeviceNewest(deviceId, rows, complete = cursor == null)
+        return Outcome.Success(Unit)
+    }
+
     override suspend fun getEvent(id: Long): Outcome<EventDetail> =
         apiCall { api.getTimelineEvent(id) }.map { it.event.toDomain(serverAddress.apiBaseUrl()) }
 
@@ -125,6 +155,10 @@ class TimelineRepositoryImpl @Inject constructor(
         /** History's pages: a screen and a half of cards. */
         const val HISTORY_PAGE_SIZE = 25
         const val MAX_PAGES = 20
+
+        /** A camera's recent clips: its newest cards, a few pages at most. */
+        const val CLIP_PAGE_SIZE = 30
+        const val MAX_CLIP_PAGES = 4
     }
 }
 
@@ -153,7 +187,18 @@ internal fun TimelineItemDto.toRow(day: String) = TimelineItemRow(
     weightG = weightG,
     factsJson = encodeStrings(facts),
     mediaJson = media?.let { PetkitJson.encodeToString(MediaDto.serializer(), it) },
+    hasClip = media?.hasClip == true,
 )
+
+/** The episode has a clip to play: its short clip, its whole recording or its timelapse. */
+internal val MediaDto.hasClip: Boolean get() = highlight != null || playback != null || timelapse != null
+
+/**
+ * The local day a card is filed under when it was not read for a day: the day of its time in
+ * [zone] (where the server cuts days too, the phone being in the same one), [today] without one.
+ */
+internal fun TimelineItemDto.localDay(zone: ZoneId, today: LocalDate): LocalDate =
+    (ts ?: displayTs)?.let(::epochSecondsToInstant)?.atZone(zone)?.toLocalDate() ?: today
 
 internal fun TimelineItemRow.toDomain(apiBase: HttpUrl?) = TimelineItem(
     id = id,

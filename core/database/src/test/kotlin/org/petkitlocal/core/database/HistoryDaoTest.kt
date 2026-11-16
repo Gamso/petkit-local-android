@@ -133,6 +133,51 @@ class HistoryDaoTest {
         assertEquals(listOf(3L, 1L), dao.observeDay(day).first().map { it.id })
     }
 
+    @Test
+    fun `a device's recent clips are its cards holding one, newest first across days, bounded`() = runTest {
+        dao.replaceDay(
+            day,
+            listOf(item(1, ts = 10.0, clip = true), item(2, ts = 20.0), item(3, ts = 30.0, clip = true)),
+        )
+        dao.replaceDay("2026-11-14", listOf(item(4, ts = 5.0, clip = true, day = "2026-11-14")))
+        dao.upsertLive(item(5, ts = 40.0, clip = true, device = 2), replaces = emptyList())
+
+        assertEquals(listOf(3L, 1L, 4L), dao.observeRecentClips(deviceId = 1, limit = 6).first().map { it.id })
+        assertEquals(listOf(3L, 1L), dao.observeRecentClips(deviceId = 1, limit = 2).first().map { it.id })
+        assertEquals(listOf(5L), dao.observeRecentClips(deviceId = 2, limit = 6).first().map { it.id })
+    }
+
+    @Test
+    fun `a device's newest cards replace its cached ones over the range they cover, whatever the day`() = runTest {
+        // Cached: 6..1 of device 1 over two days, and a card of device 2. The server dropped 5 and 2.
+        dao.replaceDay(day, (4L..6L).map { item(it, ts = it * 10.0) } + item(9, ts = 55.0, device = 2))
+        dao.replaceDay("2026-11-14", (1L..3L).map { item(it, ts = it * 10.0, day = "2026-11-14") })
+
+        dao.writeDeviceNewest(1, listOf(item(7, ts = 70.0), item(6, ts = 60.0), item(4, ts = 40.0)), complete = false)
+        // 7..4 covered: 5 is gone; 3..1 are past the range and kept, and so is the other device's card.
+        assertEquals(listOf(7L, 6L, 9L, 4L), dao.observeDay(day).first().map { it.id })
+        assertEquals(listOf(3L, 2L, 1L), dao.observeDay("2026-11-14").first().map { it.id })
+
+        val whole = listOf(70.0 to 7L, 60.0 to 6L, 40.0 to 4L, 30.0 to 3L, 10.0 to 1L).map { (ts, id) ->
+            item(id, ts = ts, day = if (id < 4) "2026-11-14" else day)
+        }
+        dao.writeDeviceNewest(1, whole, complete = true)
+        // The device's whole history: 2 is gone too.
+        assertEquals(listOf(3L, 1L), dao.observeDay("2026-11-14").first().map { it.id })
+        assertEquals(listOf(7L, 6L, 9L, 4L), dao.observeDay(day).first().map { it.id })
+    }
+
+    @Test
+    fun `no newest card and more to come drops nothing`() = runTest {
+        dao.replaceDay(day, listOf(item(1, ts = 10.0)))
+
+        dao.writeDeviceNewest(1, emptyList(), complete = false)
+        assertEquals(listOf(1L), dao.observeDay(day).first().map { it.id })
+
+        dao.writeDeviceNewest(1, emptyList(), complete = true)
+        assertEquals(emptyList<Long>(), dao.observeDay(day).first().map { it.id })
+    }
+
     private fun item(
         id: Long,
         ts: Double?,
@@ -140,6 +185,7 @@ class HistoryDaoTest {
         device: Long = 1,
         pet: Long? = null,
         day: String = this.day,
+        clip: Boolean = false,
     ) = TimelineItemRow(
         id = id,
         day = day,
@@ -157,5 +203,6 @@ class HistoryDaoTest {
         durationSec = null,
         weightG = null,
         factsJson = "[]",
+        hasClip = clip,
     )
 }

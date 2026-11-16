@@ -125,8 +125,7 @@ class LiveUpdatesRepositoryImpl @Inject constructor(
 
             is UpdateMessageDto.Timeline -> {
                 val item = message.item
-                val at = (item.ts ?: item.displayTs)?.let(::epochSecondsToInstant)
-                val day = at?.atZone(clock.zone)?.toLocalDate() ?: LocalDate.now(clock)
+                val day = item.localDay(clock.zone, LocalDate.now(clock))
                 timeline.upsertLive(item.toRow(day.toString()), message.replaces)
             }
 

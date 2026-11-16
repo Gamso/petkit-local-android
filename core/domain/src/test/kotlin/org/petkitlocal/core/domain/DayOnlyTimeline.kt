@@ -16,4 +16,10 @@ abstract class DayOnlyTimeline : TimelineRepository {
         error("History is not read here")
 
     override suspend fun getEvent(id: Long): Outcome<EventDetail> = error("History is not read here")
+
+    override fun observeRecentClips(deviceId: Long, limit: Int): Flow<List<TimelineItem>> =
+        error("Recent clips are not read here")
+
+    override suspend fun refreshRecentClips(deviceId: Long, count: Int): Outcome<Unit> =
+        error("Recent clips are not read here")
 }

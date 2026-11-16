@@ -15,10 +15,14 @@ import org.petkitlocal.core.domain.model.Entity
 import org.petkitlocal.core.domain.model.EntityCategory
 import org.petkitlocal.core.domain.model.EntityComponent
 import org.petkitlocal.core.domain.model.EntityValue
+import org.petkitlocal.core.domain.model.MediaFile
+import org.petkitlocal.core.domain.model.MediaKind
 import org.petkitlocal.core.domain.model.Pet
 import org.petkitlocal.core.domain.model.PetRef
 import org.petkitlocal.core.domain.model.TimelineCategory
 import org.petkitlocal.core.domain.model.TimelineItem
+import org.petkitlocal.core.domain.model.TimelineMedia
+import org.petkitlocal.core.domain.video.RecentClip
 
 /**
  * A household like the mock server's (mock-server/README.md): one device of each family, two
@@ -163,7 +167,38 @@ object Household {
         item(10, 1002, at(1, 20), TimelineCategory.Toileting, pet = 2, duration = 60),
     )
 
+    /**
+     * The camera litter box's cards holding a clip, newest first: this morning's visit and the
+     * cat it saw, then yesterday's and older visits, one only with its full recording.
+     */
+    val cameraClipItems: List<TimelineItem> = listOf(
+        item(12, 1003, at(4, 2), TimelineCategory.Toileting, TimelineCategory.HealthAlert, pet = 1, duration = 240)
+            .withClips(MediaKind.Highlight),
+        item(13, 1003, at(5, 10), TimelineCategory.Pet, pet = 1).withClips(MediaKind.Highlight),
+        item(9, 1003, at(-1, 22, 40), TimelineCategory.Toileting, pet = 2, duration = 75)
+            .withClips(MediaKind.Highlight, MediaKind.Playback),
+        item(8, 1003, at(-3, 7, 5), TimelineCategory.Toileting, duration = 130).withClips(MediaKind.Playback),
+    ).sortedByDescending { it.ts }
+
+    /** What the camera's page and live video show of [cameraClipItems]. */
+    val cameraClips: List<RecentClip> = cameraClipItems.map { RecentClip(it, it.media!!.clips.first()) }
+
     fun at(hour: Int, minute: Int): Instant = ZonedDateTime.of(today.atTime(hour, minute), zone).toInstant()
+
+    /** [hour]:[minute] on the day [days] days from today (negative: before it). */
+    fun at(days: Long, hour: Int, minute: Int): Instant =
+        ZonedDateTime.of(today.plusDays(days).atTime(hour, minute), zone).toInstant()
+
+    /** This card with a snapshot and clips of [kinds], at made-up paths of the mock's media tree. */
+    fun TimelineItem.withClips(vararg kinds: MediaKind): TimelineItem {
+        val base = "http://10.0.2.2:8097/app/v1/media"
+        val snapshot = MediaFile(MediaKind.Snapshot, "$base/$id/snapshot.jpg", "$base/thumb/$id/snapshot.jpg")
+        val clips = kinds.map { kind ->
+            val file = "$id/${kind.name.lowercase()}.mp4"
+            MediaFile(kind, "$base/$file", "$base/thumb/$file")
+        }
+        return copy(media = TimelineMedia(listOf(snapshot) + clips))
+    }
 
     @Suppress("LongParameterList")
     fun device(

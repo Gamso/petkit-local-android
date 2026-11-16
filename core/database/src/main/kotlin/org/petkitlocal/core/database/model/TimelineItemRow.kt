@@ -36,4 +36,6 @@ data class TimelineItemRow(
     @ColumnInfo(name = "facts_json") val factsJson: String,
     /** The `Media` object as the server sent it (API paths), or null when the card has none. */
     @ColumnInfo(name = "media_json") val mediaJson: String? = null,
+    /** [mediaJson] holds a clip: a device's recent clips are read without decoding every card. */
+    @ColumnInfo(name = "has_clip") val hasClip: Boolean = false,
 )

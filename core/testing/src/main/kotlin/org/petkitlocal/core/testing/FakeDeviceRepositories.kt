@@ -122,6 +122,16 @@ class FakeTimelineRepository :
     /** When set, `getEvent` fails with it. */
     var eventError: DomainError? = null
 
+    /** The cached cards holding a clip, by device, newest first. */
+    val clips = MutableStateFlow<Map<Long, List<TimelineItem>>>(emptyMap())
+
+    /** Every device whose recent clips were refreshed, in order. */
+    val refreshedClips = mutableListOf<Long>()
+
+    /** What a refresh of recent clips answers; [clipsGate], when set, is waited for first. */
+    var clipsResult: Outcome<Unit> = Outcome.Success(Unit)
+    var clipsGate: CompletableDeferred<Unit>? = null
+
     override fun observeDay(day: LocalDate): Flow<List<TimelineItem>> = days.map { it[day].orEmpty() }
 
     override suspend fun refreshDay(day: LocalDate): Outcome<Unit> {
@@ -136,6 +146,15 @@ class FakeTimelineRepository :
         pageRequests += query to cursor
         pageGate?.await()
         return pageResult(query, cursor)
+    }
+
+    override fun observeRecentClips(deviceId: Long, limit: Int): Flow<List<TimelineItem>> =
+        clips.map { it[deviceId].orEmpty().take(limit) }
+
+    override suspend fun refreshRecentClips(deviceId: Long, count: Int): Outcome<Unit> {
+        refreshedClips += deviceId
+        clipsGate?.await()
+        return clipsResult
     }
 
     override suspend fun getEvent(id: Long): Outcome<EventDetail> {
