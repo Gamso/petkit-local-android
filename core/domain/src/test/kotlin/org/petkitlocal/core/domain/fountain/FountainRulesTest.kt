@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.petkitlocal.core.domain.DayOnlyTimeline
 import org.petkitlocal.core.domain.Outcome
 import org.petkitlocal.core.domain.devicepage.DevicePart
 import org.petkitlocal.core.domain.devicepage.PageFixtures.at
@@ -37,7 +38,6 @@ import org.petkitlocal.core.domain.model.TimelineCategory
 import org.petkitlocal.core.domain.model.TimelineItem
 import org.petkitlocal.core.domain.repository.DeviceRepository
 import org.petkitlocal.core.domain.repository.PetRepository
-import org.petkitlocal.core.domain.repository.TimelineRepository
 
 class FountainRulesTest {
     private val yesterday = today.minusDays(1)
@@ -186,7 +186,7 @@ class FountainRulesTest {
         override suspend fun refresh(): Outcome<Unit> = Outcome.Success(Unit)
     }
 
-    private class Timeline(initial: Map<LocalDate, List<TimelineItem>>) : TimelineRepository {
+    private class Timeline(initial: Map<LocalDate, List<TimelineItem>>) : DayOnlyTimeline() {
         val days = MutableStateFlow(initial)
 
         override fun observeDay(day: LocalDate): Flow<List<TimelineItem>> = days.map { it[day].orEmpty() }

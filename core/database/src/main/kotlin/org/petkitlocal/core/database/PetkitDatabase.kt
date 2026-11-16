@@ -40,8 +40,11 @@ abstract class PetkitDatabase : RoomDatabase() {
     abstract fun timelineDao(): TimelineDao
 
     companion object {
-        /** 2: devices gained their connection, parent and accessories (Bluetooth accessories). */
-        const val VERSION = 2
+        /**
+         * 2: devices gained their connection, parent and accessories (Bluetooth accessories).
+         * 3: timeline cards gained their media (History).
+         */
+        const val VERSION = 3
 
         /** The oldest schema an installed app may hold; [VERSION] until the first release. */
         const val OLDEST_SUPPORTED_VERSION = VERSION

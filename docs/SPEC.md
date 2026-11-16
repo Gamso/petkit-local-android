@@ -93,10 +93,16 @@ screen).
 - Settings (gear): every settable entity, grouped, with the type-appropriate control.
 
 ### 4 · History
-- Week strip to pick a local day; filter chips: all, visits, meals, cleanings, alerts.
-- Timeline of cards, newest first, cursor-paginated (`GET /timeline`), each with time, pet,
-  device, weight, duration and media thumbnails.
-- A card opens a detail sheet: decoded fields, photos, clips (played in-app, seekable).
+- Week strip to pick a local day (arrows to the weeks before, never past today).
+- Filter chips: all, then the server's own, single-select (`kind` of `GET /timeline`): pet,
+  toileting (visits), drinking, feeding (meals), cleaning, health alert, fault (alerts). A device
+  picker and a pet picker after them.
+- Opened from a device's page, History shows that device; from Home, every device.
+- Timeline of cards, newest first, cursor-paginated (`GET /timeline`) into the cache, each with
+  time, pet, device, weight, duration and media thumbnails. Empty, loading, error and offline
+  states as everywhere.
+- A card opens a detail sheet: decoded fields (named by key; the others on demand), photos
+  (full screen, swiped and zoomed), clips (played in-app, seekable).
 
 ### 5 · Pet
 - Switch between pets at the top; avatar (`GET /pets/{id}/photo`), name, how it is recognised.

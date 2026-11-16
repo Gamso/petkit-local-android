@@ -43,6 +43,8 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
+    // History's clip player, reading through core:network's authenticated data source.
+    implementation(libs.media3.exoplayer)
     implementation(libs.kotlinx.serialization.json)
 
     testImplementation(libs.kotlinx.coroutines.test)

@@ -30,8 +30,17 @@ class ServerLabels(private val resources: Resources) {
     /** `TimelineItem.event_kind`; [serverLabel] is the card's own `label`, when it has one. */
     fun eventKind(kind: String, serverLabel: String?): String = translate(EventKindLabels, kind, serverLabel ?: kind)
 
+    /** `EventField.label`, by `EventField.key`. */
+    fun eventField(key: String, serverLabel: String): String = translate(EventFieldLabels, key, serverLabel)
+
+    /** A word an `EventField.text` is made of ("yes", "completed", "Auto"); anything else as it is. */
+    fun eventFieldValue(text: String): String = EventFieldValueLabels[text]?.let(resources::getString) ?: option(text)
+
     /** Whether [key] of that kind has a translation: for tests and for reporting gaps. */
     fun knowsEntity(key: String): Boolean = key in EntityLabels
+
+    /** Whether an event field [key] has a translation: the detail sheet shows those first. */
+    fun knowsEventField(key: String): Boolean = key in EventFieldLabels
 
     private fun translate(labels: Map<String, Int>, key: String, fallback: String): String =
         labels[key]?.let(resources::getString) ?: fallback
