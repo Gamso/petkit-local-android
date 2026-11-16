@@ -30,6 +30,7 @@ import org.petkitlocal.feature.device.litter.PageTop
 import org.petkitlocal.feature.device.litter.RefreshBanner
 import org.petkitlocal.feature.device.litter.gutter
 import org.petkitlocal.feature.device.litter.missingPage
+import org.petkitlocal.feature.device.liveOf
 
 /** What the user can do on the feeder page besides its device commands, one callback per intent. */
 data class FeederCallbacks(
@@ -131,6 +132,7 @@ private fun LazyListScope.feederContent(
                 title = page.device.model,
                 onBack = navigation.onBack,
                 onOpenSettings = { navigation.onOpenSettings(page.device.id) },
+                onOpenLive = navigation.liveOf(page.device),
             )
             DeviceHero(
                 hotspots = page.hotspots,

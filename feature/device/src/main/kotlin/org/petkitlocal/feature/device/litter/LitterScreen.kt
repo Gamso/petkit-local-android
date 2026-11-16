@@ -19,6 +19,7 @@ import org.petkitlocal.feature.device.DeviceNavigation
 import org.petkitlocal.feature.device.common.DeviceHeader
 import org.petkitlocal.feature.device.common.DeviceStatusLine
 import org.petkitlocal.feature.device.common.DeviceTestTags
+import org.petkitlocal.feature.device.liveOf
 
 /** What the user can do on the litter box page besides its commands, one callback per intent. */
 data class LitterCallbacks(
@@ -108,6 +109,7 @@ private fun LazyListScope.litterContent(
                 title = page.device.model,
                 onBack = navigation.onBack,
                 onOpenSettings = { navigation.onOpenSettings(page.device.id) },
+                onOpenLive = navigation.liveOf(page.device),
             )
             ModeChips(page.modes, uiState.commands.sending, callbacks.onModeToggle)
             DeviceHero(
