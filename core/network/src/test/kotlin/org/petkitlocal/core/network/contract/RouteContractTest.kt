@@ -13,11 +13,11 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestFactory
-import org.petkitlocal.core.network.LiveHlsSource
 import org.petkitlocal.core.network.LiveUpdatesSocket
-import org.petkitlocal.core.network.LiveVideoSocket
 import org.petkitlocal.core.network.PetkitApi
 import org.petkitlocal.core.network.PetkitHttpClient
+import org.petkitlocal.core.network.video.LiveMediaSources
+import org.petkitlocal.core.network.video.LiveSocketDataSource
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -40,8 +40,8 @@ class RouteContractTest {
     /** Routes of the document that are not REST, and the interface each one has in the app. */
     private val notRest: Map<String, KClass<*>> = mapOf(
         "GET /ws" to LiveUpdatesSocket::class,
-        "GET /devices/{id}/live" to LiveVideoSocket::class,
-        "GET /devices/{id}/live/hls/{file}" to LiveHlsSource::class,
+        "GET /devices/{id}/live" to LiveSocketDataSource::class,
+        "GET /devices/{id}/live/hls/{file}" to LiveMediaSources::class,
     )
 
     private data class Route(val method: String, val path: String, val function: KFunction<*>) {

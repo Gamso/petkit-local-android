@@ -37,8 +37,9 @@ import retrofit2.http.Streaming
 
 /**
  * The REST routes of petkit-local's `/app/v1` API (api/openapi.yaml), relative to the API base
- * (`<server>/app/v1/`). The two WebSockets are not here ([LiveUpdatesSocket], [LiveVideoSocket]),
- * nor the live HLS files, which Media3 fetches itself ([LiveHlsSource]).
+ * (`<server>/app/v1/`). The two WebSockets are not here ([LiveUpdatesSocket], and
+ * [org.petkitlocal.core.network.video.LiveSocketDataSource] for live video), nor the live HLS
+ * files, which Media3 fetches itself ([org.petkitlocal.core.network.video.LiveMediaSources]).
  *
  * Every call throws on failure (an `HttpException` for a non-2xx status, an `IOException` when
  * the server is unreachable); [apiCall] turns both into a [org.petkitlocal.core.domain.DomainError].
