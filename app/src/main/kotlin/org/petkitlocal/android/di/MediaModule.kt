@@ -1,5 +1,6 @@
 package org.petkitlocal.android.di
 
+import android.content.Context
 import androidx.annotation.OptIn
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.DefaultRenderersFactory
@@ -13,29 +14,43 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import okhttp3.OkHttpClient
 import org.petkitlocal.core.network.MediaDataSources
+import org.petkitlocal.core.network.auth.SessionEndListener
 import org.petkitlocal.feature.history.ClipPlayerFactory
+import org.petkitlocal.feature.live.LivePlayerFactory
 
 /**
- * History's clip player: Media3's ExoPlayer reading through the app's one OkHttp client, so a
- * clip carries the bearer header in its requests (never in its URL) and a seek is a `Range`
- * request (SPEC.md §5.4, §8).
+ * The app's video players, both Media3's ExoPlayer on the app's one OkHttp client, so every
+ * request carries the bearer header (never a URL) and reaches the current server (SPEC.md §8):
+ *
+ * - History's clip player, where a seek is a `Range` request (SPEC.md §5.4);
+ * - the live player, on the WebSocket or HLS (SPEC.md §5.7, ADR 0005), [ExoLivePlayerFactory].
  */
 @Module
 @InstallIn(SingletonComponent::class)
 object MediaModule {
-    @OptIn(UnstableApi::class) // DefaultMediaSourceFactory(DataSource.Factory), the codec selector.
+    @OptIn(UnstableApi::class) // DefaultMediaSourceFactory(DataSource.Factory).
     @Provides
     fun clipPlayerFactory(client: Lazy<OkHttpClient>): ClipPlayerFactory = ClipPlayerFactory { context ->
-        val renderers = DefaultRenderersFactory(context)
-            .setEnableDecoderFallback(true)
-            .setMediaCodecSelector { mimeType, secure, tunneling ->
-                emulatorCodecsLast(MediaCodecSelector.DEFAULT.getDecoderInfos(mimeType, secure, tunneling)) { it.name }
-            }
-        ExoPlayer.Builder(context, renderers)
+        ExoPlayer.Builder(context, renderersFactory(context))
             .setMediaSourceFactory(DefaultMediaSourceFactory(MediaDataSources.authenticated(client.get())))
             .build()
     }
+
+    @Provides
+    fun livePlayerFactory(client: Lazy<OkHttpClient>, sessionEnded: Lazy<SessionEndListener>): LivePlayerFactory =
+        ExoLivePlayerFactory(client, sessionEnded)
 }
+
+/**
+ * Renderers that fall back to the next decoder when one cannot start, trying the emulator's
+ * own decoders last ([emulatorCodecsLast]).
+ */
+@OptIn(UnstableApi::class) // The codec selector.
+internal fun renderersFactory(context: Context): DefaultRenderersFactory = DefaultRenderersFactory(context)
+    .setEnableDecoderFallback(true)
+    .setMediaCodecSelector { mimeType, secure, tunneling ->
+        emulatorCodecsLast(MediaCodecSelector.DEFAULT.getDecoderInfos(mimeType, secure, tunneling)) { it.name }
+    }
 
 /**
  * [codecs] with the Android emulator's host-backed decoders (`c2.goldfish.*`) after the others,
