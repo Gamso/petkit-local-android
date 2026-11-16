@@ -15,7 +15,6 @@
     <string name="history_server_error">Le serveur n’a pas pu répondre. Réessayez dans un instant.</string>
     <string name="history_loading_more">Chargement d’autres cartes</string>
     <string name="history_load_more_failed">Les cartes suivantes n’ont pas pu être chargées.</string>
-    <string name="history_unknown_pet">Animal inconnu</string>
     <string name="history_unknown_device">Appareil supprimé</string>
     <string name="history_visit">Passage</string>
     <string name="history_video_pending">L’enregistrement est en cours de préparation.</string>

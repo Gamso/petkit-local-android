@@ -46,6 +46,7 @@ import org.petkitlocal.core.domain.model.EventField
 import org.petkitlocal.core.domain.model.MediaFile
 import org.petkitlocal.core.domain.model.MediaKind
 import org.petkitlocal.core.domain.model.TimelineMedia
+import org.petkitlocal.core.ui.MediaThumbnail
 import org.petkitlocal.core.ui.ServerLabels
 import org.petkitlocal.core.ui.formatDate
 import org.petkitlocal.core.ui.formatDurationMinSec
@@ -53,6 +54,7 @@ import org.petkitlocal.core.ui.formatTimeOfDay
 import org.petkitlocal.core.ui.formatWeightKg
 import org.petkitlocal.core.ui.localizeEventFieldText
 import org.petkitlocal.core.ui.rememberServerLabels
+import org.petkitlocal.core.ui.timelineTitle
 
 /** The detail sheet of one card, over History. */
 @OptIn(ExperimentalMaterial3Api::class) // ModalBottomSheet
@@ -117,7 +119,7 @@ private fun SheetHeader(sheet: EventSheetState, zone: ZoneId, labels: ServerLabe
         Spacer(Modifier.width(PkTheme.spacing.s))
         Column(Modifier.weight(1f)) {
             Text(
-                entryTitle(item, labels),
+                timelineTitle(item, labels),
                 style = PkTheme.typography.titleLarge,
                 color = colors.onSurface,
                 modifier = Modifier.semantics { heading() },

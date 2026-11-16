@@ -15,7 +15,6 @@
     <string name="history_server_error">The server could not answer. Try again in a moment.</string>
     <string name="history_loading_more">Loading more cards</string>
     <string name="history_load_more_failed">The next cards could not be loaded.</string>
-    <string name="history_unknown_pet">Unknown pet</string>
     <string name="history_unknown_device">Removed device</string>
     <string name="history_visit">Visit</string>
     <string name="history_video_pending">The recording is still being put together.</string>

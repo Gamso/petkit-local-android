@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- A History card's title when the visit's pet is not known. -->
+    <string name="timeline_unknown_pet">Unknown pet</string>
+</resources>
