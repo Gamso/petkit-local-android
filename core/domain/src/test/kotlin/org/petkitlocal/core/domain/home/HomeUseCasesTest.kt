@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.petkitlocal.core.domain.DayOnlyTimeline
 import org.petkitlocal.core.domain.DomainError
+import org.petkitlocal.core.domain.ListOnlyPets
 import org.petkitlocal.core.domain.Outcome
 import org.petkitlocal.core.domain.model.Device
 import org.petkitlocal.core.domain.model.DeviceFamily
@@ -20,7 +21,6 @@ import org.petkitlocal.core.domain.model.DeviceTransport
 import org.petkitlocal.core.domain.model.Pet
 import org.petkitlocal.core.domain.model.TimelineItem
 import org.petkitlocal.core.domain.repository.DeviceRepository
-import org.petkitlocal.core.domain.repository.PetRepository
 
 class HomeUseCasesTest {
     private val zone = ZoneId.of("Europe/Paris")
@@ -90,7 +90,7 @@ class HomeUseCasesTest {
         override suspend fun refresh(): Outcome<Unit> = result.also { refreshes++ }
     }
 
-    private class StubPets : PetRepository {
+    private class StubPets : ListOnlyPets() {
         val state = MutableStateFlow<List<Pet>>(emptyList())
 
         override fun observePets(): Flow<List<Pet>> = state

@@ -51,8 +51,8 @@ class HistoryViewModelTest {
     }
     private val live = FakeLiveUpdatesRepository()
 
-    private fun viewModel(deviceId: Long? = null, petId: Long? = null) = HistoryViewModel(
-        SavedStateHandle(mapOf(DEVICE_ID_KEY to deviceId, PET_ID_KEY to petId)),
+    private fun viewModel(deviceId: Long? = null, petId: Long? = null, day: String? = null) = HistoryViewModel(
+        SavedStateHandle(mapOf(DEVICE_ID_KEY to deviceId, PET_ID_KEY to petId, DAY_KEY to day)),
         ObserveHistoryUseCase(timeline, devices, pets),
         ObserveLiveUpdatesUseCase(live),
         FetchHistoryPageUseCase(timeline),
@@ -107,6 +107,27 @@ class HistoryViewModelTest {
         assertEquals("Pura Max", state.device?.model)
         assertEquals(listOf(16L, 14L, 11L, 10L), state.entries.map { it.item.id })
         assertEquals(HistoryQuery(today, deviceId = 1002), timeline.pageRequests.single().first)
+    }
+
+    @Test
+    fun `opened from a pet's visit, it shows that pet on that day, in the strip that holds it`() =
+        runTest(main.dispatcher) {
+            val day = today.minusDays(9)
+            val viewModel = viewModel(petId = 2, day = day.toString())
+            collect(viewModel)
+            advanceUntilIdle()
+
+            val state = viewModel.uiState.value
+            assertEquals(HistoryQuery(day, petId = 2), state.query)
+            assertEquals(today.minusDays(7), state.weekEnd)
+            assertTrue(day in state.week)
+            assertEquals(HistoryQuery(day, petId = 2), timeline.pageRequests.single().first)
+        }
+
+    @Test
+    fun `a day that is not one, or not yet, opens on today`() = runTest(main.dispatcher) {
+        assertEquals(today, viewModel(day = "yesterday").uiState.value.query.day)
+        assertEquals(today, viewModel(day = today.plusDays(1).toString()).uiState.value.query.day)
     }
 
     @Test

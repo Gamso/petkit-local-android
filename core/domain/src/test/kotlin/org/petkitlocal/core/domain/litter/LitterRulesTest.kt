@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 import org.petkitlocal.core.domain.DayOnlyTimeline
+import org.petkitlocal.core.domain.ListOnlyPets
 import org.petkitlocal.core.domain.Outcome
 import org.petkitlocal.core.domain.devicepage.DevicePart
 import org.petkitlocal.core.domain.devicepage.PageFixtures.at
@@ -34,7 +35,6 @@ import org.petkitlocal.core.domain.model.Pet
 import org.petkitlocal.core.domain.model.TimelineCategory
 import org.petkitlocal.core.domain.model.TimelineItem
 import org.petkitlocal.core.domain.repository.DeviceRepository
-import org.petkitlocal.core.domain.repository.PetRepository
 
 class LitterRulesTest {
     private val yesterday = today.minusDays(1)
@@ -155,7 +155,7 @@ class LitterRulesTest {
         override suspend fun refresh(): Outcome<Unit> = Outcome.Success(Unit).also { refreshes++ }
     }
 
-    private class Pets(private val initial: List<Pet>) : PetRepository {
+    private class Pets(private val initial: List<Pet>) : ListOnlyPets() {
         override fun observePets(): Flow<List<Pet>> = MutableStateFlow(initial)
 
         override suspend fun refresh(): Outcome<Unit> = Outcome.Success(Unit)

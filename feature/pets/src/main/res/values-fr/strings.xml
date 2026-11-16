@@ -1,4 +1,56 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="pets_title">Animaux</string>
+    <string name="pets_empty">Aucun animal pour l\'instant. Ajoutez-les dans le panneau de petkit-local.</string>
+    <string name="pets_unreachable">Le serveur est injoignable.</string>
+    <string name="pets_session_ended">Votre session a pris fin. Reconnectez-vous.</string>
+    <string name="pets_server_error">Le serveur n\'a pas pu répondre. Réessayez dans un instant.</string>
+    <string name="pets_refresh_failed">Le serveur n\'a pas pu répondre. Voici les dernières données connues.</string>
+    <plurals name="pets_visits_today">
+        <item quantity="one">%1$d visite aujourd\'hui</item>
+        <item quantity="many">%1$d visites aujourd\'hui</item>
+        <item quantity="other">%1$d visites aujourd\'hui</item>
+    </plurals>
+    <string name="pets_line">%1$s · %2$s</string>
+    <!-- How the litter boxes tell this pet from the others. -->
+    <string name="pet_recognition_face">Reconnaissance : visage et poids</string>
+    <string name="pet_recognition_weight">Reconnaissance : poids</string>
+    <string name="pet_reference_learned">Comparé à %1$s, appris de ses visites</string>
+    <string name="pet_reference_entered">Comparé à %1$s, le poids saisi dans petkit-local</string>
+    <string name="pet_reference_none">Pas encore de poids de référence</string>
+    <string name="pet_gone">Cet animal n\'est plus sur le serveur.</string>
+    <!-- Tiles. -->
+    <string name="pet_weight">Poids</string>
+    <string name="pet_weight_median">Médiane des dernières visites</string>
+    <string name="pet_weight_none">Aucune visite pesée</string>
+    <string name="pet_visits_today">Visites aujourd\'hui</string>
+    <string name="pet_visits_today_stale">Pas encore mis à jour aujourd\'hui</string>
+    <string name="pet_last_visit">Dernière visite</string>
+    <string name="pet_last_visit_none">Aucune visite</string>
+    <string name="pet_no_figure">—</string>
+    <string name="pet_today">Aujourd\'hui</string>
+    <string name="pet_yesterday">Hier</string>
+    <!-- Weight chart. -->
+    <string name="pet_weight_chart">Poids</string>
+    <string name="pet_range_month">30 jours</string>
+    <string name="pet_range_half_year">6 mois</string>
+    <string name="pet_chart_per_day">Un point par jour : la médiane de ses visites pesées.</string>
+    <string name="pet_chart_per_week">Un point par semaine : la médiane de ses visites pesées.</string>
+    <string name="pet_chart_since">Aucune visite pesée avant le %1$s.</string>
+    <string name="pet_chart_empty_month">Aucune visite pesée ces 30 derniers jours.</string>
+    <string name="pet_chart_empty_half_year">Aucune visite pesée ces 6 derniers mois.</string>
+    <string name="pet_chart_loading">Lecture des visites…</string>
+    <string name="pet_chart_failed">Les visites n\'ont pas pu être lues.</string>
+    <string name="pet_retry">Réessayer</string>
+    <plurals name="pet_chart_description">
+        <item quantity="one">Courbe de poids : %1$d point, de %2$s à %3$s</item>
+        <item quantity="many">Courbe de poids : %1$d points, de %2$s à %3$s</item>
+        <item quantity="other">Courbe de poids : %1$d points, de %2$s à %3$s</item>
+    </plurals>
+    <!-- Recent visits. -->
+    <string name="pet_recent_visits">Visites récentes</string>
+    <string name="pet_recent_visits_empty">Aucune visite ces 7 derniers jours.</string>
+    <string name="pet_see_history">Tout voir dans l\'historique</string>
+    <string name="pet_unknown_device">Appareil supprimé</string>
+    <string name="pet_visit_open">Afficher dans l\'historique</string>
 </resources>

@@ -33,6 +33,7 @@ class HomeScreenTest {
     private val navigation = HomeNavigation(
         onDeviceClick = { opened += "device:$it" },
         onOpenPets = { opened += "pets" },
+        onOpenPet = { opened += "pet:$it" },
         onOpenHistory = { opened += "history" },
         onOpenSettings = { opened += "settings" },
     )
@@ -115,7 +116,7 @@ class HomeScreenTest {
         compose.onNodeWithText("Mochi", useUnmergedTree = true).performClick()
         compose.onNodeWithText("See all").performClick()
 
-        assertEquals(listOf("device:1002", "device:3002", "history", "settings", "pets", "pets"), opened)
+        assertEquals(listOf("device:1002", "device:3002", "history", "settings", "pet:1", "pets"), opened)
     }
 
     @Test

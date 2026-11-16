@@ -62,10 +62,16 @@ class HistoryViewModel @Inject constructor(
     private var eventJob: Job? = null
 
     init {
-        val day = today()
+        val today = today()
+        // A day asked for (a pet's visit), unless it is not one or not yet: today then.
+        val day = savedStateHandle.get<String>(DAY_KEY)
+            ?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
+            ?.takeIf { it <= today }
+            ?: today
         local = MutableStateFlow(
             HistoryUiState(
-                today = day,
+                today = today,
+                weekEnd = HistoryDays.endShowing(day, today),
                 query = HistoryQuery(
                     day = day,
                     deviceId = savedStateHandle.get<Long>(DEVICE_ID_KEY),

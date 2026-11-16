@@ -1,6 +1,7 @@
 package org.petkitlocal.core.domain.history
 
 import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -87,4 +88,11 @@ object HistoryDays {
         val newSelected = if (moved in week(newEnd)) moved else newEnd
         return newEnd to newSelected
     }
+
+    /**
+     * The end of the strip that shows [day]: today's strip, or the one a whole number of weeks
+     * before it, as the strip's arrows would reach it.
+     */
+    fun endShowing(day: LocalDate, today: LocalDate): LocalDate =
+        today.minusWeeks(ChronoUnit.DAYS.between(day, today).coerceAtLeast(0) / WEEK)
 }

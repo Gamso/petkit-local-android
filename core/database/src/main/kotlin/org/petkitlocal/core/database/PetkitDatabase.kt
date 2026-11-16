@@ -9,7 +9,9 @@ import org.petkitlocal.core.database.dao.TimelineDao
 import org.petkitlocal.core.database.model.ActionRow
 import org.petkitlocal.core.database.model.DeviceRow
 import org.petkitlocal.core.database.model.EntityRow
+import org.petkitlocal.core.database.model.PetActivityRow
 import org.petkitlocal.core.database.model.PetRow
+import org.petkitlocal.core.database.model.PetWeightRow
 import org.petkitlocal.core.database.model.TimelineItemRow
 
 /**
@@ -28,7 +30,15 @@ import org.petkitlocal.core.database.model.TimelineItemRow
  * a phone that is offline.
  */
 @Database(
-    entities = [DeviceRow::class, EntityRow::class, ActionRow::class, PetRow::class, TimelineItemRow::class],
+    entities = [
+        DeviceRow::class,
+        EntityRow::class,
+        ActionRow::class,
+        PetRow::class,
+        PetActivityRow::class,
+        PetWeightRow::class,
+        TimelineItemRow::class,
+    ],
     version = PetkitDatabase.VERSION,
     exportSchema = true,
 )
@@ -43,8 +53,9 @@ abstract class PetkitDatabase : RoomDatabase() {
         /**
          * 2: devices gained their connection, parent and accessories (Bluetooth accessories).
          * 3: timeline cards gained their media (History).
+         * 4: pets gained their statistics, recent visits and weighed visits (Pets).
          */
-        const val VERSION = 3
+        const val VERSION = 4
 
         /** The oldest schema an installed app may hold; [VERSION] until the first release. */
         const val OLDEST_SUPPORTED_VERSION = VERSION

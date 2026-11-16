@@ -31,8 +31,10 @@ import org.petkitlocal.feature.home.HomeDestination
 import org.petkitlocal.feature.home.HomeNavigation
 import org.petkitlocal.feature.home.homeScreen
 import org.petkitlocal.feature.live.liveScreen
+import org.petkitlocal.feature.pets.PetsNavigation
+import org.petkitlocal.feature.pets.navigateToPet
 import org.petkitlocal.feature.pets.navigateToPets
-import org.petkitlocal.feature.pets.petsScreen
+import org.petkitlocal.feature.pets.petsScreens
 import org.petkitlocal.feature.settings.navigateToSettings
 import org.petkitlocal.feature.settings.settingsScreen
 
@@ -84,6 +86,7 @@ fun PetkitNavHost(
             HomeNavigation(
                 onDeviceClick = { deviceId -> navController.navigateToDevice(deviceId) },
                 onOpenPets = { navController.navigateToPets() },
+                onOpenPet = { petId -> navController.navigateToPet(petId) },
                 onOpenHistory = { navController.navigateToHistory() },
                 onOpenSettings = { navController.navigateToSettings() },
             ),
@@ -98,7 +101,13 @@ fun PetkitNavHost(
         )
         deviceSettingsScreen(onBack = back)
         historyScreen(onBack = back)
-        petsScreen(onBack = back)
+        petsScreens(
+            PetsNavigation(
+                onBack = back,
+                onOpenPet = { petId -> navController.navigateToPet(petId) },
+                onOpenHistory = { petId, day -> navController.navigateToHistory(petId = petId, day = day) },
+            ),
+        )
         liveScreen(onBack = back)
         settingsScreen(onBack = back)
     }

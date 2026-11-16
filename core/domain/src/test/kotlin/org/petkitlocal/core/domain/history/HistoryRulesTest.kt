@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.petkitlocal.core.domain.ListOnlyPets
 import org.petkitlocal.core.domain.Outcome
 import org.petkitlocal.core.domain.devicepage.PageFixtures
 import org.petkitlocal.core.domain.model.Device
@@ -24,7 +25,6 @@ import org.petkitlocal.core.domain.model.PetRef
 import org.petkitlocal.core.domain.model.TimelineCategory
 import org.petkitlocal.core.domain.model.TimelineItem
 import org.petkitlocal.core.domain.repository.DeviceRepository
-import org.petkitlocal.core.domain.repository.PetRepository
 import org.petkitlocal.core.domain.repository.TimelineRepository
 
 class HistoryRulesTest {
@@ -74,6 +74,16 @@ class HistoryRulesTest {
                 today = today,
             ),
         )
+    }
+
+    @Test
+    fun `a day opened directly sits in the strip the arrows would reach it in`() {
+        assertEquals(today, HistoryDays.endShowing(today, today))
+        assertEquals(today, HistoryDays.endShowing(LocalDate.of(2026, 11, 9), today))
+        assertEquals(LocalDate.of(2026, 11, 8), HistoryDays.endShowing(LocalDate.of(2026, 11, 8), today))
+        assertEquals(LocalDate.of(2026, 11, 8), HistoryDays.endShowing(LocalDate.of(2026, 11, 2), today))
+        // A day after today (a clock that moved back) shows today's strip.
+        assertEquals(today, HistoryDays.endShowing(LocalDate.of(2026, 11, 16), today))
     }
 
     @Test
@@ -151,7 +161,7 @@ class HistoryRulesTest {
         override suspend fun refresh(): Outcome<Unit> = Outcome.Success(Unit)
     }
 
-    private class StaticPets(private val pets: List<Pet>) : PetRepository {
+    private class StaticPets(private val pets: List<Pet>) : ListOnlyPets() {
         override fun observePets() = flowOf(pets)
 
         override suspend fun refresh(): Outcome<Unit> = Outcome.Success(Unit)

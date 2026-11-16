@@ -1,4 +1,54 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="pets_title">Pets</string>
+    <string name="pets_empty">No pets yet. Add them in petkit-local\'s panel.</string>
+    <string name="pets_unreachable">The server cannot be reached.</string>
+    <string name="pets_session_ended">Your session has ended. Sign in again.</string>
+    <string name="pets_server_error">The server could not answer. Try again in a moment.</string>
+    <string name="pets_refresh_failed">The server could not answer. This is the last known data.</string>
+    <plurals name="pets_visits_today">
+        <item quantity="one">%1$d visit today</item>
+        <item quantity="other">%1$d visits today</item>
+    </plurals>
+    <string name="pets_line">%1$s · %2$s</string>
+    <!-- How the litter boxes tell this pet from the others. -->
+    <string name="pet_recognition_face">Recognition: face and weight</string>
+    <string name="pet_recognition_weight">Recognition: weight</string>
+    <string name="pet_reference_learned">Compared with %1$s, learned from its visits</string>
+    <string name="pet_reference_entered">Compared with %1$s, the weight entered in petkit-local</string>
+    <string name="pet_reference_none">No reference weight yet</string>
+    <string name="pet_gone">This pet is no longer on the server.</string>
+    <!-- Tiles. -->
+    <string name="pet_weight">Weight</string>
+    <string name="pet_weight_median">Median of recent visits</string>
+    <string name="pet_weight_none">No weighed visit yet</string>
+    <string name="pet_visits_today">Visits today</string>
+    <string name="pet_visits_today_stale">Not updated today</string>
+    <string name="pet_last_visit">Last visit</string>
+    <string name="pet_last_visit_none">No visit yet</string>
+    <string name="pet_no_figure">—</string>
+    <string name="pet_today">Today</string>
+    <string name="pet_yesterday">Yesterday</string>
+    <!-- Weight chart. -->
+    <string name="pet_weight_chart">Weight</string>
+    <string name="pet_range_month">30 days</string>
+    <string name="pet_range_half_year">6 months</string>
+    <string name="pet_chart_per_day">One point per day: the median of its weighed visits.</string>
+    <string name="pet_chart_per_week">One point per week: the median of its weighed visits.</string>
+    <string name="pet_chart_since">No weighed visit before %1$s.</string>
+    <string name="pet_chart_empty_month">No weighed visit in the last 30 days.</string>
+    <string name="pet_chart_empty_half_year">No weighed visit in the last 6 months.</string>
+    <string name="pet_chart_loading">Reading the visits…</string>
+    <string name="pet_chart_failed">The visits could not be read.</string>
+    <string name="pet_retry">Try again</string>
+    <plurals name="pet_chart_description">
+        <item quantity="one">Weight chart: %1$d point, from %2$s to %3$s</item>
+        <item quantity="other">Weight chart: %1$d points, from %2$s to %3$s</item>
+    </plurals>
+    <!-- Recent visits. -->
+    <string name="pet_recent_visits">Recent visits</string>
+    <string name="pet_recent_visits_empty">No visit in the last 7 days.</string>
+    <string name="pet_see_history">See all in History</string>
+    <string name="pet_unknown_device">Removed device</string>
+    <string name="pet_visit_open">Show in History</string>
 </resources>
