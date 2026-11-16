@@ -2,4 +2,18 @@
 <resources>
     <!-- A History card's title when the visit's pet is not known. -->
     <string name="timeline_unknown_pet">Unknown pet</string>
+
+    <!-- A camera's recent clips, on its page and under its live video. -->
+    <string name="recent_clips_title">Recent videos</string>
+    <string name="recent_clips_empty">This camera has recorded no video yet.</string>
+    <string name="recent_clips_unreachable">The server cannot be reached.</string>
+    <string name="recent_clips_failed">The videos could not be loaded.</string>
+    <string name="recent_clips_see_all">More videos in History</string>
+    <!-- What tapping a clip does, read by TalkBack. -->
+    <string name="recent_clips_play">Play</string>
+    <!-- When a clip was recorded; %1$s is the time of day ("14:32"). -->
+    <string name="recent_clips_today">Today, %1$s</string>
+    <string name="recent_clips_yesterday">Yesterday, %1$s</string>
+    <!-- %1$s is the day without its year ("Nov 12"), %2$s the time of day. -->
+    <string name="recent_clips_on_day">%1$s, %2$s</string>
 </resources>
