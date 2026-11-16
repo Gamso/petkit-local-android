@@ -16,14 +16,16 @@ import org.junit.runner.RunWith
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.devicepage.DevicePart
 import org.petkitlocal.core.testing.ScreenshotVariant
+import org.petkitlocal.feature.device.DeviceFixtures
 import org.petkitlocal.feature.device.DeviceNavigation
+import org.petkitlocal.feature.device.common.RecentClipsUi
 import org.robolectric.ParameterizedRobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
  * The litter box page in light/dark x EN/FR, the busiest state also at 130 % font scale: a Pura
- * Max with its day, a Purobot Ultra in trouble with its actions unfolded, and a hotspot's
+ * Max with its day, a Purobot Ultra in trouble with its actions unfolded and its recent clips, and a hotspot's
  * explanation. The golden images are in src/test/screenshots.
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
@@ -37,7 +39,11 @@ class LitterScreenshotTest(private val variant: ScreenshotVariant) {
 
     @Test
     fun trouble() {
-        if (variant.fontScale == 1f) capture("litter_trouble") { Screen(LitterFixtures.trouble, expanded = true) }
+        if (variant.fontScale == 1f) {
+            capture("litter_trouble") {
+                Screen(LitterFixtures.trouble, expanded = true, clips = DeviceFixtures.recentClips)
+            }
+        }
     }
 
     /** A Pura Max with its Pura Air's N60, and that pill's dialog: EN light and FR dark. */
@@ -71,8 +77,8 @@ class LitterScreenshotTest(private val variant: ScreenshotVariant) {
     }
 
     @Composable
-    private fun Screen(state: LitterUiState, expanded: Boolean = false) =
-        LitterScreen(state, DeviceNavigation(), LitterCallbacks(), initiallyExpanded = expanded)
+    private fun Screen(state: LitterUiState, expanded: Boolean = false, clips: RecentClipsUi? = null) =
+        LitterScreen(state, DeviceNavigation(), LitterCallbacks(), initiallyExpanded = expanded, clips = clips)
 
     private fun capture(name: String, content: @Composable () -> Unit) {
         captureRoboImage(

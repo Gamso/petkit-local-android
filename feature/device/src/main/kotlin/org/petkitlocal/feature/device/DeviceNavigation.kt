@@ -5,6 +5,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import kotlinx.serialization.Serializable
 import org.petkitlocal.core.domain.model.Device
+import org.petkitlocal.core.domain.model.MediaFile
 import org.petkitlocal.feature.device.quickactions.QuickActionsHost
 import org.petkitlocal.feature.device.settings.DeviceSettingsRoute
 
@@ -33,6 +34,8 @@ data class DeviceNavigation(
     val onOpenDevice: (deviceId: Long) -> Unit = {},
     /** The live video of a device with a camera, from its header. */
     val onOpenLive: (deviceId: Long) -> Unit = {},
+    /** One of a camera's recent clips, in the clip player. */
+    val onOpenClip: (MediaFile) -> Unit = {},
 )
 
 /** The header's way to the live video, for a device the server says has a camera. */

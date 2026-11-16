@@ -16,7 +16,9 @@ import org.junit.runner.RunWith
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.devicepage.DevicePart
 import org.petkitlocal.core.testing.ScreenshotVariant
+import org.petkitlocal.feature.device.DeviceFixtures
 import org.petkitlocal.feature.device.DeviceNavigation
+import org.petkitlocal.feature.device.common.RecentClipsUi
 import org.petkitlocal.feature.device.litter.HotspotDialogContent
 import org.robolectric.ParameterizedRobolectricTestRunner
 import org.robolectric.annotation.Config
@@ -35,7 +37,7 @@ import org.robolectric.annotation.GraphicsMode
 @Config(qualifiers = "w360dp-h1700dp-xhdpi", sdk = [36])
 class FountainScreenshotTest(private val variant: ScreenshotVariant) {
     @Test
-    fun content() = capture("fountain_content") { Screen(FountainFixtures.content) }
+    fun content() = capture("fountain_content") { Screen(FountainFixtures.content, DeviceFixtures.recentClips) }
 
     @Test
     fun bluetooth() {
@@ -59,7 +61,8 @@ class FountainScreenshotTest(private val variant: ScreenshotVariant) {
     }
 
     @Composable
-    private fun Screen(state: FountainUiState) = FountainScreen(state, DeviceNavigation(), FountainCallbacks())
+    private fun Screen(state: FountainUiState, clips: RecentClipsUi? = null) =
+        FountainScreen(state, DeviceNavigation(), FountainCallbacks(), clips = clips)
 
     private fun capture(name: String, content: @Composable () -> Unit) {
         captureRoboImage(

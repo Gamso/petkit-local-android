@@ -19,6 +19,9 @@ import org.petkitlocal.feature.device.DeviceNavigation
 import org.petkitlocal.feature.device.common.DeviceHeader
 import org.petkitlocal.feature.device.common.DeviceStatusLine
 import org.petkitlocal.feature.device.common.DeviceTestTags
+import org.petkitlocal.feature.device.common.RecentClipsUi
+import org.petkitlocal.feature.device.common.recentClips
+import org.petkitlocal.feature.device.common.rememberRecentClips
 import org.petkitlocal.feature.device.liveOf
 
 /** What the user can do on the litter box page besides its commands, one callback per intent. */
@@ -33,11 +36,16 @@ data class LitterCallbacks(
 @Composable
 internal fun LitterRoute(navigation: DeviceNavigation, viewModel: LitterViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val clips = rememberRecentClips(navigation)
     LitterScreen(
         uiState = uiState,
         navigation = navigation,
+        clips = clips,
         callbacks = LitterCallbacks(
-            onRefresh = viewModel::onRefresh,
+            onRefresh = {
+                viewModel.onRefresh()
+                clips.onRefresh()
+            },
             onModeToggle = viewModel::onModeToggle,
             onPetFilter = viewModel::onPetFilter,
             onHotspot = viewModel::onHotspot,
@@ -54,7 +62,7 @@ internal fun LitterRoute(navigation: DeviceNavigation, viewModel: LitterViewMode
 /**
  * The litter box page (SPEC.md §5.3): header with the mode chips and the settings gear, the hero
  * with its hotspots, the live status line, today against yesterday, the 24-hour chart, the day's
- * activity, and the action sheet every device screen shares.
+ * activity, a camera's recent clips, and the action sheet every device screen shares.
  */
 @Composable
 internal fun LitterScreen(
@@ -63,6 +71,8 @@ internal fun LitterScreen(
     callbacks: LitterCallbacks,
     modifier: Modifier = Modifier,
     initiallyExpanded: Boolean = false,
+    /** A camera's recent clips; null shows none. */
+    clips: RecentClipsUi? = null,
 ) {
     val page = uiState.page
     val tint = PkTheme.colors.heroLitter
@@ -80,6 +90,7 @@ internal fun LitterScreen(
             missingPage(uiState, tint, navigation.onBack, callbacks.onRefresh)
         } else {
             litterContent(page, uiState, navigation, callbacks)
+            recentClips(page.device, clips, Modifier.gutter())
         }
     }
     uiState.openHotspot?.let { hotspot ->

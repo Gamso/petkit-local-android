@@ -27,6 +27,7 @@ import org.petkitlocal.feature.device.navigateToDevice
 import org.petkitlocal.feature.device.navigateToDeviceSettings
 import org.petkitlocal.feature.history.clipScreen
 import org.petkitlocal.feature.history.historyScreen
+import org.petkitlocal.feature.history.navigateToClip
 import org.petkitlocal.feature.history.navigateToHistory
 import org.petkitlocal.feature.home.HomeDestination
 import org.petkitlocal.feature.home.HomeNavigation
@@ -100,6 +101,7 @@ fun PetkitNavHost(
                 onOpenHistory = { deviceId -> navController.navigateToHistory(deviceId = deviceId) },
                 onOpenDevice = { deviceId -> navController.navigateToDevice(deviceId) },
                 onOpenLive = { deviceId -> navController.navigateToLive(deviceId) },
+                onOpenClip = { clip -> navController.navigateToClip(clip) },
             ),
         )
         deviceSettingsScreen(onBack = back)

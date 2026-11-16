@@ -23,6 +23,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.DomainError
+import org.petkitlocal.core.testing.Household
+import org.petkitlocal.core.ui.RecentClipsTestTags
 import org.petkitlocal.feature.device.DeviceFixtures
 import org.petkitlocal.feature.device.common.CONFIRM_ARM_MS
 import org.petkitlocal.feature.device.common.CommandFeedback
@@ -30,6 +32,7 @@ import org.petkitlocal.feature.device.common.CommandResult
 import org.petkitlocal.feature.device.common.CommandState
 import org.petkitlocal.feature.device.common.CommandSubject
 import org.petkitlocal.feature.device.common.DeviceTestTags
+import org.petkitlocal.feature.device.common.RecentClipsUi
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
@@ -53,8 +56,8 @@ class GenericDeviceScreenTest {
         onOpenDevice = { calls += "device:$it" },
     )
 
-    private fun show(state: GenericDeviceUiState) {
-        compose.setContent { PkTheme { GenericDeviceScreen(state, actions) } }
+    private fun show(state: GenericDeviceUiState, clips: RecentClipsUi? = null) {
+        compose.setContent { PkTheme { GenericDeviceScreen(state, actions, clips = clips) } }
     }
 
     private fun scrollTo(text: String) {
@@ -103,6 +106,23 @@ class GenericDeviceScreenTest {
 
         compose.onNodeWithContentDescription("Back").performClick()
         assertEquals(listOf("back"), calls)
+    }
+
+    @Test
+    fun `a camera shows its recent clips after what it reports, each opening its clip`() {
+        var opened: String? = null
+        show(DeviceFixtures.generic(), DeviceFixtures.recentClips.copy(onOpenClip = { opened = it.url }))
+
+        compose.onNodeWithTag(DeviceTestTags.LIST).performScrollToNode(hasTestTag(RecentClipsTestTags.SECTION))
+        compose.onNodeWithTag(RecentClipsTestTags.clip(12)).performClick()
+        assertEquals(Household.cameraClips.first { it.item.id == 12L }.clip.url, opened)
+    }
+
+    @Test
+    fun `a purifier, which has no camera, shows no recent clips`() {
+        show(DeviceFixtures.generic(device = DeviceFixtures.purifier), DeviceFixtures.recentClips)
+
+        compose.onNodeWithTag(RecentClipsTestTags.SECTION).assertDoesNotExist()
     }
 
     @Test

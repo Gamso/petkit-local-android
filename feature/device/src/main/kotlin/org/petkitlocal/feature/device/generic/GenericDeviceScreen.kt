@@ -58,7 +58,10 @@ import org.petkitlocal.feature.device.common.DeviceSectionTitle
 import org.petkitlocal.feature.device.common.DeviceStatusLine
 import org.petkitlocal.feature.device.common.DeviceTestTags
 import org.petkitlocal.feature.device.common.EntityRow
+import org.petkitlocal.feature.device.common.RecentClipsUi
 import org.petkitlocal.feature.device.common.RelayLink
+import org.petkitlocal.feature.device.common.recentClips
+import org.petkitlocal.feature.device.common.rememberRecentClips
 import org.petkitlocal.feature.device.deviceFallbackTitle
 
 /** What the generic screen's user can do; the route wires each to the ViewModel or navigation. */
@@ -79,14 +82,19 @@ data class GenericDeviceActions(
 @Composable
 internal fun GenericDeviceRoute(navigation: DeviceNavigation, viewModel: GenericDeviceViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val clips = rememberRecentClips(navigation)
     GenericDeviceScreen(
         uiState,
-        GenericDeviceActions(
+        clips = clips,
+        actions = GenericDeviceActions(
             onBack = navigation.onBack,
             onOpenSettings = { uiState.device?.let { navigation.onOpenSettings(it.id) } },
             onOpenLive = { uiState.device?.let { navigation.onOpenLive(it.id) } },
             onOpenDevice = navigation.onOpenDevice,
-            onRefresh = viewModel::onRefresh,
+            onRefresh = {
+                viewModel.onRefresh()
+                clips.onRefresh()
+            },
             onAction = viewModel::onAction,
             onConfirmAction = viewModel::onConfirmAction,
             onDismissConfirmation = viewModel::onDismissConfirmation,
@@ -107,6 +115,8 @@ internal fun GenericDeviceScreen(
     actions: GenericDeviceActions,
     modifier: Modifier = Modifier,
     initiallyExpanded: Boolean = false,
+    /** A camera's recent clips; null shows none. */
+    clips: RecentClipsUi? = null,
 ) {
     val device = uiState.device
     DeviceActionScaffold(
@@ -135,7 +145,7 @@ internal fun GenericDeviceScreen(
             onRefresh = actions.onRefresh,
             modifier = Modifier.fillMaxSize(),
         ) {
-            DeviceList(uiState, actions, bottomPadding)
+            DeviceList(uiState, actions, clips, bottomPadding)
         }
     }
     uiState.commands.confirming?.let { action ->
@@ -144,7 +154,12 @@ internal fun GenericDeviceScreen(
 }
 
 @Composable
-private fun DeviceList(uiState: GenericDeviceUiState, actions: GenericDeviceActions, bottomPadding: Dp) {
+private fun DeviceList(
+    uiState: GenericDeviceUiState,
+    actions: GenericDeviceActions,
+    clips: RecentClipsUi?,
+    bottomPadding: Dp,
+) {
     val insets = WindowInsets.safeDrawing.asPaddingValues()
     val direction = LocalLayoutDirection.current
     val gutter = PkTheme.spacing.gutter
@@ -177,8 +192,13 @@ private fun DeviceList(uiState: GenericDeviceUiState, actions: GenericDeviceActi
         if (uiState.offline) item(key = "offline") { PkOfflineBanner() }
         when {
             !uiState.loaded -> item(key = "loading") { PkLoadingView(cards = 2) }
+
             device == null -> item(key = "gone") { DeviceGoneView() }
-            else -> deviceContent(uiState, device, labels, actions)
+
+            else -> {
+                deviceContent(uiState, device, labels, actions)
+                recentClips(device, clips)
+            }
         }
     }
 }

@@ -174,7 +174,9 @@ object Household {
     val cameraClipItems: List<TimelineItem> = listOf(
         item(12, 1003, at(4, 2), TimelineCategory.Toileting, TimelineCategory.HealthAlert, pet = 1, duration = 240)
             .withClips(MediaKind.Highlight),
-        item(13, 1003, at(5, 10), TimelineCategory.Pet, pet = 1).withClips(MediaKind.Highlight),
+        item(13, 1003, at(5, 10), TimelineCategory.Pet, pet = 1)
+            .copy(eventKind = "pet")
+            .withClips(MediaKind.Highlight),
         item(9, 1003, at(-1, 22, 40), TimelineCategory.Toileting, pet = 2, duration = 75)
             .withClips(MediaKind.Highlight, MediaKind.Playback),
         item(8, 1003, at(-3, 7, 5), TimelineCategory.Toileting, duration = 130).withClips(MediaKind.Playback),
