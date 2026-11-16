@@ -61,9 +61,13 @@ class World(
     val clock = MockClock(config.timezone)
     val catalog = Catalog.load()
     val hub = UpdateHub()
+
+    /** Live video: the test pattern's sockets and HLS views. */
+    val live = LiveHub()
     val auth =
         Auth(clock, config.lockoutBaseSec, config.lockoutMaxSec) { ended ->
             hub.end(Subscriber.CLOSE_SESSION_ENDED, "session ended") { it.session === ended }
+            live.endSessions { it.id == ended.id }
         }
     val devices = TreeMap<Int, MockDevice>()
     val pets = TreeMap<Int, Pet>()
@@ -93,6 +97,7 @@ class World(
             timeline.clear()
             media.clear()
             failures.clear()
+            live.reset()
             random = Random(config.seed + 1)
             Seed(this, Random(config.seed)).build()
             log.info("world reset: {} devices, {} pets, {} timeline cards", devices.size, pets.size, timeline.cards.size)
@@ -100,6 +105,7 @@ class World(
 
     fun shutdown() {
         hub.end(Subscriber.CLOSE_GOING_AWAY, "server shutting down")
+        live.end(LiveViewer.CLOSE_GOING_AWAY, "server shutting down")
         scope.cancel()
     }
 

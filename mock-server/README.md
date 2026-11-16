@@ -111,8 +111,30 @@ own rules. These were read from its
   - `{"type":"ping"}` gets a `pong`.
   - Close codes: 4401 when the session ends (logout, revocation, password change or expiry), 1013
     when the client reads too slowly, 1001 on shutdown.
-- **Live video** (M4) answers the documented refusals: 503 `live_unavailable` for a camera, 404
-  `stream_not_found` for any other device.
+- **Live video** plays a test pattern on every camera (T5, T6, T7, D4H, D4SH, W7H), the way
+  petkit-local relays go2rtc:
+  - `/devices/{id}/live` is fMP4 over a WebSocket. The client sends one
+    `{"type":"mse","value":"<codecs>"}`; the mock answers the MIME type
+    (`video/mp4; codecs="avc1.42C01E"`), the init segment, then a 0.5 s fragment as each one
+    completes, from the stream's live edge. Any other message, or a second request, gets an
+    `error`. A plain GET is 426 `upgrade_required`, any other device 404 `stream_not_found`;
+    refusals all come before the upgrade.
+  - `/devices/{id}/live/hls/playlist.m3u8` opens an HLS view and answers a master playlist naming
+    `playlist.m3u8?id=<view>`. That media playlist lists the last six segments with an
+    `EXT-X-MAP` to `init.mp4?id=<view>`; segments are `segment.m4s?id=<view>&n=<n>`. A view lapses
+    after 5 s without a request (404 `hls_session_expired`); another session's or device's id is
+    404 `hls_session_not_found`.
+  - Viewers are capped at two per camera and four in all, sockets and HLS views together (429
+    `live_limit_reached`, `Retry-After: 5`). A session opening the same camera again replaces its
+    older view, whose socket closes with 4409. A socket closes with 4401 when its session ends,
+    1013 when more than 4 MiB wait for a client that does not read, and 1001 on shutdown.
+  - The pattern is `src/main/resources/media/live.mp4` (126 KB): 6 s of ffmpeg's `testsrc2`,
+    320x240 at 16 fps, H.264 Constrained Baseline, a keyframe every 0.5 s, written as a fragmented
+    MP4 with one fragment per keyframe. `tools/make_live_pattern.sh` generated it with ffmpeg in
+    Docker (`alpine` and its `ffmpeg` package). The mock loops its twelve fragments forever,
+    rewriting each one's decode time and sequence number, so a player sees one continuous stream.
+    Every camera shows the same picture, on one clock: a viewer joining late gets the stream where
+    it is.
 
 ## The seeded household
 
@@ -177,7 +199,7 @@ Under `/mock`, no authentication, JSON in and out. It is meant for the app's end
 
 | Route | Body | Effect |
 |---|---|---|
-| `GET /mock` | | Routes, clock offset, scenario state, open sockets. |
+| `GET /mock` | | Routes, clock offset, scenario state, open sockets (`/ws`, live video, HLS views). |
 | `POST /mock/reset` | | Back to the seed: devices, pets, history, password. Sessions are dropped. |
 | `POST /mock/devices/{id}/visit` | `pet_id?`, `weight_g?`, `duration_sec?`, `auto_clean?`, `health_alert?` | A live visit on a litter box. |
 | `POST /mock/devices/{id}/meal` | `amount?`, `amount1?`, `amount2?` | A feeder serves a meal. |
@@ -194,6 +216,8 @@ Under `/mock`, no authentication, JSON in and out. It is meant for the app's end
 | `POST /mock/fail` | `method`, `path`, `status`, `error?`, `message?`, `retry_after?`, `times?` | The next `times` (default 1) requests to that route get this error. `path` is a spec template (`/devices/{id}`) or a concrete path. |
 | `DELETE /mock/fail` | | Clears forced failures. |
 | `POST /mock/ws/close` | `code?` (default 1001), `reason?` | Closes every `/ws` socket with that code. |
+| `POST /mock/live/close` | `code?` (default 1011), `reason?` | Closes every live-video socket with that code: 1011 or 1001 (stream ended), 1013 (too slow, the app falls back to HLS), 4409 (replaced). |
+| `POST /mock/live/error` | `message?`, `next?` | Sends an `error` to every open live-video socket, which then stops streaming, and answers the next `next` (default 0) `mse` requests with that `error` instead of the stream: a camera that does not take a new viewer yet. |
 | `POST /mock/scenario/tick` | | Rolls one scenario event now. |
 | `PUT /mock/scenario` | `interval_sec` | Restarts the engine at that interval; `0` stops it. |
 
@@ -221,6 +245,8 @@ The other tests cover:
 - the auth rules;
 - paging;
 - the `/ws` sequences and close codes;
+- live video: the pattern's fragments and their timestamps, the socket's flow, HLS, the viewer caps and
+  the close codes;
 - the control API;
 - the write validation;
 - the determinism of the seed.

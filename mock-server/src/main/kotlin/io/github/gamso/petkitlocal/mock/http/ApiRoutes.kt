@@ -35,11 +35,14 @@ import io.github.gamso.petkitlocal.mock.state.writePlan
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.Parameters
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.plugins.origin
 import io.ktor.server.response.header
 import io.ktor.server.response.respondBytes
 import io.ktor.server.routing.Route
+import io.ktor.server.routing.RoutingCall
+import io.ktor.server.routing.RoutingPipelineCall
 import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
@@ -70,14 +73,25 @@ private val OPENAPI: ByteArray by lazy {
 
 private const val PONG = """{"type":"pong"}"""
 
-private fun ApplicationCall.session(): AppSession = attributes[SessionKey]
+internal fun ApplicationCall.session(): AppSession = attributes[SessionKey]
 
-/** A numeric path segment; anything else is a 404, since no such thing can exist. */
+/** The path's parameters alone: [ApplicationCall.parameters] puts the query's first. */
+internal fun ApplicationCall.pathParameters(): Parameters =
+    when (this) {
+        is RoutingCall -> pathParameters
+        is RoutingPipelineCall -> pathParameters
+        else -> parameters
+    }
+
+/**
+ * A numeric path segment; anything else is a 404, since no such thing can exist. Path only:
+ * `parameters` also holds the query, where HLS has an `id` of its own.
+ */
 private fun ApplicationCall.pathInt(
     name: String,
     what: String,
 ): Int {
-    val raw = parameters[name].orEmpty()
+    val raw = pathParameters()[name].orEmpty()
     return raw.trim().toIntOrNull()?.takeIf { it.toString() == raw.trim() } ?: throw ApiException(404, "${what}_not_found", "no such $what")
 }
 
@@ -96,7 +110,7 @@ private fun ApplicationCall.queryInt(
     return value
 }
 
-private fun World.deviceOr404(call: ApplicationCall): MockDevice =
+internal fun World.deviceOr404(call: ApplicationCall): MockDevice =
     synchronized(lock) { devices[call.pathInt("id", "device")] } ?: throw ApiException(404, "device_not_found", "no such device")
 
 private fun World.feederOr404(call: ApplicationCall): MockDevice {
@@ -138,7 +152,7 @@ fun Route.apiRoutes(world: World) {
         authRoutes(world)
         deviceRoutes(world)
         feedingRoutes(world)
-        videoRoutes(world)
+        liveVideoRoutes(world)
         timelineRoutes(world)
         mediaRoutes(world)
         petRoutes(world)
@@ -265,34 +279,6 @@ private fun Route.feedingRoutes(world: World) {
         val device = world.feederOr404(call)
         val delivered = synchronized(world.lock) { world.deleteDeferredFeed(device, call.parameters["feed_id"].orEmpty()) }
         call.respondJson(WriteResult.serializer(), WriteResult(delivered = delivered))
-    }
-}
-
-/**
- * Live video comes with M4. Until then a camera answers the documented 503 `live_unavailable`
- * (go2rtc not running) and anything else the documented 404 `stream_not_found`.
- */
-private fun Route.videoRoutes(world: World) {
-    fun refuse(call: ApplicationCall): Nothing {
-        val device = world.deviceOr404(call)
-        if (!device.model.isCamera) {
-            throw ApiException(
-                404,
-                "stream_not_found",
-                "this device has no live stream (not a camera, the camera patch is not applied, or the camera is not reachable)",
-            )
-        }
-        throw ApiException(503, "live_unavailable", "live video is not available on this server")
-    }
-    get("/devices/{id}/live") { refuse(call) }
-    get("/devices/{id}/live/hls/{file}") {
-        world.deviceOr404(call)
-        if (call.parameters["file"] !in
-            setOf("playlist.m3u8", "init.mp4", "segment.m4s")
-        ) {
-            throw ApiException(404, "not_found", "no such file")
-        }
-        refuse(call)
     }
 }
 

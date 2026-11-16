@@ -4,6 +4,7 @@ import io.github.gamso.petkitlocal.mock.api.ApiException
 import io.github.gamso.petkitlocal.mock.scenario.Scenario
 import io.github.gamso.petkitlocal.mock.state.FeedSource
 import io.github.gamso.petkitlocal.mock.state.ForcedFailure
+import io.github.gamso.petkitlocal.mock.state.LiveViewer
 import io.github.gamso.petkitlocal.mock.state.MockDevice
 import io.github.gamso.petkitlocal.mock.state.Subscriber
 import io.github.gamso.petkitlocal.mock.state.World
@@ -94,6 +95,8 @@ private val CONTROL_ROUTES =
         "POST   /mock/fail                            {method, path, status, error?, message?, retry_after?, times?}",
         "DELETE /mock/fail                            clear forced failures",
         "POST   /mock/ws/close                        {code?, reason?}  close every /ws socket (1001, 1013, 4401...)",
+        "POST   /mock/live/close                      {code?, reason?}  close every live-video socket (1011; 1001, 1013, 4409...)",
+        "POST   /mock/live/error                      {message?, next?}  `error` to every live-video socket and the next `next` opens",
         "POST   /mock/scenario/tick                   roll one scenario event now",
         "PUT    /mock/scenario                        {interval_sec}  0 stops it",
     )
@@ -111,6 +114,8 @@ fun Route.controlRoutes(
                     put("scenario_interval_sec", scenario.intervalSec)
                     put("scenario_running", scenario.running)
                     put("sockets", world.hub.size)
+                    put("live_sockets", world.live.sockets)
+                    put("hls_views", world.live.hlsViews)
                     put("routes", buildJsonArray { CONTROL_ROUTES.forEach { add(JsonPrimitive(it)) } })
                 },
             )
@@ -282,6 +287,20 @@ private fun Route.harnessControl(
         val code = (body.int("code") ?: Subscriber.CLOSE_GOING_AWAY.toInt()).toShort()
         val closed = world.hub.end(code, body.str("reason") ?: "closed by the mock's control API")
         call.ok(buildJsonObject { put("closed", closed) })
+    }
+    post("/live/close") {
+        val body = call.optionalBody()
+        val code = (body.int("code") ?: LiveViewer.CLOSE_STREAM_ENDED.toInt()).toShort()
+        val closed = world.live.end(code, body.str("reason") ?: "closed by the mock's control API")
+        call.ok(buildJsonObject { put("closed", closed) })
+    }
+    post("/live/error") {
+        val body = call.optionalBody()
+        val message = body.str("message") ?: "the camera did not answer"
+        val next = body.int("next") ?: 0
+        if (next < 0) throw ApiException(400, "bad_request", "next must be 0 or more")
+        world.live.failNextOpens(next, message)
+        call.ok(buildJsonObject { put("sent", world.live.errorAll(message)) })
     }
     post("/scenario/tick") {
         call.ok(buildJsonObject { put("event", scenario.tick()) })

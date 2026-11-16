@@ -6,6 +6,7 @@ import io.ktor.client.request.header
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
+import io.ktor.websocket.readText
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -167,18 +168,48 @@ class ContractTest {
 
     @Test
     @Order(6)
-    fun `video - the documented unavailable answers`() =
+    fun `video - the stream, HLS, and the documented refusals`() =
         mockTest { _, api ->
             api.login()
-            assertEquals(503, api.get("/devices/{id}/live", "/devices/${Seed.T5}/live").status)
-            assertEquals(404, api.get("/devices/{id}/live", "/devices/${Seed.T4}/live").status)
-            assertEquals(404, api.get("/devices/{id}/live", "/devices/99/live").status)
-            assertEquals(401, api.get("/devices/{id}/live", "/devices/${Seed.T5}/live", token = null).status)
+            val live = "/devices/{id}/live"
+            assertEquals(426, api.get(live, "/devices/${Seed.T5}/live").status)
+            assertEquals(404, api.get(live, "/devices/${Seed.T4}/live").status)
+            assertEquals(404, api.get(live, "/devices/99/live").status)
+            assertEquals(401, api.get(live, "/devices/${Seed.T5}/live", token = null).status)
+            api.client.control(HttpMethod.Post, "/fail", """{"method":"GET","path":"$live","status":503,"error":"live_unavailable"}""")
+            assertEquals(503, api.get(live, "/devices/${Seed.T5}/live").status)
+            api.client.control(
+                HttpMethod.Post,
+                "/fail",
+                """{"method":"GET","path":"$live","status":429,"error":"live_limit_reached","retry_after":5}""",
+            )
+            assertEquals(429, api.get(live, "/devices/${Seed.T5}/live").status)
+            api.client.webSocket(
+                "/app/v1/devices/${Seed.T5}/live",
+                request = { header(HttpHeaders.Authorization, "Bearer ${api.token}") },
+            ) {
+                send(
+                    io.ktor.websocket.Frame
+                        .Text("""{"type":"mse","value":"avc1.42E01E"}"""),
+                )
+                val answer = (kotlinx.coroutines.withTimeout(5000) { incoming.receive() } as io.ktor.websocket.Frame.Text).readText()
+                assertTrue(answer.startsWith("""{"type":"mse""""), answer)
+            }
+            Coverage.record("GET", live, 101)
+
             val hls = "/devices/{id}/live/hls/{file}"
-            assertEquals(503, api.get(hls, "/devices/${Seed.T5}/live/hls/playlist.m3u8").status)
+            val master = api.get(hls, "/devices/${Seed.T5}/live/hls/playlist.m3u8")
+            assertEquals(200, master.status)
+            val variant = master.text.lines().single { it.startsWith("playlist.m3u8?id=") }
+            assertEquals(200, api.get(hls, "/devices/${Seed.T5}/live/hls/$variant").status)
+            assertEquals(200, api.get(hls, "/devices/${Seed.T5}/live/hls/init.mp4?id=${variant.substringAfter("id=")}").status)
             assertEquals(404, api.get(hls, "/devices/${Seed.T4}/live/hls/playlist.m3u8").status)
             assertEquals(404, api.get(hls, "/devices/${Seed.T5}/live/hls/evil.sh").status)
             assertEquals(401, api.get(hls, "/devices/${Seed.T5}/live/hls/init.mp4", token = null).status)
+            api.client.control(HttpMethod.Post, "/fail", """{"method":"GET","path":"$hls","status":503,"error":"live_unavailable"}""")
+            assertEquals(503, api.get(hls, "/devices/${Seed.T5}/live/hls/playlist.m3u8").status)
+            api.client.control(HttpMethod.Post, "/fail", """{"method":"GET","path":"$hls","status":502,"error":"bad_upstream"}""")
+            assertEquals(502, api.get(hls, "/devices/${Seed.T5}/live/hls/playlist.m3u8").status)
         }
 
     @Test
@@ -268,10 +299,7 @@ class ContractTest {
         assertTrue(Contract.operations.containsAll(pending), "a pending operation left the spec: ${pending - Contract.operations}")
         assertTrue(missing.isEmpty(), "operations never called: $missing")
         val unsuccessful =
-            Coverage.seen.filter { (op, statuses) ->
-                // Live video is M4: the mock answers only its documented refusals for now.
-                op.second !in setOf("/devices/{id}/live", "/devices/{id}/live/hls/{file}") && statuses.none { it in 200..299 || it == 101 }
-            }
+            Coverage.seen.filter { (_, statuses) -> statuses.none { it in 200..299 || it == 101 } }
         assertTrue(unsuccessful.isEmpty(), "operations never answered with success: ${unsuccessful.keys}")
     }
 }
