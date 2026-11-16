@@ -105,7 +105,7 @@ jobs:
 
       - name: Instrumented tests on ${{ matrix.device.name }}
         run: >-
-          ./gradlew :app:${{ matrix.device.name }}DebugAndroidTest
+          scripts/gradle-ci.sh :app:${{ matrix.device.name }}DebugAndroidTest
           -Pandroid.testoptions.manageddevices.emulator.gpu=swiftshader_indirect
           -Pandroid.experimental.testOptions.managedDevices.emulator.showKernelLogging=true
       # AGP 9.5 reports success when it cannot install the APKs at all: the task passes with zero
@@ -205,7 +205,7 @@ jobs:
       # replaces the release build type's debug key for this build only.
       - name: Release APK (R8)
         run: >-
-          ./gradlew :app:assembleRelease
+          scripts/gradle-ci.sh :app:assembleRelease
           -Pandroid.injected.signing.store.file="$SIGNING_STORE_FILE"
           -Pandroid.injected.signing.store.password="$SIGNING_STORE_PASSWORD"
           -Pandroid.injected.signing.key.alias="$SIGNING_KEY_ALIAS"
