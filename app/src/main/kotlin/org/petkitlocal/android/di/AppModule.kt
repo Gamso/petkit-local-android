@@ -11,8 +11,9 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import org.petkitlocal.core.domain.auth.LocalNetworkAccess
+import org.petkitlocal.core.domain.settings.AppVersionProvider
 
-/** What only the app module can bind: the Android permissions the domain asks about. */
+/** What only the app module can bind: the Android permissions the domain asks about, and its version. */
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
@@ -24,5 +25,11 @@ object AppModule {
         Build.VERSION.SDK_INT >= LOCAL_NETWORK_PERMISSION_SDK &&
             ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_LOCAL_NETWORK) !=
             PackageManager.PERMISSION_GRANTED
+    }
+
+    /** The installed package's `versionName` (app/build.gradle.kts), for About. */
+    @Provides
+    fun appVersion(@ApplicationContext context: Context): AppVersionProvider = AppVersionProvider {
+        context.packageManager.getPackageInfo(context.packageName, 0).versionName.orEmpty()
     }
 }

@@ -125,7 +125,7 @@ screen).
 - "Talk" is shown disabled with an explanation (non-goal).
 
 ### 8 · Settings
-- Server: address, connection state, server version.
+- Server: address, server version.
 - Notifications: on/off, connection state (connected, reconnecting, battery optimisation still
   on, notification permission refused, each with the action that fixes it) and the kinds to show.
 - App: this phone's name. No language or theme setting: the app follows the phone's language

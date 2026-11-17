@@ -1,11 +1,52 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="settings_title">Réglages</string>
+    <string name="settings_loading">Chargement…</string>
+    <string name="settings_unknown">Inconnue</string>
+    <string name="settings_retry">Réessayer</string>
+
+    <string name="settings_section_server">Serveur</string>
+    <string name="settings_address">Adresse</string>
+    <string name="settings_address_help">Le serveur petkit-local auquel ce téléphone est connecté.</string>
+    <string name="settings_server_version">Version du serveur</string>
+    <string name="settings_server_version_help">La version de petkit-local que fait tourner le serveur.</string>
+    <string name="settings_server_unreachable">Le serveur est injoignable : sa version et le nom de ce téléphone chez lui sont inconnus.</string>
+
+    <string name="settings_section_notifications">Notifications</string>
+    <string name="settings_notifications_intro">Ce dont ce téléphone est prévenu. Le serveur garde ce choix pour ce téléphone et n\'envoie rien d\'autre.</string>
+    <string name="settings_notifications_unreachable">Le serveur est injoignable : les choix de notifications de ce téléphone ne peuvent pas être affichés.</string>
+    <string name="settings_kind_not_saved">Le changement n\'est pas parvenu au serveur. Les interrupteurs montrent ce qu\'il garde encore.</string>
+    <string name="settings_kind_off_on_server">Désactivé dans les réglages de notifications du panneau : aucun téléphone ne le reçoit.</string>
+    <string name="settings_kind_toilet">Passages à la litière</string>
+    <string name="settings_kind_toilet_help">Chaque fois qu\'un animal utilise une litière.</string>
+    <string name="settings_kind_feed_served">Repas servis</string>
+    <string name="settings_kind_feed_served_help">Chaque repas qu\'un distributeur sert, ou saute parce que la gamelle n\'était pas vide.</string>
+    <string name="settings_kind_feed_failed">Repas manqués</string>
+    <string name="settings_kind_feed_failed_help">Un repas qu\'un distributeur n\'a pas pu servir.</string>
+    <string name="settings_kind_error">Pannes d\'appareil</string>
+    <string name="settings_kind_error_help">Un appareil signale une panne.</string>
+    <string name="settings_kind_food_low">Croquettes bientôt épuisées</string>
+    <string name="settings_kind_food_low_help">Le réservoir d\'un distributeur est vide.</string>
+    <string name="settings_kind_consumable">Consommables</string>
+    <string name="settings_kind_consumable_help">Un bac, un plateau, un filtre, la litière, l\'eau ou le désodorisant à voir.</string>
+    <string name="settings_kind_offline">Appareil hors ligne</string>
+    <string name="settings_kind_offline_help">Un appareil ne répond plus au serveur.</string>
+
+    <string name="settings_section_phone">Ce téléphone</string>
+    <string name="settings_phone_name">Nom du téléphone</string>
+    <string name="settings_phone_name_help">Le nom de ce téléphone dans le panneau. Pour le changer, déconnectez-vous et reconnectez-vous avec un autre nom.</string>
+
     <string name="settings_section_account">Compte</string>
-    <string name="settings_signed_in_to">Connecté à %1$s</string>
+    <string name="settings_change_password">Changer le mot de passe</string>
+    <string name="settings_change_password_help">Demande le mot de passe actuel. Déconnecte tous les autres téléphones.</string>
     <string name="settings_sign_out">Se déconnecter</string>
+    <string name="settings_sign_out_help">Ce téléphone oublie sa session. Les actions gardées en vue sur chaque appareil restent pour ce serveur.</string>
     <string name="settings_signing_out">Déconnexion…</string>
     <string name="settings_sign_out_title">Déconnecter ce téléphone ?</string>
-    <string name="settings_sign_out_message">Le serveur oublie la session de ce téléphone, et le téléphone oublie ce qu\'il avait gardé. Il faudra le mot de passe pour vous reconnecter.</string>
-    <string name="settings_more_later">Les réglages du serveur, des notifications et du thème arrivent avec le jalon M5.</string>
+    <string name="settings_sign_out_message">Le serveur oublie la session de ce téléphone, et le téléphone oublie les appareils et l\'historique qu\'il avait gardés. Il faudra le mot de passe pour vous reconnecter.</string>
+
+    <string name="settings_section_about">À propos</string>
+    <string name="settings_app_version">Version de Petkit Local</string>
+    <string name="settings_app_version_help">Les nouvelles versions sont publiées sur la page des versions du projet sur GitHub.</string>
+    <string name="settings_not_affiliated">Petkit Local est un projet indépendant. Il n\'est ni affilié à PetKit, ni approuvé par PetKit, ni lié à PetKit.</string>
 </resources>

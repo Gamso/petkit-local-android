@@ -1,11 +1,52 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="settings_title">Settings</string>
+    <string name="settings_loading">Loading…</string>
+    <string name="settings_unknown">Unknown</string>
+    <string name="settings_retry">Try again</string>
+
+    <string name="settings_section_server">Server</string>
+    <string name="settings_address">Address</string>
+    <string name="settings_address_help">The petkit-local server this phone is signed in to.</string>
+    <string name="settings_server_version">Server version</string>
+    <string name="settings_server_version_help">The version of petkit-local the server runs.</string>
+    <string name="settings_server_unreachable">The server cannot be reached, so its version and this phone\'s name there are unknown.</string>
+
+    <string name="settings_section_notifications">Notifications</string>
+    <string name="settings_notifications_intro">What this phone is told about. The server keeps this choice for this phone and sends nothing else.</string>
+    <string name="settings_notifications_unreachable">The server cannot be reached, so this phone\'s notification choices cannot be shown.</string>
+    <string name="settings_kind_not_saved">The change did not reach the server. The switches show what it still holds.</string>
+    <string name="settings_kind_off_on_server">Turned off in the panel\'s notification settings: no phone gets it.</string>
+    <string name="settings_kind_toilet">Litter box visits</string>
+    <string name="settings_kind_toilet_help">Each time a pet uses a litter box.</string>
+    <string name="settings_kind_feed_served">Meals served</string>
+    <string name="settings_kind_feed_served_help">Each meal a feeder dispenses, or skips because the bowl was not empty.</string>
+    <string name="settings_kind_feed_failed">Failed meals</string>
+    <string name="settings_kind_feed_failed_help">A meal a feeder could not dispense.</string>
+    <string name="settings_kind_error">Device faults</string>
+    <string name="settings_kind_error_help">A device reports a fault.</string>
+    <string name="settings_kind_food_low">Food running out</string>
+    <string name="settings_kind_food_low_help">A feeder\'s hopper is empty.</string>
+    <string name="settings_kind_consumable">Consumables</string>
+    <string name="settings_kind_consumable_help">A bin, tray, filter, litter, water or deodorizer to see to.</string>
+    <string name="settings_kind_offline">Device offline</string>
+    <string name="settings_kind_offline_help">A device stopped answering the server.</string>
+
+    <string name="settings_section_phone">This phone</string>
+    <string name="settings_phone_name">Phone name</string>
+    <string name="settings_phone_name_help">How the panel lists this phone. To change it, sign out and sign in again with another name.</string>
+
     <string name="settings_section_account">Account</string>
-    <string name="settings_signed_in_to">Signed in to %1$s</string>
+    <string name="settings_change_password">Change password</string>
+    <string name="settings_change_password_help">Needs the current password. Signs out every other phone.</string>
     <string name="settings_sign_out">Sign out</string>
+    <string name="settings_sign_out_help">This phone forgets its session. The actions you keep in view on each device stay for this server.</string>
     <string name="settings_signing_out">Signing out…</string>
     <string name="settings_sign_out_title">Sign out of this phone?</string>
-    <string name="settings_sign_out_message">The server forgets this phone\'s session, and the phone forgets what it kept. You will need the password to sign in again.</string>
-    <string name="settings_more_later">The server, notifications and theme settings arrive with milestone M5.</string>
+    <string name="settings_sign_out_message">The server forgets this phone\'s session, and the phone forgets the devices and history it kept. You will need the password to sign in again.</string>
+
+    <string name="settings_section_about">About</string>
+    <string name="settings_app_version">Petkit Local version</string>
+    <string name="settings_app_version_help">New versions are published on the project\'s GitHub releases page.</string>
+    <string name="settings_not_affiliated">Petkit Local is an independent project. It is not affiliated with, endorsed by or connected to PetKit.</string>
 </resources>

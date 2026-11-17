@@ -10,6 +10,9 @@ data object SettingsDestination
 
 fun NavController.navigateToSettings() = navigate(SettingsDestination)
 
-fun NavGraphBuilder.settingsScreen(onBack: () -> Unit) {
-    composable<SettingsDestination> { SettingsRoute(onBack = onBack) }
+/** Where Settings leads; the app wires each to another feature's screen. */
+class SettingsNavigation(val onBack: () -> Unit = {}, val onChangePassword: () -> Unit = {})
+
+fun NavGraphBuilder.settingsScreen(navigation: SettingsNavigation) {
+    composable<SettingsDestination> { SettingsRoute(navigation) }
 }
