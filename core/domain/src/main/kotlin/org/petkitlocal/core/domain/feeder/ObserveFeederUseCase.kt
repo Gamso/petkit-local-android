@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import org.petkitlocal.core.domain.repository.DeviceRepository
 import org.petkitlocal.core.domain.repository.FeedingRepository
+import org.petkitlocal.core.domain.repository.PetRepository
 import org.petkitlocal.core.domain.repository.TimelineRepository
 
 /**
@@ -17,6 +18,7 @@ import org.petkitlocal.core.domain.repository.TimelineRepository
 class ObserveFeederUseCase @Inject constructor(
     private val devices: DeviceRepository,
     private val feeding: FeedingRepository,
+    private val pets: PetRepository,
     private val timeline: TimelineRepository,
     private val clock: Clock,
 ) {
@@ -25,7 +27,8 @@ class ObserveFeederUseCase @Inject constructor(
         feeding.observePlan(deviceId),
         feeding.observeDeferredFeeds(deviceId),
         timeline.observeDay(day),
-    ) { device, plan, deferred, items ->
-        device?.let { FeederRules.page(it, plan, deferred, items, clock.instant(), clock.zone) }
+        pets.observePets(),
+    ) { device, plan, deferred, items, pets ->
+        device?.let { FeederRules.page(it, plan, deferred, items, clock.instant(), clock.zone, pets) }
     }
 }

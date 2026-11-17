@@ -92,7 +92,12 @@ screen).
   arrow and the amount ("↑ 2 since yesterday"); nothing when yesterday has no visit to compare with.
 - **24-hour chart**: one stem per visit, from the axis at its time up to its duration, capped with a
   dot coloured per pet, with a pet filter.
-- **Activity**: the day's timeline for this device, linking to History.
+- **Activity**: the day's timeline for this device, linking to History. One row per visit with
+  the pet's photo (its initial on its colour without one, a paw for a pet the box could not tell)
+  and a sentence ("Mochi spent 1:35 · 4.3 kg"); under it, the steps the server grouped with the
+  visit (cleaning done, deodorizing done, a failed one with its reason). A pet seen and a
+  cleaning on its own are single rows with their symbol. The feeder and fountain pages list their
+  meals and drinks the same way.
 - **Bottom action sheet**: the model's actions (clean, level, deodorize…), from
   `DeviceDetail.actions`. Destructive ones ask for confirmation and send `confirm: true`.
 - Settings (gear): every settable entity, grouped, with the type-appropriate control.

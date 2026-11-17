@@ -1,4 +1,4 @@
-package org.petkitlocal.feature.history
+package org.petkitlocal.core.ui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -18,7 +18,7 @@ import org.petkitlocal.core.designsystem.theme.PkTheme
  * every card's text starts at the same place. Never narrower than [MIN_TIME_WIDTH].
  */
 @Composable
-internal fun rememberTimeColumnWidth(locale: Locale): Dp {
+fun rememberTimeColumnWidth(locale: Locale): Dp {
     val measurer = rememberTextMeasurer()
     val style = PkTheme.typography.labelLarge
     val density = LocalDensity.current

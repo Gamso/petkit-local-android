@@ -65,7 +65,7 @@ class FeederViewModelTest {
 
     private fun viewModel(id: Long) = FeederViewModel(
         SavedStateHandle(mapOf(DEVICE_ID_KEY to id)),
-        ObserveFeederUseCase(devices, feeding, timeline, Household.clock),
+        ObserveFeederUseCase(devices, feeding, FakePetRepository(Household.pets), timeline, Household.clock),
         ObserveLiveUpdatesUseCase(live),
         RefreshDevicePageUseCase(devices, FakePetRepository(), timeline),
         feeding,

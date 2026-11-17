@@ -33,7 +33,6 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
 import org.petkitlocal.core.designsystem.component.PkButton
 import org.petkitlocal.core.designsystem.component.PkButtonStyle
 import org.petkitlocal.core.designsystem.icon.PkIcons
@@ -41,6 +40,7 @@ import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.home.AlertKind
 import org.petkitlocal.core.domain.home.DeviceAlert
 import org.petkitlocal.core.domain.home.PetOverview
+import org.petkitlocal.core.ui.PetAvatar
 import org.petkitlocal.core.ui.formatWeightKg
 import org.petkitlocal.core.ui.rememberServerLabels
 
@@ -148,7 +148,13 @@ internal fun PetChip(pet: PetOverview, onClick: () -> Unit, modifier: Modifier =
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             modifier = Modifier.padding(PkTheme.spacing.s),
         ) {
-            PetAvatar(pet)
+            PetAvatar(
+                pet.pet.name,
+                pet.pet.photoUrl,
+                pet.colorIndex,
+                44.dp,
+                initialStyle = PkTheme.typography.titleLarge,
+            )
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     pet.pet.name,
@@ -165,35 +171,6 @@ internal fun PetChip(pet: PetOverview, onClick: () -> Unit, modifier: Modifier =
         }
     }
 }
-
-/** The pet's photo, over its initial on its colour, which is what shows until (or unless) it loads. */
-@Composable
-private fun PetAvatar(pet: PetOverview) {
-    val color = PkTheme.colors.pet(pet.colorIndex)
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .size(44.dp)
-            .clip(CircleShape)
-            .background(color.copy(alpha = AVATAR_TINT)),
-    ) {
-        Text(
-            pet.pet.name.take(1).uppercase(),
-            style = PkTheme.typography.titleLarge,
-            color = color,
-        )
-        if (pet.pet.photoUrl != null) {
-            AsyncImage(
-                model = pet.pet.photoUrl,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.size(44.dp),
-            )
-        }
-    }
-}
-
-private const val AVATAR_TINT = 0.16f
 
 /** A section title, with an optional action at its end. */
 @Composable

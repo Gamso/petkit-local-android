@@ -129,7 +129,7 @@ arrow mirrored in right-to-left languages.
 | `DayStemChart` | Litter, Fountain (W7H) | 24 h × duration: a stem from the axis per visit or drink, capped with a dot in its pet's colour (unknown pet neutral); events close in time are spread a few dp apart; pet filter |
 | `ActionSheet` | Device pages | Pull handle, 4 actions per row, primary action filled; none when the device has no everyday action and every other one is on a part's pill |
 | `ConfirmDialog` | Destructive actions | Explains the effect, danger-coloured confirm |
-| `TimelineRow` | History, device activity | Time rail, icon or pet avatar, title, details, media thumbnails |
+| `TimelineRow` | History, device activity | Time rail, icon or pet avatar, title, details, media thumbnails; on a device page, one row per visit, drink or meal (photo, else initial on the pet's colour, else a paw) with the steps that followed indented under a dotted connector, a failed one in `danger` with its reason |
 | `DayStrip` | History | 7 days, selected one filled |
 | `FilterChips` | History | Single-select |
 | `SettingRow` | Settings, device settings | Switch, select, number, time, text editors per entity type |

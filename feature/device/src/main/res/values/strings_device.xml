@@ -79,4 +79,22 @@
         <item quantity="other">At most %1$d characters.</item>
     </plurals>
     <string name="device_problem_not_settable">This setting cannot be changed.</string>
+    <!-- A device's activity (SPEC.md §5.3): one row per visit, drink or meal. %1$s is the pet's name, %2$s a duration (1:35). -->
+    <string name="device_activity">Activity</string>
+    <string name="device_activity_empty">Nothing yet today.</string>
+    <string name="device_see_history">See all in History</string>
+    <string name="activity_visit">%1$s spent %2$s</string>
+    <string name="activity_visit_short">%1$s visited</string>
+    <string name="activity_visit_unknown">A pet spent %1$s</string>
+    <string name="activity_visit_unknown_short">A pet visited</string>
+    <string name="activity_drink">%1$s drank for %2$s</string>
+    <string name="activity_drink_short">%1$s drank</string>
+    <string name="activity_drink_unknown">A pet drank for %1$s</string>
+    <string name="activity_drink_unknown_short">A pet drank</string>
+    <string name="activity_meal">%1$s ate for %2$s</string>
+    <string name="activity_meal_short">%1$s ate</string>
+    <string name="activity_meal_unknown">A pet ate for %1$s</string>
+    <string name="activity_meal_unknown_short">A pet ate</string>
+    <string name="activity_pet_seen">%1$s came by</string>
+    <string name="activity_pet_seen_unknown">A pet came by</string>
 </resources>

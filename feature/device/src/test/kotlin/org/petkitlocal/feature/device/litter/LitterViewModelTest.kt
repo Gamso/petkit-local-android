@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.RegisterExtension
 import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.core.domain.Outcome
+import org.petkitlocal.core.domain.activity.ActivityAvatar
 import org.petkitlocal.core.domain.device.ObserveLiveUpdatesUseCase
 import org.petkitlocal.core.domain.device.RunDeviceActionUseCase
 import org.petkitlocal.core.domain.device.SetEntityValueUseCase
@@ -94,6 +95,32 @@ class LitterViewModelTest {
         assertFalse(viewModel.uiState.value.refreshing)
         assertEquals(setOf(Household.today, Household.today.minusDays(1)), timeline.refreshedDays.toSet())
     }
+
+    @Test
+    fun `the day's activity is one row per visit, its follow-ups under it, the pet's photo when it has one`() =
+        runTest(main.dispatcher) {
+            pets.pets.value = LitterFixtures.pets
+            val viewModel = viewModel()
+            collect(viewModel)
+            advanceUntilIdle()
+
+            val activity = viewModel.uiState.value.page!!.activity
+            assertEquals(listOf(16L, 14L, 13L, 11L, 10L, 9L), activity.map { it.item.id })
+            // The weight check and the mechanism's start are left out; the cleaning and spray stay.
+            assertEquals(listOf(163L, 164L), activity[0].steps.map { it.id })
+            assertEquals(listOf(false, true), activity[1].steps.map { it.failed })
+            assertEquals(
+                listOf(
+                    ActivityAvatar.Pet("Mochi", LitterFixtures.pets[0].photoUrl, 0),
+                    ActivityAvatar.Pet("Tigrou", null, 1),
+                    null,
+                    null,
+                    ActivityAvatar.Pet("Tigrou", null, 1),
+                    ActivityAvatar.Unknown,
+                ),
+                activity.map { it.avatar },
+            )
+        }
 
     @Test
     fun `a failed refresh or an unreachable socket keeps the last known box and says so`() = runTest(main.dispatcher) {

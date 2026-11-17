@@ -81,6 +81,17 @@ class FeederScreenTest {
     }
 
     @Test
+    fun `today's meals are listed under the plan, and lead to History`() {
+        show(FeederFixtures.single)
+        scrollTo("See all in History")
+
+        compose.onNodeWithText("Meal served", useUnmergedTree = true).assertExists()
+        compose.onNodeWithText("See all in History").performClick()
+
+        assertEquals(listOf("history:2001"), calls)
+    }
+
+    @Test
     fun `a paused dual hopper says so, and feed now asks for a portion`() {
         show(FeederFixtures.dualPaused)
 

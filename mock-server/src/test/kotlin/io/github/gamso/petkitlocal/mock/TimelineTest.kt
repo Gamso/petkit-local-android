@@ -143,6 +143,32 @@ class TimelineTest {
         }
 
     @Test
+    fun `a box that deodorizes lists the spray after the cleaning, and some sprays fail`() =
+        mockTest { _, api ->
+            api.login()
+            val labels =
+                api.walk("device=${Seed.T5}&kind=toileting&limit=100").map { visit ->
+                    visit["steps"]!!.jsonArray.map { it.jsonObject["label"]!!.jsonPrimitive.content }
+                }
+            val cleaned = labels.filter { "Auto cleaning completed" in it }
+            assertTrue(cleaned.isNotEmpty())
+            // Each spray follows its cleaning, as a step the official app shows.
+            assertTrue(cleaned.all { it.last().startsWith("Auto deodorizing ") && it.indexOf("Auto cleaning completed") < it.size - 1 })
+            val sprays = cleaned.map { it.last() }
+            assertTrue("Auto deodorizing completed" in sprays)
+            assertTrue("Auto deodorizing failed" in sprays)
+            // The Pura Max has no deodorizer of its own: its visits end with the cleaning.
+            val t4 = api.walk("device=${Seed.T4}&kind=toileting&limit=100").flatMap { it["steps"]!!.jsonArray }
+            assertTrue(
+                t4.none {
+                    it.jsonObject["label"]!!
+                        .jsonPrimitive.content
+                        .contains("deodorizing")
+                },
+            )
+        }
+
+    @Test
     fun `media serve ranges, thumbnails are jpegs`() =
         mockTest { _, api ->
             api.login()

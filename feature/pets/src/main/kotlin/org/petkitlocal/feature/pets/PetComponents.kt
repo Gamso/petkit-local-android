@@ -42,7 +42,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil3.compose.AsyncImage
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.Locale
@@ -55,6 +54,7 @@ import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.model.Pet
 import org.petkitlocal.core.domain.pets.PetPage
 import org.petkitlocal.core.domain.pets.PetVisit
+import org.petkitlocal.core.ui.PetAvatar
 import org.petkitlocal.core.ui.formatDurationMinSec
 import org.petkitlocal.core.ui.formatTimeOfDay
 import org.petkitlocal.core.ui.formatWeightKg
@@ -73,40 +73,6 @@ object PetsTestTags {
 
     fun visit(id: Long) = "pet_visit_$id"
 }
-
-/**
- * A pet's photo over its initial on its colour, which is what shows until (or unless) the photo
- * loads, as on Home's pet chips (docs/DESIGN.md, PetChip). The photo is fetched by the app's
- * image loader, which carries the bearer header. Decorative: the name is always written next to it.
- */
-@Composable
-internal fun PetAvatar(pet: Pet, colorIndex: Int, size: Dp, modifier: Modifier = Modifier) {
-    val color = PkTheme.colors.pet(colorIndex)
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = modifier
-            .size(size)
-            .clip(CircleShape)
-            .background(color.copy(alpha = AVATAR_TINT)),
-    ) {
-        Text(
-            pet.name.take(1).uppercase(),
-            style = if (size >= LARGE_AVATAR) PkTheme.typography.headlineLarge else PkTheme.typography.titleMedium,
-            color = color,
-        )
-        if (pet.photoUrl != null) {
-            AsyncImage(
-                model = pet.photoUrl,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.size(size),
-            )
-        }
-    }
-}
-
-private const val AVATAR_TINT = 0.16f
-private val LARGE_AVATAR = 64.dp
 
 /** How the litter boxes tell [pet] from the others, and the weight a visit is compared with. */
 @Composable
@@ -146,7 +112,7 @@ internal fun PetSwitcher(pets: List<Pet>, selected: Long, onSelect: (Long) -> Un
                     .padding(start = PkTheme.spacing.xxs, end = PkTheme.spacing.m)
                     .testTag(PetsTestTags.switch(pet.id)),
             ) {
-                PetAvatar(pet, index, size = 36.dp)
+                PetAvatar(pet.name, pet.photoUrl, index, size = 36.dp)
                 Spacer(Modifier.width(PkTheme.spacing.xs))
                 if (isSelected) {
                     Icon(
@@ -173,7 +139,7 @@ internal fun PetSwitcher(pets: List<Pet>, selected: Long, onSelect: (Long) -> Un
 internal fun PetProfile(page: PetPage, modifier: Modifier = Modifier) {
     val (how, reference) = recognitionLines(page.pet)
     Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.fillMaxWidth()) {
-        PetAvatar(page.pet, page.colorIndex, size = 72.dp)
+        PetAvatar(page.pet.name, page.pet.photoUrl, page.colorIndex, size = 72.dp)
         Column(Modifier.padding(start = PkTheme.spacing.m).weight(1f)) {
             Text(
                 page.pet.name,
@@ -391,7 +357,7 @@ internal fun PetListCard(
     val (how, _) = recognitionLines(pet)
     PkCard(modifier.fillMaxWidth().testTag(PetsTestTags.card(pet.id)), onClick = onClick) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            PetAvatar(pet, colorIndex, size = 56.dp)
+            PetAvatar(pet.name, pet.photoUrl, colorIndex, size = 56.dp)
             Column(Modifier.padding(horizontal = PkTheme.spacing.m).weight(1f)) {
                 Text(
                     pet.name,

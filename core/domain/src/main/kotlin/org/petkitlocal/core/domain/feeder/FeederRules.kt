@@ -5,6 +5,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlin.math.roundToInt
+import org.petkitlocal.core.domain.activity.ActivityRules
 import org.petkitlocal.core.domain.devicepage.HotspotRules
 import org.petkitlocal.core.domain.home.HomeRules
 import org.petkitlocal.core.domain.home.Quantity
@@ -12,6 +13,7 @@ import org.petkitlocal.core.domain.model.DeferredFeed
 import org.petkitlocal.core.domain.model.Device
 import org.petkitlocal.core.domain.model.FeedingPlan
 import org.petkitlocal.core.domain.model.Meal
+import org.petkitlocal.core.domain.model.Pet
 import org.petkitlocal.core.domain.model.TimelineCategory
 import org.petkitlocal.core.domain.model.TimelineItem
 import org.petkitlocal.core.domain.model.asDouble
@@ -30,6 +32,7 @@ object FeederRules {
 
     private const val DAYS_AHEAD = 7L
 
+    /** @param pets the household, in its order, which names and colours a pet a camera feeder saw. */
     @Suppress("LongParameterList") // The page's sources, the time and the zone.
     fun page(
         device: Device,
@@ -38,8 +41,10 @@ object FeederRules {
         todayItems: List<TimelineItem>,
         now: Instant,
         zone: ZoneId,
+        pets: List<Pet> = emptyList(),
     ): FeederPage {
-        val feeds = todayItems.filter { it.deviceId == device.id && TimelineCategory.Feeding in it.categories }
+        val cards = todayItems.filter { it.deviceId == device.id }
+        val feeds = cards.filter { TimelineCategory.Feeding in it.categories }
         val manual = manualFeed(device)
         return FeederPage(
             device = device,
@@ -53,6 +58,7 @@ object FeederRules {
             deferredFeeds = deferred,
             mealsToday = feeds.size,
             dispensed = device.entity("total_dispensed")?.let { e -> e.value.asDouble?.let { Quantity(it, e.unit) } },
+            activity = ActivityRules.entries(cards, pets),
         )
     }
 

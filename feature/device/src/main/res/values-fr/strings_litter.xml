@@ -63,9 +63,4 @@
         <item quantity="other">Graphique de %1$d passages aujourd\'hui, par heure et durée</item>
     </plurals>
     <string name="litter_hour">%1$d h</string>
-    <string name="litter_activity">Activité</string>
-    <string name="litter_activity_empty">Rien pour l\'instant aujourd\'hui.</string>
-    <string name="litter_see_history">Tout voir dans l\'historique</string>
-    <string name="litter_unknown_pet">Animal non reconnu</string>
-    <string name="litter_visit">Passage</string>
 </resources>

@@ -6,8 +6,7 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 
 /**
- * A `TimelineItem`, filed under the local [day] it was fetched for, with its media. Its steps are
- * not cached: the detail sheet reads the event itself.
+ * A `TimelineItem`, filed under the local [day] it was fetched for, with its media and its steps.
  */
 @Entity(
     tableName = "timeline_items",
@@ -38,4 +37,6 @@ data class TimelineItemRow(
     @ColumnInfo(name = "media_json") val mediaJson: String? = null,
     /** [mediaJson] holds a clip: a device's recent clips are read without decoding every card. */
     @ColumnInfo(name = "has_clip") val hasClip: Boolean = false,
+    /** The `steps` array as the server sent it: a device page lists them under their card. */
+    @ColumnInfo(name = "steps_json") val stepsJson: String = "[]",
 )

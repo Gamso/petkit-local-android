@@ -1,8 +1,10 @@
 package org.petkitlocal.feature.device.fountain
 
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
@@ -22,6 +24,7 @@ import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.core.domain.devicepage.DevicePart
 import org.petkitlocal.feature.device.DeviceNavigation
+import org.petkitlocal.feature.device.common.ActivityTestTags
 import org.petkitlocal.feature.device.common.CONFIRM_ARM_MS
 import org.petkitlocal.feature.device.common.CommandState
 import org.petkitlocal.feature.device.common.DeviceTestTags
@@ -104,6 +107,21 @@ class FountainScreenTest {
     }
 
     @Test
+    fun `a W7H lists today's drinks with their pet, and leads to History`() {
+        show(FountainFixtures.content)
+        scrollTo("See all in History")
+
+        compose.onNodeWithText("Tigrou drank for 0:42", useUnmergedTree = true).assertExists()
+        compose.onNodeWithTag(ActivityTestTags.row(35))
+            .assert(hasContentDescription("A pet drank for 30 seconds", substring = true))
+        // The litter box's visit of the same day is not this fountain's.
+        compose.onNodeWithTag(ActivityTestTags.row(39)).assertDoesNotExist()
+        compose.onNodeWithText("See all in History").performClick()
+
+        assertEquals(listOf("history"), calls)
+    }
+
+    @Test
     fun `a Bluetooth fountain names its relay, its pump time, and says it reports no drinks`() {
         show(FountainFixtures.bluetooth)
 
@@ -117,6 +135,8 @@ class FountainScreenTest {
             .assertExists()
         compose.onNodeWithText("This fountain does not report drinks", substring = true).assertExists()
         compose.onNodeWithText("Drinks over the day").assertDoesNotExist()
+        // Nor an activity that could only say there is nothing.
+        compose.onNodeWithTag(ActivityTestTags.CARD).assertDoesNotExist()
 
         assertEquals(listOf("device:2004"), calls)
     }

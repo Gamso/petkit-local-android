@@ -12,6 +12,7 @@ import io.github.gamso.petkitlocal.mock.state.Pet
 import io.github.gamso.petkitlocal.mock.state.Reason
 import io.github.gamso.petkitlocal.mock.state.World
 import io.github.gamso.petkitlocal.mock.state.cleaningCard
+import io.github.gamso.petkitlocal.mock.state.cleaningDone
 import io.github.gamso.petkitlocal.mock.state.cleaningRows
 import io.github.gamso.petkitlocal.mock.state.deepCleanCard
 import io.github.gamso.petkitlocal.mock.state.drinkCard
@@ -252,7 +253,19 @@ class Seed(
     ) {
         val (s, d) = world.cleaningRows(device, at, at + rng.nextInt(70, 110), Reason.AUTO)
         card.steps += listOf(s.id, d.id)
+        // A box with its auto deodorizing on sprays once the cleaning is done (code 8). Every third
+        // spray of a box fails, so the app has a failed step to show; no rng, so the seed still
+        // replays the same week.
+        if (device["settings.autoSpray"]?.let(MockDevice::truthy) == true) {
+            val count = deodorized.merge(device.id, 1, Int::plus)!!
+            val result = if (count % DEODORIZE_FAILS_EVERY == 0) "failed" else "completed"
+            val sprayed = world.cleaningDone(device, d.ts + DEODORIZE_AFTER_SEC, Reason.AUTO, "8", "deodorizing", result)
+            card.steps += sprayed.id
+        }
     }
+
+    /** How many times each box has deodorized in the seed's history, by device id. */
+    private val deodorized = mutableMapOf<Int, Int>()
 
     private fun planMeals(
         day: LocalDate,
@@ -340,6 +353,10 @@ class Seed(
     }
 
     companion object {
+        /** A deodorizing cycle ends this long after the cleaning before it. */
+        private const val DEODORIZE_AFTER_SEC = 60.0
+        private const val DEODORIZE_FAILS_EVERY = 3
+
         const val T3 = 1001
         const val T4 = 1002
         const val T5 = 1003

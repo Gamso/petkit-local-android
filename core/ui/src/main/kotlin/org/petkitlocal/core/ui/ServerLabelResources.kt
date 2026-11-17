@@ -344,3 +344,49 @@ internal val EventFieldValueLabels: Map<String, Int> = mapOf(
     "manual (app)" to R.string.server_field_value_feed_manual_app,
     "one-off" to R.string.server_field_value_one_off,
 )
+
+/** A completion's operation, as StepLabel reads it (`codes.py` `done_word`), to its name and its "done" line. */
+internal val StepOperationLabels: Map<String, StepOperation> = mapOf(
+    "cleaning" to StepOperation(R.string.server_step_cleaning, R.string.server_step_cleaning_done),
+    "deep cleaning" to StepOperation(R.string.server_step_deep_cleaning, R.string.server_step_deep_cleaning_done),
+    "deodorizing" to StepOperation(R.string.server_step_deodorizing, R.string.server_step_deodorizing_done),
+    "light cycle" to StepOperation(R.string.server_step_light_cycle, R.string.server_step_light_cycle_done),
+    "leveling" to StepOperation(R.string.server_step_leveling, R.string.server_step_leveling_done),
+    "levelling" to StepOperation(R.string.server_step_leveling, R.string.server_step_leveling_done),
+    "litter empty" to StepOperation(R.string.server_step_litter_empty, R.string.server_step_litter_empty_done),
+    "reset" to StepOperation(R.string.server_step_reset, R.string.server_step_reset_done),
+    "litter correction" to
+        StepOperation(R.string.server_step_litter_correction, R.string.server_step_litter_correction_done),
+    "litter calibration" to
+        StepOperation(R.string.server_step_litter_calibration, R.string.server_step_litter_calibration_done),
+    "feeding" to StepOperation(R.string.server_step_feeding, R.string.server_step_feeding_done),
+    "eating" to StepOperation(R.string.server_step_eating, R.string.server_step_eating_done),
+    "drinking" to StepOperation(R.string.server_step_drinking, R.string.server_step_drinking_done),
+    "changing the water" to StepOperation(R.string.server_step_water_change, R.string.server_step_water_change_done),
+    "refilling" to StepOperation(R.string.server_step_refilling, R.string.server_step_refilling_done),
+    "flushing" to StepOperation(R.string.server_step_flushing, R.string.server_step_flushing_done),
+    "bagging" to StepOperation(R.string.server_step_bagging, R.string.server_step_bagging_done),
+    "melt cycle" to StepOperation(R.string.server_step_melt_cycle, R.string.server_step_melt_cycle_done),
+    "deodorant reset" to StepOperation(R.string.server_step_deodorant_reset, R.string.server_step_deodorant_reset_done),
+)
+
+/** Why a completion did not end, as StepLabel reads it (`decode.py` `RESULT`, `FEED_RESULT`, `ERR_TEXT`). */
+internal val StepReasonLabels: Map<String, Int> = mapOf(
+    "bin full" to R.string.server_step_reason_bin_full,
+    "hall sensor (l)" to R.string.server_step_reason_hall_l,
+    "hall sensor (t)" to R.string.server_step_reason_hall_t,
+    "hall sensor (b)" to R.string.server_step_reason_hall_b,
+    "canceled" to R.string.server_step_reason_canceled,
+    "terminated" to R.string.server_step_reason_terminated,
+    "kitten mode" to R.string.server_step_reason_kitten_mode,
+    "outlet obstructed" to R.string.server_step_reason_outlet_obstructed,
+    "nothing dispensed" to R.string.server_step_reason_nothing_dispensed,
+    "hoppers empty" to R.string.server_step_reason_hoppers_empty,
+    "bowl not empty" to R.string.server_step_reason_bowl_not_empty,
+    "empty run" to R.string.server_step_reason_empty_run,
+    "pump fault active" to R.string.server_step_reason_pump_fault,
+    "water not hot enough" to R.string.server_step_reason_water_not_hot,
+)
+
+/** An operation's name, for "Deodorizing failed", and its line when it ran to its end. */
+internal class StepOperation(val name: Int, val done: Int)

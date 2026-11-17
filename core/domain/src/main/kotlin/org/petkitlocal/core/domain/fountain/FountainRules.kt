@@ -2,6 +2,7 @@ package org.petkitlocal.core.domain.fountain
 
 import java.time.ZoneId
 import kotlin.math.roundToInt
+import org.petkitlocal.core.domain.activity.ActivityRules
 import org.petkitlocal.core.domain.device.EntityWrites
 import org.petkitlocal.core.domain.devicepage.FountainParts
 import org.petkitlocal.core.domain.devicepage.HotspotRules
@@ -48,7 +49,8 @@ object FountainRules {
         zone: ZoneId,
         relay: Device? = null,
     ): FountainPage {
-        val mine = today.filter { it.deviceId == device.id && it.isDrink }
+        val cards = today.filter { it.deviceId == device.id }
+        val mine = cards.filter { it.isDrink }
         val before = yesterday.filter { it.deviceId == device.id && it.isDrink }
         val recordsDrinks = FountainParts.recordsDrinks(device)
         return FountainPage(
@@ -65,6 +67,7 @@ object FountainRules {
             drinks = drinks(mine, zone),
             perPet = if (recordsDrinks) perPet(pets, mine, before) else emptyList(),
             pets = pets,
+            activity = ActivityRules.entries(cards, pets),
         )
     }
 

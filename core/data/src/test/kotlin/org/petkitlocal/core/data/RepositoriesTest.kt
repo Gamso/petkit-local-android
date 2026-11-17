@@ -22,6 +22,7 @@ import org.petkitlocal.core.domain.model.EntityComponent
 import org.petkitlocal.core.domain.model.EntityValue
 import org.petkitlocal.core.domain.model.PetRef
 import org.petkitlocal.core.domain.model.TimelineCategory
+import org.petkitlocal.core.domain.model.TimelineStep
 import org.robolectric.RobolectricTestRunner
 
 /**
@@ -188,6 +189,13 @@ class RepositoriesTest {
             assertEquals(186, durationSec)
             assertEquals(Instant.ofEpochSecond(1_794_719_773), displayTs)
             assertEquals(listOf("litter 91%"), facts)
+            assertEquals(
+                listOf(
+                    TimelineStep(31, Instant.ofEpochSecond(1_794_719_780), "Weight check", detail = true),
+                    TimelineStep(32, null, "Auto cleaning completed", detail = false),
+                ),
+                steps,
+            )
         }
         assertEquals(emptyList<Any>(), timeline.observeDay(day.minusDays(1)).first())
     }
@@ -256,5 +264,7 @@ class RepositoriesTest {
     private fun item(id: Long) = """{"id":$id,"kind":"visit","filters":["toileting","health_alert","later_chip"],
         "device_id":1002,"device_type":"t4","ts":${1_794_719_959 + id},"display_ts":1794719773,
         "event_type":"10","event_kind":"toilet_visit","label":null,"pet":{"id":1,"name":"Mochi"},
-        "duration_sec":186,"weight_g":6065,"facts":["litter 91%"],"media":null,"steps":[]}"""
+        "duration_sec":186,"weight_g":6065,"facts":["litter 91%"],"media":null,
+        "steps":[{"id":${id}1,"ts":1794719780,"label":"Weight check","detail":true},
+                 {"id":${id}2,"ts":null,"label":"Auto cleaning completed","detail":false}]}"""
 }

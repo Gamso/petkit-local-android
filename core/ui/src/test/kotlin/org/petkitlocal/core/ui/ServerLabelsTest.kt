@@ -7,6 +7,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.petkitlocal.core.domain.activity.StepLabel
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
@@ -53,5 +54,44 @@ class ServerLabelsTest {
         val resources = ApplicationProvider.getApplicationContext<Context>().resources
         maps.forEach { map -> map.forEach { (key, id) -> assertTrue(key, resources.getString(id).isNotBlank()) } }
         assertEquals(260, maps.sumOf { it.size })
+    }
+
+    @Test
+    fun `a step reads as its operation and how it ended`() {
+        assertEquals(
+            "Cleaning done",
+            labels.step(StepLabel.parse("Auto cleaning completed"), "Auto cleaning completed"),
+        )
+        assertEquals("Deodorizing failed", labels.step(StepLabel.parse("Auto deodorizing failed"), "x"))
+        assertEquals(
+            "Cleaning failed: bin full",
+            labels.step(StepLabel.parse("Manual cleaning stopped (bin full)"), "x"),
+        )
+    }
+
+    @Test
+    @Config(qualifiers = "fr")
+    fun `a step is translated, with the reason when the app knows it`() {
+        assertEquals("Désodorisation terminée", labels.step(StepLabel.parse("Auto deodorizing completed"), "x"))
+        assertEquals("Désodorisation impossible", labels.step(StepLabel.parse("Auto deodorizing failed"), "x"))
+        assertEquals(
+            "Repas impossible : gamelle pas vide",
+            labels.step(StepLabel.parse("Feeding skipped (bowl not empty)"), "x"),
+        )
+        assertEquals("Nettoyage impossible : interrompu", labels.step(StepLabel.parse("Auto cleaning terminated"), "x"))
+        // A reason the app does not know stays in the server's words; so does an unknown operation.
+        assertEquals("Nettoyage impossible : code 256", labels.step(StepLabel.parse("Cleaning failed - code 256"), "x"))
+        assertEquals("Sparkling completed", labels.step(StepLabel.parse("Sparkling completed"), "Sparkling completed"))
+        assertEquals("Error cleared", labels.step(null, "Error cleared"))
+    }
+
+    @Test
+    @Config(qualifiers = "fr")
+    fun `every step operation and reason resolves to a non-blank text`() {
+        val resources = ApplicationProvider.getApplicationContext<Context>().resources
+        StepOperationLabels.forEach { (key, op) ->
+            assertTrue(key, resources.getString(op.name).isNotBlank() && resources.getString(op.done).isNotBlank())
+        }
+        StepReasonLabels.forEach { (key, id) -> assertTrue(key, resources.getString(id).isNotBlank()) }
     }
 }

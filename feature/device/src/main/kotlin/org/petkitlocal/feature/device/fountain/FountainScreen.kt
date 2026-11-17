@@ -18,6 +18,7 @@ import org.petkitlocal.core.domain.fountain.FountainPage
 import org.petkitlocal.core.ui.rememberServerLabels
 import org.petkitlocal.feature.device.DeviceNavigation
 import org.petkitlocal.feature.device.R
+import org.petkitlocal.feature.device.common.ActivityCard
 import org.petkitlocal.feature.device.common.DayChartCard
 import org.petkitlocal.feature.device.common.DayDot
 import org.petkitlocal.feature.device.common.DeviceHeader
@@ -75,8 +76,8 @@ internal fun FountainRoute(navigation: DeviceNavigation, viewModel: FountainView
 /**
  * The fountain page: header with the mode chips and the settings gear, the hero with the parts the
  * model has, the live status line (and, for a Bluetooth fountain, the device relaying it), today
- * against yesterday, the drinks' 24-hour chart on a fountain that records them, a camera's recent
- * clips, and the action sheet every device screen shares.
+ * against yesterday, the drinks' 24-hour chart and the day's activity on a fountain that records
+ * them, a camera's recent clips, and the action sheet every device screen shares.
  */
 @Composable
 internal fun FountainScreen(
@@ -171,6 +172,12 @@ private fun LazyListScope.fountainContent(
                 modifier = Modifier.gutter(),
                 minScaleMinutes = 1,
             )
+        }
+    }
+    // A Bluetooth fountain records no drink: an empty list there would only say so twice.
+    if (page.recordsDrinks || page.activity.isNotEmpty()) {
+        item(key = "activity") {
+            ActivityCard(page.activity, uiState.zone, { navigation.onOpenHistory(page.device.id) }, Modifier.gutter())
         }
     }
 }

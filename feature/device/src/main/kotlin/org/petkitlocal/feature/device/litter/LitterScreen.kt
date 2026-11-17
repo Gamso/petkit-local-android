@@ -16,6 +16,7 @@ import org.petkitlocal.core.domain.devicepage.DevicePart
 import org.petkitlocal.core.domain.litter.LitterBoxPage
 import org.petkitlocal.core.ui.rememberServerLabels
 import org.petkitlocal.feature.device.DeviceNavigation
+import org.petkitlocal.feature.device.common.ActivityCard
 import org.petkitlocal.feature.device.common.DeviceHeader
 import org.petkitlocal.feature.device.common.DeviceStatusLine
 import org.petkitlocal.feature.device.common.DeviceTestTags
@@ -146,6 +147,6 @@ private fun LazyListScope.litterContent(
     item(key = "today") { TodayCard(page, Modifier.gutter()) }
     item(key = "chart") { VisitsChartCard(page, uiState.petFilter, callbacks.onPetFilter, Modifier.gutter()) }
     item(key = "activity") {
-        ActivityCard(page, uiState.zone, { navigation.onOpenHistory(page.device.id) }, Modifier.gutter())
+        ActivityCard(page.activity, uiState.zone, { navigation.onOpenHistory(page.device.id) }, Modifier.gutter())
     }
 }

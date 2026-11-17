@@ -4,7 +4,7 @@ import java.time.Instant
 
 /**
  * One History card. Home reads the day's cards for its counts and 24-hour strips; History shows
- * them, with their [media]. The steps of a card are not cached: the detail sheet reads its event.
+ * them, with their [media]; a device page lists them with their [steps].
  */
 data class TimelineItem(
     val id: Long,
@@ -28,10 +28,19 @@ data class TimelineItem(
     val facts: List<String>,
     /** Its photos and videos; null when it has none. */
     val media: TimelineMedia? = null,
+    /** The episode's other reports, in the server's order: the cleaning that followed a visit. */
+    val steps: List<TimelineStep> = emptyList(),
 ) {
     /** When the card happened, as a screen places it. */
     val shownAt: Instant? get() = displayTs ?: ts
 }
+
+/**
+ * One report of a card's episode besides the one heading it. [label] is the server's English
+ * label; a [detail] step is a low-level one (a weight check, a mechanism start) the official app
+ * does not show.
+ */
+data class TimelineStep(val id: Long, val ts: Instant?, val label: String, val detail: Boolean)
 
 /** A pet as a timeline card names it; [name] is null once the pet was deleted. */
 data class PetRef(val id: Long, val name: String?)
