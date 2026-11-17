@@ -1,7 +1,6 @@
 package org.petkitlocal.core.domain.feeder
 
 import java.time.Instant
-import org.petkitlocal.core.domain.activity.ActivityEntry
 import org.petkitlocal.core.domain.devicepage.Hotspot
 import org.petkitlocal.core.domain.home.DeviceStatus
 import org.petkitlocal.core.domain.home.Quantity
@@ -32,8 +31,8 @@ data class FeederPage(
     val mealsToday: Int,
     /** The feeder's own daily total, in the server's unit, when it reports one. */
     val dispensed: Quantity?,
-    /** Today's cards of this feeder, newest first, each with its follow-ups. */
-    val activity: List<ActivityEntry> = emptyList(),
+    /** Today's meals and what the camera saw, newest first, behind counted chips. */
+    val day: FeederDay = FeederDay(),
 )
 
 /** A recurring meal of today and how it went. */

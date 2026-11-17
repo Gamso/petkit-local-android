@@ -14,7 +14,7 @@ import org.petkitlocal.core.domain.model.Device
 import org.petkitlocal.core.domain.model.FeedingPlan
 import org.petkitlocal.core.domain.model.Meal
 import org.petkitlocal.core.domain.model.Pet
-import org.petkitlocal.core.domain.model.TimelineCategory
+import org.petkitlocal.core.domain.model.Portions
 import org.petkitlocal.core.domain.model.TimelineItem
 import org.petkitlocal.core.domain.model.asDouble
 
@@ -32,7 +32,10 @@ object FeederRules {
 
     private const val DAYS_AHEAD = 7L
 
-    /** @param pets the household, in its order, which names and colours a pet a camera feeder saw. */
+    /**
+     * @param pets the household, in its order, which names and colours a pet a camera feeder saw.
+     * @param served what each of today's meals put out, as far as read (ServedPortionsRepository).
+     */
     @Suppress("LongParameterList") // The page's sources, the time and the zone.
     fun page(
         device: Device,
@@ -42,9 +45,12 @@ object FeederRules {
         now: Instant,
         zone: ZoneId,
         pets: List<Pet> = emptyList(),
+        served: Map<Long, Portions?> = emptyMap(),
     ): FeederPage {
         val cards = todayItems.filter { it.deviceId == device.id }
-        val feeds = cards.filter { TimelineCategory.Feeding in it.categories }
+        // Meals that came out: not one that failed, nor a camera feeder's eating episode, which
+        // shares the feeding chip but serves nothing.
+        val feeds = cards.filter { FeederDayRules.kind(it) == FeederDayKind.Meal && !FeederDayRules.failed(it) }
         val manual = manualFeed(device)
         return FeederPage(
             device = device,
@@ -58,7 +64,7 @@ object FeederRules {
             deferredFeeds = deferred,
             mealsToday = feeds.size,
             dispensed = device.entity("total_dispensed")?.let { e -> e.value.asDouble?.let { Quantity(it, e.unit) } },
-            activity = ActivityRules.entries(cards, pets),
+            day = FeederDayRules.day(ActivityRules.entries(cards, pets), served, device.isCamera),
         )
     }
 
