@@ -7,6 +7,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Clock
 import java.time.ZoneId
 import javax.inject.Inject
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -17,15 +19,18 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.core.domain.Outcome
-import org.petkitlocal.core.domain.device.DeviceSections
+import org.petkitlocal.core.domain.device.DeviceIdentity
+import org.petkitlocal.core.domain.device.DeviceSettingsPage
 import org.petkitlocal.core.domain.device.EntityWriteProblem
 import org.petkitlocal.core.domain.device.EntityWrites
-import org.petkitlocal.core.domain.device.ObserveDeviceUseCase
+import org.petkitlocal.core.domain.device.ObserveDeviceSettingsUseCase
 import org.petkitlocal.core.domain.device.ObserveLiveUpdatesUseCase
 import org.petkitlocal.core.domain.device.RunDeviceActionUseCase
 import org.petkitlocal.core.domain.device.SetEntityValueUseCase
 import org.petkitlocal.core.domain.device.SettingGroup
+import org.petkitlocal.core.domain.devicepage.Hotspot
 import org.petkitlocal.core.domain.model.Device
+import org.petkitlocal.core.domain.model.DeviceAction
 import org.petkitlocal.core.domain.model.Entity
 import org.petkitlocal.core.domain.model.EntityValue
 import org.petkitlocal.feature.device.DEVICE_ID_KEY
@@ -48,23 +53,33 @@ data class SettingEditorState(
 data class DeviceSettingsUiState(
     val loaded: Boolean = false,
     val device: Device? = null,
+    /** Who the device is: the card at the top. */
+    val identity: DeviceIdentity? = null,
+    /** Its parts and their resets, as its page draws them, right after the identity card. */
+    val consumables: List<Hotspot> = emptyList(),
+    /** The Pura Air whose N60 is among a litter box's [consumables]. */
+    val puraAir: Device? = null,
     val groups: List<SettingGroup> = emptyList(),
     val editor: SettingEditorState? = null,
     val offline: Boolean = false,
     val commands: CommandState = CommandState(),
     val zone: ZoneId = ZoneId.systemDefault(),
+    /** The serial number was just copied: its button says so for a moment. */
+    val serialCopied: Boolean = false,
 )
 
 /**
  * A device's settings (SPEC.md §5.3, "every settable entity, grouped, with the type-appropriate
- * control"). A switch is written when flipped; any other setting through its editor, which stays
- * open until the server took the value and says in place why it did not. The values shown are
- * the cache's (ADR 0002): what the server answered, then what the device reports.
+ * control"), under the device's identity card and its consumables (issue #59). A switch is
+ * written when flipped; any other setting through its editor, which stays open until the server
+ * took the value and says in place why it did not. A consumable's reset goes through the device
+ * screens' shared [DeviceCommandController], confirmed first when it cannot be undone. The values
+ * shown are the cache's (ADR 0002): what the server answered, then what the device reports.
  */
 @HiltViewModel
 class DeviceSettingsViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    observeDevice: ObserveDeviceUseCase,
+    observeSettings: ObserveDeviceSettingsUseCase,
     observeLiveUpdates: ObserveLiveUpdatesUseCase,
     runAction: RunDeviceActionUseCase,
     setEntityValue: SetEntityValueUseCase,
@@ -82,31 +97,41 @@ class DeviceSettingsViewModel @Inject constructor(
     )
 
     /** The device once read, wrapped so that "read, and gone" (null inside) differs from "not read yet". */
-    private data class Snapshot(val device: Device?)
+    private data class Snapshot(val page: DeviceSettingsPage?) {
+        val device: Device? get() = page?.device
+    }
 
-    private val snapshot: StateFlow<Snapshot?> = observeDevice(deviceId)
+    private val snapshot: StateFlow<Snapshot?> = observeSettings(deviceId)
         .map(::Snapshot)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
 
     private val editing = MutableStateFlow<Editing?>(null)
+    private val serialCopied = MutableStateFlow(false)
+    private var copiedReset: Job? = null
 
     val uiState: StateFlow<DeviceSettingsUiState> = combine(
         snapshot,
         observeLiveUpdates(),
         editing,
         commands.state,
-    ) { snapshot, live, editing, commands ->
-        val device = snapshot?.device
+        serialCopied,
+    ) { snapshot, live, editing, commands, copied ->
+        val page = snapshot?.page
+        val device = page?.device
         DeviceSettingsUiState(
             loaded = snapshot != null,
             device = device,
-            groups = device?.let { DeviceSections.of(it).settings }.orEmpty(),
+            identity = page?.identity,
+            consumables = page?.consumables.orEmpty(),
+            puraAir = page?.puraAir,
+            groups = page?.groups.orEmpty(),
             editor = editing?.let { open ->
                 device?.entity(open.key)?.let { SettingEditorState(it, open.problem, open.error, open.saving) }
             },
             offline = live.isUnreachable(),
             commands = commands,
             zone = zone,
+            serialCopied = copied,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), DeviceSettingsUiState(zone = zone))
 
@@ -145,11 +170,34 @@ class DeviceSettingsViewModel @Inject constructor(
         }
     }
 
+    /** A consumable's reset: sent at once, or first confirmed when the server says it cannot be undone. */
+    fun onAction(action: DeviceAction) = commands.onAction(action)
+
+    fun onConfirmAction() = commands.onConfirm()
+
+    fun onDismissConfirmation() = commands.onDismissConfirmation()
+
     fun onDismissFeedback() = commands.onDismissFeedback()
+
+    /**
+     * The screen put the serial number on the clipboard: its button says "Copied" for
+     * [COPIED_SHOWN_MS], then offers to copy again.
+     */
+    fun onSerialCopied() {
+        copiedReset?.cancel()
+        serialCopied.value = true
+        copiedReset = viewModelScope.launch {
+            delay(COPIED_SHOWN_MS)
+            serialCopied.value = false
+        }
+    }
 
     private fun current(key: String): Entity? = snapshot.value?.device?.entity(key)
 
-    private companion object {
-        const val STOP_TIMEOUT_MS = 5_000L
+    companion object {
+        private const val STOP_TIMEOUT_MS = 5_000L
+
+        /** Long enough to be read, short enough not to linger over a second copy. */
+        const val COPIED_SHOWN_MS = 2_000L
     }
 }

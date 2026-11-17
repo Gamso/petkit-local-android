@@ -1,5 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- La carte d'identité en tête des réglages d'un appareil (issue #59). -->
+    <string name="device_identity_online">En ligne</string>
+    <string name="device_identity_link">Liaison</string>
+    <string name="device_identity_link_http">HTTP</string>
+    <string name="device_identity_link_mqtt">MQTT</string>
+    <string name="device_identity_link_ble">Bluetooth</string>
+    <string name="device_identity_link_ble_via">Bluetooth, via le %1$s</string>
+    <string name="device_identity_firmware">Micrologiciel</string>
+    <string name="device_identity_serial">N° de série</string>
+    <string name="device_identity_copy">Copier</string>
+    <string name="device_identity_copied">Copié</string>
+    <string name="device_identity_copy_action">Copier le numéro de série</string>
+
+    <string name="device_settings_consumables">Consommables</string>
+    <string name="device_consumable_via">Via le %1$s</string>
+
     <string name="device_setting_category_cleaning">Nettoyage</string>
     <string name="device_setting_category_deodorizing">Désodorisation</string>
     <string name="device_setting_category_litter">Litière</string>

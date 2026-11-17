@@ -3,6 +3,7 @@ package org.petkitlocal.feature.device
 import java.time.Instant
 import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.core.domain.device.DeviceSections
+import org.petkitlocal.core.domain.device.DeviceSettingsRules
 import org.petkitlocal.core.domain.device.EntityWriteProblem
 import org.petkitlocal.core.domain.home.HomeRules
 import org.petkitlocal.core.domain.model.Device
@@ -143,9 +144,14 @@ object DeviceFixtures {
         ),
     )
 
-    /** The Pura Max's settings, as the mock serves a T4's (values from its seed). */
+    /**
+     * The Pura Max's settings, as the mock serves a T4's (values from its seed), with its parts'
+     * readings, its firmware and its serial number.
+     */
     val litterSettings = litterBox.copy(
-        entities = listOf(
+        firmware = "1.652",
+        serial = "20240305T4001288",
+        entities = Household.litterBox.entities + listOf(
             setting("auto_work", "Auto Clean", EntityValue.Bool(true)),
             Entity(
                 "cleaning_delay",
@@ -220,18 +226,33 @@ object DeviceFixtures {
             zone = zone,
         )
 
+    /**
+     * [device]'s settings screen as the ViewModel builds it, with the device relaying it ([relay])
+     * and the Pura Air in its K3 slot ([puraAir]) when given.
+     */
+    @Suppress("LongParameterList") // The screen's state, field by field.
     fun settings(
         editor: SettingEditorState? = null,
         commands: CommandState = CommandState(),
         device: Device = fountain,
-    ) = DeviceSettingsUiState(
-        loaded = true,
-        device = device,
-        groups = DeviceSections.of(device).settings,
-        editor = editor,
-        commands = commands,
-        zone = zone,
-    )
+        relay: Device? = null,
+        puraAir: Device? = null,
+        serialCopied: Boolean = false,
+    ): DeviceSettingsUiState {
+        val page = DeviceSettingsRules.page(device, relay, puraAir)
+        return DeviceSettingsUiState(
+            loaded = true,
+            device = device,
+            identity = page.identity,
+            consumables = page.consumables,
+            puraAir = page.puraAir,
+            groups = page.groups,
+            editor = editor,
+            commands = commands,
+            zone = zone,
+            serialCopied = serialCopied,
+        )
+    }
 
     val sent = CommandState(
         feedback = CommandFeedback(

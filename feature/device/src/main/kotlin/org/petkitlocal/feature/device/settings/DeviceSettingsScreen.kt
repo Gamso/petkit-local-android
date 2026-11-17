@@ -58,6 +58,7 @@ import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.device.SettingCatalog
 import org.petkitlocal.core.domain.device.SettingCategory
 import org.petkitlocal.core.domain.device.SettingGroup
+import org.petkitlocal.core.domain.model.DeviceAction
 import org.petkitlocal.core.domain.model.DeviceFamily
 import org.petkitlocal.core.domain.model.Entity
 import org.petkitlocal.core.domain.model.EntityComponent
@@ -66,6 +67,7 @@ import org.petkitlocal.core.domain.model.asBoolean
 import org.petkitlocal.core.ui.ServerLabels
 import org.petkitlocal.core.ui.rememberServerLabels
 import org.petkitlocal.feature.device.R
+import org.petkitlocal.feature.device.common.ActionConfirmation
 import org.petkitlocal.feature.device.common.CommandFeedbackBanner
 import org.petkitlocal.feature.device.common.DeviceGoneView
 import org.petkitlocal.feature.device.common.DeviceHeader
@@ -85,6 +87,12 @@ data class DeviceSettingsActions(
     val onSave: (key: String, value: EntityValue) -> Unit = { _, _ -> },
     val onDismissEditor: () -> Unit = {},
     val onDismissFeedback: () -> Unit = {},
+    /** A consumable's reset; a destructive one comes back through [onConfirmAction]. */
+    val onAction: (DeviceAction) -> Unit = {},
+    val onConfirmAction: () -> Unit = {},
+    val onDismissConfirmation: () -> Unit = {},
+    /** The serial number is on the clipboard. */
+    val onSerialCopied: () -> Unit = {},
 )
 
 @Composable
@@ -99,11 +107,18 @@ internal fun DeviceSettingsRoute(onBack: () -> Unit, viewModel: DeviceSettingsVi
             onSave = viewModel::onSave,
             onDismissEditor = viewModel::onDismissEditor,
             onDismissFeedback = viewModel::onDismissFeedback,
+            onAction = viewModel::onAction,
+            onConfirmAction = viewModel::onConfirmAction,
+            onDismissConfirmation = viewModel::onDismissConfirmation,
+            onSerialCopied = viewModel::onSerialCopied,
         ),
     )
 }
 
-/** Every setting of a device, grouped, each with the control its component takes. */
+/**
+ * A device's identity card and consumables, then every setting of it, grouped, each with the
+ * control its component takes.
+ */
 @Composable
 internal fun DeviceSettingsScreen(
     uiState: DeviceSettingsUiState,
@@ -160,6 +175,9 @@ internal fun DeviceSettingsScreen(
             onDismiss = actions.onDismissEditor,
         )
     }
+    uiState.commands.confirming?.let { action ->
+        ActionConfirmation(action, onConfirm = actions.onConfirmAction, onDismiss = actions.onDismissConfirmation)
+    }
 }
 
 private fun LazyListScope.settingsContent(
@@ -173,6 +191,21 @@ private fun LazyListScope.settingsContent(
 
         uiState.device == null -> item(key = "gone") { DeviceGoneView() }
 
+        else -> {
+            overview(uiState, actions)
+            groups(uiState, labels, actions, quick)
+        }
+    }
+}
+
+private fun LazyListScope.groups(
+    uiState: DeviceSettingsUiState,
+    labels: ServerLabels,
+    actions: DeviceSettingsActions,
+    quick: QuickActions,
+) {
+    val device = uiState.device ?: return
+    when {
         uiState.groups.isEmpty() -> {
             item(key = "none") {
                 Text(
@@ -181,21 +214,21 @@ private fun LazyListScope.settingsContent(
                     color = PkTheme.colors.onSurfaceMuted,
                 )
             }
-            quickActionsSetting(uiState.device, quick)
+            quickActionsSetting(device, quick)
         }
 
         else -> uiState.groups.forEachIndexed { index, group ->
-            val family = uiState.device.family
+            val family = device.family
             // This phone's own setting, after the device's and before what is folded away.
             val firstFolded = uiState.groups.indexOfFirst { it.category.folded }
-            if (index == firstFolded) quickActionsSetting(uiState.device, quick)
+            if (index == firstFolded) quickActionsSetting(device, quick)
             if (group.category.folded) {
                 item(key = "group-${group.category}") { FoldedGroup(group, family, uiState, labels, actions) }
             } else {
                 item(key = "title-${group.category}") { DeviceSectionTitle(categoryTitle(group.category)) }
                 item(key = "group-${group.category}") { GroupCard(group, family, uiState, labels, actions) }
             }
-            if (index == uiState.groups.lastIndex && firstFolded < 0) quickActionsSetting(uiState.device, quick)
+            if (index == uiState.groups.lastIndex && firstFolded < 0) quickActionsSetting(device, quick)
         }
     }
 }

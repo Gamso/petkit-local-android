@@ -283,6 +283,16 @@ object DeviceTestTags {
     const val RELAY = "device:relay"
     const val OPEN_ACCESSORY = "device:open-accessory"
 
+    /** The settings' identity card, its Copy button, and the consumables after it. */
+    const val IDENTITY = "device:settings:identity"
+    const val COPY_SERIAL = "device:settings:copy-serial"
+    const val CONSUMABLES = "device:settings:consumables"
+
+    /** A consumable's row, by its part's name (`Deodorizer`, `PuraAirSpray`...). */
+    fun consumable(part: String): String = "device:settings:consumable:$part"
+
+    fun consumableAction(key: String): String = "device:settings:consumable-action:$key"
+
     fun entity(key: String): String = "device:entity:$key"
 
     fun option(value: String): String = "device:option:$value"
