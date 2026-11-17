@@ -35,8 +35,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import kotlin.math.ceil
-import kotlin.math.max
 import org.petkitlocal.core.designsystem.component.PkCard
 import org.petkitlocal.core.designsystem.component.PkFilterChip
 import org.petkitlocal.core.designsystem.icon.PkIcons
@@ -44,7 +42,7 @@ import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.model.Pet
 import org.petkitlocal.feature.device.R
 
-/** One dot of a 24-hour chart: a litter box visit or a drink. */
+/** One event of a 24-hour chart: a litter box visit or a drink. */
 data class DayDot(
     /** Local minute of the day, 0 to 1439. */
     val minuteOfDay: Int,
@@ -53,10 +51,11 @@ data class DayDot(
 )
 
 /**
- * The 24-hour chart card (docs/DESIGN.md, DayScatterChart): one dot per visit or drink, at its
- * time across and its duration up, in its pet's colour, with a single-select filter on [pets]
- * (those with a dot). TalkBack reads the count, worded by [description]; the page says the same
- * in words elsewhere, so nothing rests on colour.
+ * The 24-hour chart card (docs/DESIGN.md, DayStemChart): one stem per visit or drink, standing
+ * from the axis at its time to its duration and capped with a dot, in its pet's colour (an
+ * unrecognised pet's in neutral), with a single-select filter on [pets] (those with an event).
+ * TalkBack reads the count, worded by [description]; the page says the same in words elsewhere,
+ * so nothing rests on colour.
  *
  * @param colorIndexOf a pet's place in the household's order, which picks its colour.
  * @param minScaleMinutes the least the duration axis goes up to: five minutes for a visit, one
@@ -106,7 +105,7 @@ internal fun DayChartCard(
                 modifier = Modifier.padding(top = PkTheme.spacing.xs),
             )
         }
-        DayScatterChart(
+        DayStemChart(
             dots,
             colorIndexOf,
             petFilter,
@@ -120,7 +119,7 @@ internal fun DayChartCard(
 
 @Suppress("LongParameterList") // The dots, how to colour and filter them, and their words.
 @Composable
-private fun DayScatterChart(
+private fun DayStemChart(
     dots: List<DayDot>,
     colorIndexOf: (Long?) -> Int?,
     petFilter: Long?,
@@ -132,8 +131,7 @@ private fun DayScatterChart(
     val colors = PkTheme.colors
     val shown = dots.filter { petFilter == null || it.petId == petFilter }
     val spoken = pluralStringResource(description, shown.size, shown.size)
-    // The duration axis: whole minutes, at least the minimum, enough for the longest dot.
-    val topMinutes = max(minScaleMinutes, ceil((dots.maxOfOrNull { it.durationSec ?: 0 } ?: 0) / 60.0).toInt())
+    val topMinutes = DayChartLayout.topMinutes(dots, minScaleMinutes)
     Column(modifier.semantics(mergeDescendants = true) { contentDescription = spoken }) {
         Row {
             Text(
@@ -149,21 +147,35 @@ private fun DayScatterChart(
                 .testTag(chartTag),
         ) {
             val radius = DOT_RADIUS.toPx()
-            val plotTop = radius
-            val plotBottom = size.height - radius
+            val frame = StemFrame(
+                width = size.width,
+                top = radius,
+                bottom = size.height - STEM_WIDTH.toPx() / 2,
+                inset = radius,
+                minGap = MIN_GAP.toPx(),
+            )
             val dash = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 4.dp.toPx()))
             listOf(0f, 0.5f).forEach { fraction ->
-                val y = plotTop + (plotBottom - plotTop) * fraction
+                val y = frame.top + (frame.bottom - frame.top) * fraction
                 drawLine(colors.outline, Offset(0f, y), Offset(size.width, y), 1.dp.toPx(), pathEffect = dash)
             }
-            drawLine(colors.outline, Offset(0f, plotBottom), Offset(size.width, plotBottom), 1.dp.toPx())
-            shown.forEach { dot ->
-                val x = radius + (size.width - 2 * radius) * dot.minuteOfDay / MINUTES_PER_DAY
-                val minutes = (dot.durationSec ?: 0) / 60f
-                val y = plotBottom - (plotBottom - plotTop) * (minutes / topMinutes).coerceIn(0f, 1f)
-                val color = colorIndexOf(dot.petId)?.let(colors::pet) ?: colors.onSurfaceMuted
-                drawCircle(colors.surface, radius + 1.5.dp.toPx(), Offset(x, y))
-                drawCircle(color, radius, Offset(x, y))
+            drawLine(colors.outline, Offset(0f, frame.bottom), Offset(size.width, frame.bottom), 1.dp.toPx())
+            val stems = DayChartLayout.stems(shown, topMinutes, frame)
+            val colorOf = { stem: Stem -> colorIndexOf(stem.petId)?.let(colors::pet) ?: colors.onSurfaceMuted }
+            // Every stem first, then every dot, each ringed in the surface colour: a dot stays
+            // whole over a neighbour's stem, and two dots that touch stay two. The ring's cut in
+            // the dot's own stem is drawn again, so stem and dot stay one mark.
+            val ring = radius + DOT_RING.toPx()
+            stems.forEach { stem ->
+                drawLine(colorOf(stem), Offset(stem.x, frame.bottom), Offset(stem.x, stem.top), STEM_WIDTH.toPx())
+            }
+            stems.forEach { stem ->
+                val color = colorOf(stem)
+                val centre = Offset(stem.x, stem.top)
+                drawCircle(colors.surface, ring, centre)
+                val joint = minOf(stem.top + ring + 1.dp.toPx(), frame.bottom)
+                drawLine(color, centre, Offset(stem.x, joint), STEM_WIDTH.toPx())
+                drawCircle(color, radius, centre)
             }
         }
         Row(Modifier.fillMaxWidth().padding(top = 2.dp), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -215,7 +227,11 @@ private fun PetFilterChip(name: String, color: Color, selected: Boolean, onClick
 }
 
 private val CHART_HEIGHT = 120.dp
-private val DOT_RADIUS = 6.dp
+private val DOT_RADIUS = 5.dp
+private val DOT_RING = 1.5.dp
+private val STEM_WIDTH = 3.dp
+
+/** Two stems closer than this are spread apart: their own width and as much again between them. */
+private val MIN_GAP = 6.dp
 private const val MIN_SCALE_MINUTES = 5
 private val AXIS_HOURS = listOf(0, 6, 12, 18, 24)
-private const val MINUTES_PER_DAY = 24 * 60

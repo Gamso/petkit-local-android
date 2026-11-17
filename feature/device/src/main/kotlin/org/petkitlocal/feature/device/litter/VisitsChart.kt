@@ -9,8 +9,8 @@ import org.petkitlocal.feature.device.common.DayChartCard
 import org.petkitlocal.feature.device.common.DayDot
 
 /**
- * The litter box's 24-hour chart (docs/DESIGN.md, DayScatterChart): one dot per visit, at its time
- * across and its duration up, in its pet's colour, with a single-select pet filter. TalkBack reads
+ * The litter box's 24-hour chart (docs/DESIGN.md, DayStemChart): one stem per visit, from the axis
+ * at its time up to its duration, in its pet's colour, with a single-select pet filter. TalkBack reads
  * the count; the activity list below says the same visits in words.
  */
 @Composable
