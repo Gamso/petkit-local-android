@@ -7,6 +7,7 @@ import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.SerializationException
+import kotlinx.serialization.builtins.ListSerializer
 import okhttp3.HttpUrl
 import org.petkitlocal.core.database.dao.TimelineDao
 import org.petkitlocal.core.database.dao.TimelineFilter
@@ -26,6 +27,7 @@ import org.petkitlocal.core.domain.model.PetRef
 import org.petkitlocal.core.domain.model.TimelineCategory
 import org.petkitlocal.core.domain.model.TimelineItem
 import org.petkitlocal.core.domain.model.TimelineMedia
+import org.petkitlocal.core.domain.model.TimelineStep
 import org.petkitlocal.core.domain.repository.TimelineRepository
 import org.petkitlocal.core.network.PetkitApi
 import org.petkitlocal.core.network.PetkitJson
@@ -33,6 +35,7 @@ import org.petkitlocal.core.network.ServerAddressProvider
 import org.petkitlocal.core.network.dto.EventDetailDto
 import org.petkitlocal.core.network.dto.MediaDto
 import org.petkitlocal.core.network.dto.TimelineItemDto
+import org.petkitlocal.core.network.dto.TimelineStepDto
 import org.petkitlocal.core.network.error.apiCall
 
 /**
@@ -188,7 +191,10 @@ internal fun TimelineItemDto.toRow(day: String) = TimelineItemRow(
     factsJson = encodeStrings(facts),
     mediaJson = media?.let { PetkitJson.encodeToString(MediaDto.serializer(), it) },
     hasClip = media?.hasClip == true,
+    stepsJson = PetkitJson.encodeToString(stepList, steps),
 )
+
+private val stepList = ListSerializer(TimelineStepDto.serializer())
 
 /** The episode has a clip to play: its short clip, its whole recording or its timelapse. */
 internal val MediaDto.hasClip: Boolean get() = highlight != null || playback != null || timelapse != null
@@ -216,7 +222,19 @@ internal fun TimelineItemRow.toDomain(apiBase: HttpUrl?) = TimelineItem(
     weightG = weightG,
     facts = decodeStrings(factsJson),
     media = mediaJson?.let(::decodeMedia)?.toDomain(apiBase),
+    steps = decodeSteps(stepsJson).map { it.toDomain() },
 )
+
+private fun TimelineStepDto.toDomain() = TimelineStep(id, ts?.let(::epochSecondsToInstant), label, detail)
+
+/** Steps cached by an older build, or unreadable, are none rather than a crash. */
+private fun decodeSteps(json: String): List<TimelineStepDto> = try {
+    PetkitJson.decodeFromString(stepList, json)
+} catch (_: SerializationException) {
+    emptyList()
+} catch (_: IllegalArgumentException) {
+    emptyList()
+}
 
 private fun decodeMedia(json: String): MediaDto? = try {
     PetkitJson.decodeFromString(MediaDto.serializer(), json)
