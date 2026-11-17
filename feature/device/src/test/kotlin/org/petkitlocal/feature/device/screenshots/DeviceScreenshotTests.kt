@@ -121,7 +121,10 @@ class RecentClipsScreenshotTest(private val variant: ScreenshotVariant) {
     }
 }
 
-/** The settings screen, tall enough to show a litter box's categories down to the folded ones. */
+/**
+ * The settings screen, tall enough to show a litter box's identity card, its consumables and its
+ * categories down to the folded ones.
+ */
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(qualifiers = "w360dp-h1700dp-xhdpi", sdk = [36])
@@ -134,10 +137,16 @@ class DeviceSettingsScreenshotTest(private val variant: ScreenshotVariant) {
         }
     }
 
-    /** The Pura Max's settings by category, with what each does; the busiest one, so at 130 % too. */
+    /**
+     * The Pura Max's settings: its identity card, its consumables with its Pura Air's N60, then
+     * its settings by category, with what each does; the busiest one, so at 130 % too.
+     */
     @Test
     fun litterBox() = capture("settings_litter", variant) {
-        DeviceSettingsScreen(DeviceFixtures.settings(device = DeviceFixtures.litterSettings), DeviceSettingsActions())
+        DeviceSettingsScreen(
+            DeviceFixtures.settings(device = DeviceFixtures.litterSettings, puraAir = DeviceFixtures.purifier),
+            DeviceSettingsActions(),
+        )
     }
 
     companion object {
