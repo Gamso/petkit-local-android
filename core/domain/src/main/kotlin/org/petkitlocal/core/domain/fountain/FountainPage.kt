@@ -1,5 +1,6 @@
 package org.petkitlocal.core.domain.fountain
 
+import org.petkitlocal.core.domain.activity.ActivityEntry
 import org.petkitlocal.core.domain.devicepage.Hotspot
 import org.petkitlocal.core.domain.home.DeviceStatus
 import org.petkitlocal.core.domain.model.Device
@@ -31,6 +32,8 @@ data class FountainPage(
     val perPet: List<PetDrinks>,
     /** Pets in the household's order, which picks their colour. */
     val pets: List<Pet>,
+    /** Today's cards of this fountain, newest first, each with its follow-ups. */
+    val activity: List<ActivityEntry> = emptyList(),
 ) {
     /** The pets the chart can be filtered on: those with a drink today, in the household's order. */
     val chartPets: List<Pet> get() = drinks.mapNotNull { it.petId }.toSet().let { ids -> pets.filter { it.id in ids } }

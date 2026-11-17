@@ -99,6 +99,8 @@ class FountainRulesTest {
             page.perPet,
         )
         assertEquals(listOf(pets[0], pets[1]), page.chartPets)
+        // The activity lists every card of this fountain, its cleaning too; not the litter box's.
+        assertEquals(listOf(30L, 28L, 27L, 26L), page.activity.map { it.item.id })
         assertEquals(1, page.colorIndexOf(2))
         assertNull(page.colorIndexOf(9))
         // No pump counter on a W7H, no relay for a WiFi device.

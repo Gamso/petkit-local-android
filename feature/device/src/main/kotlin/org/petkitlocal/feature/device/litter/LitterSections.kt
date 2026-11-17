@@ -95,7 +95,7 @@ internal fun ActivityCard(page: LitterBoxPage, zone: ZoneId, onOpenHistory: () -
                 modifier = Modifier.padding(top = PkTheme.spacing.xs),
             )
         }
-        page.activity.take(MAX_ACTIVITY).forEach { item -> ActivityRow(item, page, zone) }
+        page.activity.take(MAX_ACTIVITY).forEach { entry -> ActivityRow(entry.item, page, zone) }
         PkButton(
             stringResource(R.string.litter_see_history),
             onClick = onOpenHistory,

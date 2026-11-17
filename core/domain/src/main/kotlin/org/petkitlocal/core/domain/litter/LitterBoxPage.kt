@@ -1,11 +1,11 @@
 package org.petkitlocal.core.domain.litter
 
+import org.petkitlocal.core.domain.activity.ActivityEntry
 import org.petkitlocal.core.domain.devicepage.Hotspot
 import org.petkitlocal.core.domain.home.DeviceStatus
 import org.petkitlocal.core.domain.model.Device
 import org.petkitlocal.core.domain.model.DeviceAction
 import org.petkitlocal.core.domain.model.Pet
-import org.petkitlocal.core.domain.model.TimelineItem
 
 /** Everything the litter box page shows (SPEC.md §5.3), derived from the cache by [LitterRules]. */
 data class LitterBoxPage(
@@ -23,8 +23,8 @@ data class LitterBoxPage(
     val visits: List<Visit>,
     /** Pets in the household's order, which picks their colour. */
     val pets: List<Pet>,
-    /** Today's cards of this device, newest first. */
-    val activity: List<TimelineItem>,
+    /** Today's cards of this device, newest first, each with its follow-ups. */
+    val activity: List<ActivityEntry>,
     /** The Pura Air (K3) in the box's K3 slot, when it has one and the cache holds it. */
     val puraAir: Device? = null,
 ) {

@@ -70,7 +70,7 @@ class LitterRulesTest {
             page.visits,
         )
         // Every card of this box, the cleaning and the pet seen included; not the other box's.
-        assertEquals(listOf(5L, 4L, 2L, 1L), page.activity.map { it.id })
+        assertEquals(listOf(5L, 4L, 2L, 1L), page.activity.map { it.item.id })
         assertEquals(listOf(1L, 2L), page.chartPets.map { it.id })
         assertEquals(1, page.colorIndexOf(2))
         assertNull(page.colorIndexOf(null))

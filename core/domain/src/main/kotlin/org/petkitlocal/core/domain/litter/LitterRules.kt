@@ -2,6 +2,7 @@ package org.petkitlocal.core.domain.litter
 
 import java.time.ZoneId
 import kotlin.math.roundToInt
+import org.petkitlocal.core.domain.activity.ActivityRules
 import org.petkitlocal.core.domain.devicepage.HotspotRules
 import org.petkitlocal.core.domain.devicepage.LitterParts
 import org.petkitlocal.core.domain.home.HomeRules
@@ -48,7 +49,7 @@ object LitterRules {
             yesterday = visitStats(yesterday.filter { it.deviceId == device.id }),
             visits = visits(mine, zone),
             pets = pets,
-            activity = mine,
+            activity = ActivityRules.entries(mine, pets),
             puraAir = puraAir,
         )
     }
