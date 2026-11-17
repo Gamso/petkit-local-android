@@ -33,7 +33,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -65,6 +64,8 @@ import org.petkitlocal.core.ui.formatDurationMinSec
 import org.petkitlocal.core.ui.formatTimeOfDay
 import org.petkitlocal.core.ui.formatWeightKg
 import org.petkitlocal.core.ui.rememberServerLabels
+import org.petkitlocal.core.ui.rememberTimeColumnWidth
+import org.petkitlocal.core.ui.timelineSymbol
 import org.petkitlocal.core.ui.timelineTitle
 
 /** Test tags of History's parts, for the Compose UI and end-to-end tests. */
@@ -339,28 +340,8 @@ internal fun EntryMark(entry: HistoryEntry, modifier: Modifier = Modifier) {
         }
         return
     }
-    val (icon, tint) = markIcon(categories)
+    val (icon, tint) = timelineSymbol(categories)
     Icon(icon, contentDescription = null, tint = tint, modifier = modifier.size(MARK_SIZE))
-}
-
-@Composable
-private fun markIcon(categories: Set<TimelineCategory>): Pair<ImageVector, Color> {
-    val colors = PkTheme.colors
-    return when {
-        TimelineCategory.Fault in categories || TimelineCategory.HealthAlert in categories ->
-            PkIcons.Warning to
-                colors.warning
-
-        TimelineCategory.Cleaning in categories -> PkIcons.Clean to colors.onSurfaceMuted
-
-        TimelineCategory.Feeding in categories -> PkIcons.Feed to colors.onSurfaceMuted
-
-        TimelineCategory.Drinking in categories -> PkIcons.WaterDrop to colors.onSurfaceMuted
-
-        TimelineCategory.Pet in categories -> PkIcons.Pets to colors.onSurfaceMuted
-
-        else -> PkIcons.History to colors.onSurfaceMuted
-    }
 }
 
 /** Stands for a recording the server is still assembling. */
