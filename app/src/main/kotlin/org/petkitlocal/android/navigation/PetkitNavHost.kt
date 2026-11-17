@@ -25,7 +25,9 @@ import org.petkitlocal.feature.device.deviceScreen
 import org.petkitlocal.feature.device.deviceSettingsScreen
 import org.petkitlocal.feature.device.navigateToDevice
 import org.petkitlocal.feature.device.navigateToDeviceSettings
+import org.petkitlocal.feature.history.clipScreen
 import org.petkitlocal.feature.history.historyScreen
+import org.petkitlocal.feature.history.navigateToClip
 import org.petkitlocal.feature.history.navigateToHistory
 import org.petkitlocal.feature.home.HomeDestination
 import org.petkitlocal.feature.home.HomeNavigation
@@ -99,10 +101,12 @@ fun PetkitNavHost(
                 onOpenHistory = { deviceId -> navController.navigateToHistory(deviceId = deviceId) },
                 onOpenDevice = { deviceId -> navController.navigateToDevice(deviceId) },
                 onOpenLive = { deviceId -> navController.navigateToLive(deviceId) },
+                onOpenClip = { clip -> navController.navigateToClip(clip) },
             ),
         )
         deviceSettingsScreen(onBack = back)
         historyScreen(onBack = back)
+        clipScreen(onBack = back)
         petsScreens(
             PetsNavigation(
                 onBack = back,
@@ -110,7 +114,11 @@ fun PetkitNavHost(
                 onOpenHistory = { petId, day -> navController.navigateToHistory(petId = petId, day = day) },
             ),
         )
-        liveScreen(onBack = back)
+        liveScreen(
+            onBack = back,
+            onOpenClip = { clip -> navController.navigateToClip(clip) },
+            onOpenHistory = { deviceId -> navController.navigateToHistory(deviceId = deviceId) },
+        )
         settingsScreen(onBack = back)
     }
     LaunchedEffect(signedIn) { navController.followSession(signedIn) }

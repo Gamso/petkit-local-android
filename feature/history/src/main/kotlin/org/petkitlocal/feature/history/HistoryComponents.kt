@@ -34,7 +34,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -45,7 +44,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.TextStyle
@@ -60,13 +58,14 @@ import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.history.HistoryEntry
 import org.petkitlocal.core.domain.model.MediaFile
 import org.petkitlocal.core.domain.model.TimelineCategory
-import org.petkitlocal.core.domain.model.TimelineItem
+import org.petkitlocal.core.ui.MediaThumbnail
 import org.petkitlocal.core.ui.ServerLabels
 import org.petkitlocal.core.ui.formatDate
 import org.petkitlocal.core.ui.formatDurationMinSec
 import org.petkitlocal.core.ui.formatTimeOfDay
 import org.petkitlocal.core.ui.formatWeightKg
 import org.petkitlocal.core.ui.rememberServerLabels
+import org.petkitlocal.core.ui.timelineTitle
 
 /** Test tags of History's parts, for the Compose UI and end-to-end tests. */
 object HistoryTestTags {
@@ -298,7 +297,7 @@ internal fun HistoryCard(entry: HistoryEntry, zone: ZoneId, onClick: () -> Unit,
             EntryMark(entry)
             Column(Modifier.padding(start = PkTheme.spacing.s).weight(1f)) {
                 Text(
-                    entryTitle(item, labels),
+                    timelineTitle(item, labels),
                     style = PkTheme.typography.titleMedium,
                     color = colors.onSurface,
                     maxLines = 2,
@@ -327,18 +326,6 @@ internal fun HistoryCard(entry: HistoryEntry, zone: ZoneId, onClick: () -> Unit,
 
 private val MARK_SIZE = 24.dp
 private const val MAX_THUMBNAILS = 3
-
-/** What a card is about: the pet for a visit, otherwise its kind, by key. */
-@Composable
-internal fun entryTitle(item: TimelineItem, labels: ServerLabels): String {
-    val visit = TimelineCategory.Toileting in item.categories
-    return if (visit) {
-        item.pet?.name ?: stringResource(R.string.history_unknown_pet)
-    } else {
-        val kind = labels.eventKind(item.eventKind ?: item.kind, item.label)
-        item.pet?.name?.let { "$kind · $it" } ?: kind
-    }
-}
 
 /** A visit's pet colour, or the symbol of the card's kind. */
 @Composable
@@ -375,66 +362,6 @@ private fun markIcon(categories: Set<TimelineCategory>): Pair<ImageVector, Color
         else -> PkIcons.History to colors.onSurfaceMuted
     }
 }
-
-/**
- * A photo's or a clip's still, fetched with the bearer header by the app's image loader; a clip
- * carries a play badge. Decorative where its card says what it is; [onClick] makes it a button.
- */
-@Composable
-internal fun MediaThumbnail(
-    file: MediaFile,
-    size: Dp,
-    modifier: Modifier = Modifier,
-    description: String? = null,
-    onClick: (() -> Unit)? = null,
-) {
-    val colors = PkTheme.colors
-    val clickable = if (onClick != null) {
-        Modifier.selectable(selected = false, onClick = onClick, role = Role.Button)
-    } else {
-        Modifier
-    }
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = modifier
-            .size(size)
-            .clip(PkTheme.shapes.tile)
-            .background(colors.surfaceMuted)
-            .then(clickable)
-            .then(if (description != null) Modifier.semantics { contentDescription = description } else Modifier),
-    ) {
-        // Until the still arrives (or if it cannot): a photo's symbol; a clip has its play badge.
-        if (!file.kind.isVideo) {
-            Icon(
-                PkIcons.Photo,
-                contentDescription = null,
-                tint = colors.onSurfaceMuted,
-                modifier = Modifier.size(20.dp),
-            )
-        }
-        if (file.thumbnailUrl != null) {
-            AsyncImage(
-                model = file.thumbnailUrl,
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
-            )
-        }
-        if (file.kind.isVideo) {
-            Box(
-                contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(28.dp)
-                    .clip(CircleShape)
-                    .background(Color.Black.copy(alpha = BADGE_ALPHA)),
-            ) {
-                Icon(PkIcons.PlayArrow, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
-            }
-        }
-    }
-}
-
-private const val BADGE_ALPHA = 0.55f
 
 /** Stands for a recording the server is still assembling. */
 @Composable

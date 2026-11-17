@@ -23,7 +23,10 @@ import org.petkitlocal.feature.device.common.DayDot
 import org.petkitlocal.feature.device.common.DeviceHeader
 import org.petkitlocal.feature.device.common.DeviceStatusLine
 import org.petkitlocal.feature.device.common.DeviceTestTags
+import org.petkitlocal.feature.device.common.RecentClipsUi
 import org.petkitlocal.feature.device.common.RelayLink
+import org.petkitlocal.feature.device.common.recentClips
+import org.petkitlocal.feature.device.common.rememberRecentClips
 import org.petkitlocal.feature.device.litter.DeviceHero
 import org.petkitlocal.feature.device.litter.DevicePageScaffold
 import org.petkitlocal.feature.device.litter.HotspotDialog
@@ -46,11 +49,16 @@ data class FountainCallbacks(
 @Composable
 internal fun FountainRoute(navigation: DeviceNavigation, viewModel: FountainViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val clips = rememberRecentClips(navigation)
     FountainScreen(
         uiState = uiState,
         navigation = navigation,
+        clips = clips,
         callbacks = FountainCallbacks(
-            onRefresh = viewModel::onRefresh,
+            onRefresh = {
+                viewModel.onRefresh()
+                clips.onRefresh()
+            },
             onModeToggle = viewModel::onModeToggle,
             onPetFilter = viewModel::onPetFilter,
             onHotspot = viewModel::onHotspot,
@@ -67,8 +75,8 @@ internal fun FountainRoute(navigation: DeviceNavigation, viewModel: FountainView
 /**
  * The fountain page: header with the mode chips and the settings gear, the hero with the parts the
  * model has, the live status line (and, for a Bluetooth fountain, the device relaying it), today
- * against yesterday, the drinks' 24-hour chart on a fountain that records them, and the action
- * sheet every device screen shares.
+ * against yesterday, the drinks' 24-hour chart on a fountain that records them, a camera's recent
+ * clips, and the action sheet every device screen shares.
  */
 @Composable
 internal fun FountainScreen(
@@ -77,6 +85,8 @@ internal fun FountainScreen(
     callbacks: FountainCallbacks,
     modifier: Modifier = Modifier,
     initiallyExpanded: Boolean = false,
+    /** A camera's recent clips; null shows none. */
+    clips: RecentClipsUi? = null,
 ) {
     val page = uiState.page
     val tint = PkTheme.colors.heroFountain
@@ -94,6 +104,7 @@ internal fun FountainScreen(
             missingPage(uiState, tint, navigation.onBack, callbacks.onRefresh)
         } else {
             fountainContent(page, uiState, navigation, callbacks)
+            recentClips(page.device, clips, Modifier.gutter())
         }
     }
     uiState.openHotspot?.let { hotspot ->

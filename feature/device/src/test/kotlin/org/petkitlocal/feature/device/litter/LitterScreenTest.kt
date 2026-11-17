@@ -3,6 +3,7 @@ package org.petkitlocal.feature.device.litter
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -20,10 +21,13 @@ import org.junit.runner.RunWith
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.core.domain.devicepage.DevicePart
+import org.petkitlocal.core.ui.RecentClipsTestTags
+import org.petkitlocal.feature.device.DeviceFixtures
 import org.petkitlocal.feature.device.DeviceNavigation
 import org.petkitlocal.feature.device.common.CONFIRM_ARM_MS
 import org.petkitlocal.feature.device.common.CommandState
 import org.petkitlocal.feature.device.common.DeviceTestTags
+import org.petkitlocal.feature.device.common.RecentClipsUi
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
@@ -56,8 +60,8 @@ class LitterScreenTest {
         ),
     )
 
-    private fun show(state: LitterUiState) {
-        compose.setContent { PkTheme { LitterScreen(state, navigation, callbacks) } }
+    private fun show(state: LitterUiState, clips: RecentClipsUi? = null) {
+        compose.setContent { PkTheme { LitterScreen(state, navigation, callbacks, clips = clips) } }
     }
 
     private fun scrollTo(text: String) {
@@ -181,6 +185,31 @@ class LitterScreenTest {
         show(LitterFixtures.content)
 
         compose.onNodeWithContentDescription("Live video").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a camera's page shows its recent clips, each opening its clip, the rest in History`() {
+        val clips = DeviceFixtures.recentClips.copy(
+            onOpenClip = { calls += "clip:${it.kind}" },
+            onSeeAll = { calls += "all-clips" },
+        )
+        show(LitterFixtures.trouble, clips)
+
+        val list = compose.onNodeWithTag(PageTestTags.LIST)
+        list.performScrollToNode(hasTestTag(RecentClipsTestTags.SECTION))
+        compose.onNodeWithText("Recent videos").assertIsDisplayed()
+        compose.onNodeWithTag(RecentClipsTestTags.clip(12)).performClick()
+        list.performScrollToNode(hasText("More videos in History"))
+        compose.onNodeWithText("More videos in History").performClick()
+
+        assertEquals(listOf("clip:Highlight", "all-clips"), calls)
+    }
+
+    @Test
+    fun `a box without a camera has no recent clips`() {
+        show(LitterFixtures.content, DeviceFixtures.recentClips)
+
+        compose.onNodeWithTag(RecentClipsTestTags.SECTION).assertDoesNotExist()
     }
 
     @Test

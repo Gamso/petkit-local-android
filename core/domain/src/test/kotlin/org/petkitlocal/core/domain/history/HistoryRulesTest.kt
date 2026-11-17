@@ -151,6 +151,10 @@ class HistoryRulesTest {
             Outcome.Success(HistoryPage(null))
 
         override suspend fun getEvent(id: Long): Outcome<EventDetail> = error("not used")
+
+        override fun observeRecentClips(deviceId: Long, limit: Int) = error("not used")
+
+        override suspend fun refreshRecentClips(deviceId: Long, count: Int): Outcome<Unit> = error("not used")
     }
 
     private class StaticDevices(private val devices: List<Device>) : DeviceRepository {

@@ -3,6 +3,7 @@ package org.petkitlocal.feature.live
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -10,10 +11,13 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.petkitlocal.core.domain.DomainError
+import org.petkitlocal.core.ui.RecentClipsTestTags
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
@@ -32,6 +36,9 @@ class LiveScreenTest {
         onToggleMute = { calls += "mute" },
         onFullscreen = { calls += "fullscreen:$it" },
         onSnapshot = { calls += "snapshot" },
+        onOpenClip = { calls += "clip:${it.kind}" },
+        onSeeAllClips = { calls += "all-clips" },
+        onRetryClips = { calls += "retry-clips" },
     )
 
     private fun show(state: LiveUiState) {
@@ -53,6 +60,30 @@ class LiveScreenTest {
         compose.onNodeWithContentDescription("Full screen").performClick()
         compose.onNodeWithContentDescription("Back").performClick()
         assertEquals(listOf("mute", "snapshot", "fullscreen:true", "back"), calls)
+    }
+
+    @Test
+    fun `the camera's recent clips are under the controls, each opening its clip, the rest in History`() {
+        show(LiveFixtures.playing)
+
+        compose.onNodeWithTag(LiveTestTags.SCREEN).performScrollToNode(hasTestTag(RecentClipsTestTags.SECTION))
+        compose.onNodeWithText("Recent videos").assertIsDisplayed()
+        compose.onNodeWithTag(RecentClipsTestTags.clip(12)).performClick()
+        compose.onNodeWithTag(LiveTestTags.SCREEN).performScrollToNode(hasText("More videos in History"))
+        compose.onNodeWithText("More videos in History").performClick()
+
+        assertEquals(listOf("clip:Highlight", "all-clips"), calls)
+    }
+
+    @Test
+    fun `when the clips cannot be read, their retry asks again`() {
+        val failed = LiveFixtures.clips.copy(clips = emptyList(), refreshed = false, error = DomainError.Network("x"))
+        show(LiveFixtures.playing.copy(clips = failed))
+
+        compose.onNodeWithTag(LiveTestTags.SCREEN).performScrollToNode(hasText("Retry"))
+        compose.onNodeWithText("Retry").performClick()
+
+        assertEquals(listOf("retry-clips"), calls)
     }
 
     @Test

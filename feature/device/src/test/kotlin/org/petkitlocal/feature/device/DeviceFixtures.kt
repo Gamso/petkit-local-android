@@ -15,16 +15,29 @@ import org.petkitlocal.core.domain.model.EntityComponent
 import org.petkitlocal.core.domain.model.EntityValue
 import org.petkitlocal.core.domain.repository.CommandDelivery
 import org.petkitlocal.core.testing.Household
+import org.petkitlocal.core.ui.RecentClipsState
 import org.petkitlocal.feature.device.common.CommandFeedback
 import org.petkitlocal.feature.device.common.CommandResult
 import org.petkitlocal.feature.device.common.CommandState
 import org.petkitlocal.feature.device.common.CommandSubject
+import org.petkitlocal.feature.device.common.RecentClipsUi
 import org.petkitlocal.feature.device.generic.GenericDeviceUiState
 import org.petkitlocal.feature.device.settings.DeviceSettingsUiState
 import org.petkitlocal.feature.device.settings.SettingEditorState
 
 /** Devices as the mock serves them (mock-server catalog), for the device screens' tests. */
 object DeviceFixtures {
+    /** A camera's recent clips, as its page shows them once the server answered. */
+    val recentClips = RecentClipsUi(
+        RecentClipsState(
+            clips = Household.cameraClips,
+            cacheLoaded = true,
+            refreshed = true,
+            zone = Household.zone,
+            today = Household.today,
+        ),
+    )
+
     val flush = DeviceAction("fountain_flush", "Drain & Flush", destructive = false)
     val refill = DeviceAction("fountain_refill", "Refill", destructive = false)
     val drain = DeviceAction("fountain_drain", "Drain", destructive = true)

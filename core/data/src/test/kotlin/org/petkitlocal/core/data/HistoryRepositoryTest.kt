@@ -1,7 +1,10 @@
 package org.petkitlocal.core.data
 
+import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
+import java.time.ZonedDateTime
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -33,7 +36,9 @@ class HistoryRepositoryTest {
     @get:Rule
     val server = ScriptedServer()
 
-    private val timeline by lazy { TimelineRepositoryImpl(server.api, server.db.timelineDao()) { server.base } }
+    private val zone = ZoneId.of("Europe/Paris")
+    private val clock = Clock.fixed(ZonedDateTime.of(2026, 11, 15, 10, 0, 0, 0, zone).toInstant(), zone)
+    private val timeline by lazy { TimelineRepositoryImpl(server.api, server.db.timelineDao(), clock) { server.base } }
     private val day = LocalDate.of(2026, 11, 15)
 
     @Test
@@ -117,8 +122,60 @@ class HistoryRepositoryTest {
         assertNull(timeline.observeHistory(HistoryQuery(day)).first().single().media)
     }
 
-    private fun item(id: Long, media: String = "null") = """{"id":$id,"kind":"visit","filters":["toileting"],
-        "device_id":1002,"device_type":"t5","ts":${TS + id},"display_ts":1794719773,
+    @Test
+    fun `a camera's recent clips are its newest cards with a clip, each filed under its own day`() = runTest {
+        // 1794719959 is 2026-11-15 06:19 in Paris; a day earlier is 2026-11-14.
+        val yesterday = TS - DAY
+        server.on(
+            "timeline?device=1003&limit=30",
+            """{"items":[${item(5, media = MEDIA, device = 1003)},${item(4, device = 1003)},
+               ${item(3, media = MEDIA, device = 1003, ts = yesterday)}],"next_cursor":"c1"}""",
+        )
+        server.on(
+            "timeline?device=1003&limit=30&cursor=c1",
+            """{"items":[${item(2, media = PHOTO_ONLY, device = 1003, ts = yesterday - 60)},
+               ${item(1, media = MEDIA, device = 1003, ts = yesterday - 120)}],"next_cursor":null}""",
+        )
+
+        assertEquals(Outcome.Success(Unit), timeline.refreshRecentClips(1003, count = 6))
+
+        assertEquals(listOf(5L, 3L, 1L), timeline.observeRecentClips(1003, limit = 6).first().map { it.id })
+        assertEquals(listOf(5L, 3L), timeline.observeRecentClips(1003, limit = 2).first().map { it.id })
+        // Filed under their own local day, where Home and History read them.
+        assertEquals(listOf(5L, 4L), timeline.observeDay(day).first().map { it.id })
+        assertEquals(listOf(3L, 2L, 1L), timeline.observeDay(day.minusDays(1)).first().map { it.id })
+    }
+
+    @Test
+    fun `a refresh stops reading pages once it has enough clips`() = runTest {
+        server.on(
+            "timeline?device=1003&limit=30",
+            """{"items":[${item(5, media = MEDIA, device = 1003)},${item(4, media = MEDIA, device = 1003)}],
+               "next_cursor":"c1"}""",
+        )
+
+        assertEquals(Outcome.Success(Unit), timeline.refreshRecentClips(1003, count = 2))
+
+        assertEquals(listOf("timeline?device=1003&limit=30"), server.requests.filter { it.startsWith("timeline") })
+        assertEquals(listOf(5L, 4L), timeline.observeRecentClips(1003, limit = 6).first().map { it.id })
+    }
+
+    @Test
+    fun `a failed refresh of recent clips leaves the cache as it was`() = runTest {
+        val page = """{"items":[${item(1, media = MEDIA, device = 1003)}],"next_cursor":null}"""
+        server.on("timeline?device=1003&limit=30", page)
+        timeline.refreshRecentClips(1003, count = 6)
+        server.on("timeline?device=1003&limit=30", """{"error":"unavailable","message":"x"}""", code = 503)
+
+        val result = timeline.refreshRecentClips(1003, count = 6)
+
+        assertTrue((result as Outcome.Failure).error is DomainError.Server)
+        assertEquals(listOf(1L), timeline.observeRecentClips(1003, limit = 6).first().map { it.id })
+    }
+
+    private fun item(id: Long, media: String = "null", device: Long = 1002, ts: Long = TS + id) = """{"id":$id,
+        "kind":"visit","filters":["toileting"],
+        "device_id":$device,"device_type":"t5","ts":$ts,"display_ts":1794719773,
         "event_type":"10","event_kind":"toilet_visit","label":null,"pet":{"id":1,"name":"Mochi"},
         "duration_sec":186,"weight_g":6065,"facts":[],"media":$media,"steps":[]}"""
 
@@ -128,5 +185,10 @@ class HistoryRepositoryTest {
         const val MEDIA = """{"thumbnail":"/app/v1/media/thumb/a/snap.jpg","snapshot":"/app/v1/media/a/snap.jpg",
             "highlight":"/app/v1/media/a/clip.mp4","playback":null,"timelapse":null,
             "waste":["/app/v1/media/a/waste.jpg"],"health":[],"video_pending":true}"""
+
+        const val PHOTO_ONLY = """{"thumbnail":null,"snapshot":"/app/v1/media/b/snap.jpg","highlight":null,
+            "playback":null,"timelapse":null,"waste":[],"health":[],"video_pending":false}"""
+
+        const val DAY = 86_400L
     }
 }

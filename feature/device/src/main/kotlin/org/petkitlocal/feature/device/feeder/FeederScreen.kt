@@ -22,6 +22,9 @@ import org.petkitlocal.feature.device.R
 import org.petkitlocal.feature.device.common.DeviceHeader
 import org.petkitlocal.feature.device.common.DeviceStatusLine
 import org.petkitlocal.feature.device.common.DeviceTestTags
+import org.petkitlocal.feature.device.common.RecentClipsUi
+import org.petkitlocal.feature.device.common.recentClips
+import org.petkitlocal.feature.device.common.rememberRecentClips
 import org.petkitlocal.feature.device.litter.DeviceHero
 import org.petkitlocal.feature.device.litter.DevicePageScaffold
 import org.petkitlocal.feature.device.litter.HotspotDialog
@@ -54,11 +57,16 @@ data class FeederCallbacks(
 @Composable
 internal fun FeederRoute(navigation: DeviceNavigation, viewModel: FeederViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val clips = rememberRecentClips(navigation)
     FeederScreen(
         uiState = uiState,
         navigation = navigation,
+        clips = clips,
         callbacks = FeederCallbacks(
-            onRefresh = viewModel::onRefresh,
+            onRefresh = {
+                viewModel.onRefresh()
+                clips.onRefresh()
+            },
             onHotspot = viewModel::onHotspot,
             onPortions = viewModel::onPortions,
             onFeedNow = viewModel::onFeedNow,
@@ -85,8 +93,9 @@ internal fun FeederRoute(navigation: DeviceNavigation, viewModel: FeederViewMode
 /**
  * The feeder page (SPEC.md §5.6): header and hero with the food, bowl and desiccant hotspots,
  * the live status line, the next meal with feed now, today's plan with its pause switch and the
- * weekly plan's editor, the one-off feeds, and the action sheet every device screen shares: the
- * feeder's buttons (feed is feed now), then the plan, a one-off feed and History behind More.
+ * weekly plan's editor, the one-off feeds, a camera's recent clips, and the action sheet every
+ * device screen shares: the feeder's buttons (feed is feed now), then the plan, a one-off feed and
+ * History behind More.
  */
 @Composable
 internal fun FeederScreen(
@@ -95,6 +104,8 @@ internal fun FeederScreen(
     callbacks: FeederCallbacks,
     modifier: Modifier = Modifier,
     initiallyExpanded: Boolean = false,
+    /** A camera's recent clips; null shows none. */
+    clips: RecentClipsUi? = null,
 ) {
     val page = uiState.page
     val tint = PkTheme.colors.heroFeeder
@@ -115,6 +126,7 @@ internal fun FeederScreen(
             missingPage(uiState, tint, navigation.onBack, callbacks.onRefresh)
         } else {
             feederContent(page, uiState, navigation, callbacks)
+            recentClips(page.device, clips, Modifier.gutter())
         }
     }
     FeederDialogs(uiState, callbacks)

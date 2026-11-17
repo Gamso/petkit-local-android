@@ -6,4 +6,8 @@ plugins {
 
 dependencies {
     api(projects.core.designsystem)
+    // The domain's models: a shared piece shows a timeline card or a clip as the domain has it.
+    implementation(projects.core.domain)
+    // Thumbnails; the image loader itself (the app's OkHttp client) is configured in :app.
+    implementation(libs.coil.compose)
 }

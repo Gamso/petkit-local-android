@@ -54,8 +54,9 @@ abstract class PetkitDatabase : RoomDatabase() {
          * 2: devices gained their connection, parent and accessories (Bluetooth accessories).
          * 3: timeline cards gained their media (History).
          * 4: pets gained their statistics, recent visits and weighed visits (Pets).
+         * 5: timeline cards say whether they hold a clip (a camera's recent clips).
          */
-        const val VERSION = 4
+        const val VERSION = 5
 
         /** The oldest schema an installed app may hold; [VERSION] until the first release. */
         const val OLDEST_SUPPORTED_VERSION = VERSION

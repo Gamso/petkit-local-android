@@ -44,10 +44,12 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.launch
 import org.petkitlocal.core.designsystem.component.PkBackButton
 import org.petkitlocal.core.designsystem.theme.PkTheme
+import org.petkitlocal.core.domain.model.MediaFile
 import org.petkitlocal.core.domain.video.LiveFailure
 import org.petkitlocal.core.domain.video.LivePhase
 import org.petkitlocal.core.domain.video.LiveSession
 import org.petkitlocal.core.domain.video.LiveTransport
+import org.petkitlocal.core.ui.RecentClipsCard
 
 /** What the live screen's user can do; the route wires each to the ViewModel. */
 data class LiveCallbacks(
@@ -56,6 +58,11 @@ data class LiveCallbacks(
     val onToggleMute: () -> Unit = {},
     val onFullscreen: (on: Boolean) -> Unit = {},
     val onSnapshot: () -> Unit = {},
+    /** One of the recent clips, in the clip player. */
+    val onOpenClip: (MediaFile) -> Unit = {},
+    /** History, narrowed to this camera: the rest of its clips. */
+    val onSeeAllClips: () -> Unit = {},
+    val onRetryClips: () -> Unit = {},
 )
 
 object LiveTestTags {
@@ -71,7 +78,12 @@ object LiveTestTags {
 }
 
 @Composable
-internal fun LiveRoute(onBack: () -> Unit, viewModel: LiveViewModel = hiltViewModel()) {
+internal fun LiveRoute(
+    onBack: () -> Unit,
+    onOpenClip: (MediaFile) -> Unit,
+    onOpenHistory: (deviceId: Long) -> Unit,
+    viewModel: LiveViewModel = hiltViewModel(),
+) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     // Playing only while the screen is visible: no player and no socket in the background.
     LifecycleStartEffect(viewModel) {
@@ -103,6 +115,9 @@ internal fun LiveRoute(onBack: () -> Unit, viewModel: LiveViewModel = hiltViewMo
                 val playing = viewModel.uiState.value.session.phase == LivePhase.Playing
                 scope.launch { viewModel.onSnapshot(view?.takeIf { playing }?.let { captureJpeg(it, videoSize) }) }
             },
+            onOpenClip = onOpenClip,
+            onSeeAllClips = { onOpenHistory(viewModel.deviceId) },
+            onRetryClips = viewModel::onRefreshClips,
         ),
         aspectRatio = aspectRatioOf(videoSize),
     ) { modifier -> LiveVideoSurface(player, onView = { surface = it }, modifier = modifier) }
@@ -127,7 +142,8 @@ private fun rememberVideoSize(player: Player?): VideoSize {
 /**
  * A camera's live video (SPEC.md §5.7), always dark (docs/DESIGN.md): the picture full width
  * with its badge (live, how far behind, HLS on the fallback) and what the session is doing over
- * it, then sound, snapshot and full screen, and "Talk", which this app does not offer. Full
+ * it, then sound, snapshot and full screen, "Talk", which this app does not offer, and
+ * the camera's recent clips, each opening the clip player (which stops the live video). Full
  * screen, the picture takes the whole landscape window with its controls over it.
  *
  * [video] draws the picture in the modifier it is given; the route passes the player's surface.
@@ -169,7 +185,20 @@ internal fun LiveScreen(
                         .clip(PkTheme.shapes.tile)
                 },
             )
-            if (!fullscreen && uiState.availability == LiveAvailability.Camera) LiveControls(uiState, callbacks)
+            if (!fullscreen && uiState.availability == LiveAvailability.Camera) {
+                LiveControls(uiState, callbacks)
+                RecentClipsCard(
+                    state = uiState.clips,
+                    onOpenClip = callbacks.onOpenClip,
+                    onSeeAll = callbacks.onSeeAllClips,
+                    onRetry = callbacks.onRetryClips,
+                    modifier = Modifier.padding(
+                        start = PkTheme.spacing.gutter,
+                        end = PkTheme.spacing.gutter,
+                        bottom = PkTheme.spacing.gutter,
+                    ),
+                )
+            }
         }
     }
 }

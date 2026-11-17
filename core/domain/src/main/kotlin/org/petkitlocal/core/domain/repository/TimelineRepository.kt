@@ -30,6 +30,19 @@ interface TimelineRepository {
      */
     suspend fun fetchHistoryPage(query: HistoryQuery, cursor: HistoryCursor?): Outcome<HistoryPage>
 
+    /**
+     * The cached cards of [deviceId] that hold a clip, newest first, whatever day they are filed
+     * under, at most [limit].
+     */
+    fun observeRecentClips(deviceId: Long, limit: Int): Flow<List<TimelineItem>>
+
+    /**
+     * Fetches [deviceId]'s newest cards, every day together, page after page until [count] of them
+     * hold a clip or the device has no more (within a bound), and makes the cache match the server
+     * over the range those pages cover.
+     */
+    suspend fun refreshRecentClips(deviceId: Long, count: Int): Outcome<Unit>
+
     /** One stored event with its decoded fields and media (`GET /timeline/{event_id}`). */
     suspend fun getEvent(id: Long): Outcome<EventDetail>
 }

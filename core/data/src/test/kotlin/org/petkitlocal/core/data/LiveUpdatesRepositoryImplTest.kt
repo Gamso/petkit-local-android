@@ -64,7 +64,7 @@ class LiveUpdatesRepositoryImplTest {
     private val backoff = LiveUpdatesBackoff(base = 1.seconds, cap = 30.seconds, random = NoJitter)
 
     private val devices by lazy { DeviceRepositoryImpl(server.api, server.db.deviceDao()) }
-    private val timeline by lazy { TimelineRepositoryImpl(server.api, server.db.timelineDao()) { server.base } }
+    private val timeline by lazy { TimelineRepositoryImpl(server.api, server.db.timelineDao(), clock) { server.base } }
 
     private fun TestScope.repository() = LiveUpdatesRepositoryImpl(
         socket = socket,

@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.Flow
 import org.petkitlocal.core.database.model.TimelineItemRow
 
 @Dao
+@Suppress("TooManyFunctions") // One query per way a screen reads the timeline, and the writes that keep it true.
 abstract class TimelineDao {
     /** The cards of [day] (`YYYY-MM-DD`), newest first, as the server orders them. */
     @Query("SELECT * FROM timeline_items WHERE day = :day ORDER BY ts DESC, id DESC")
@@ -44,6 +45,36 @@ abstract class TimelineDao {
             val kept = items.mapTo(HashSet()) { it.id }
             val gone = keys(filter.day, filter.deviceId, filter.petId, filter.likePattern)
                 .filter { it.id !in kept && it.isWithin(newerThan, oldest) }
+                .map { it.id }
+            if (gone.isNotEmpty()) deleteIds(gone)
+        }
+        upsert(items)
+    }
+
+    /** [deviceId]'s cards holding a clip, newest first, whatever day they are filed under. */
+    @Query(
+        """
+        SELECT * FROM timeline_items
+        WHERE device_id = :deviceId AND has_clip = 1
+        ORDER BY ts DESC, id DESC
+        LIMIT :limit
+        """,
+    )
+    abstract fun observeRecentClips(deviceId: Long, limit: Int): Flow<List<TimelineItemRow>>
+
+    /**
+     * [deviceId]'s newest cards, every day together, as `GET /timeline?device=` sent them from
+     * the top: [items] are written, and the device's cached cards in the range they cover, but
+     * absent from them, are dropped. The range runs from the newest card down to [items]' last
+     * one, or to the device's oldest when [complete] says the server has nothing after them.
+     */
+    @Transaction
+    open suspend fun writeDeviceNewest(deviceId: Long, items: List<TimelineItemRow>, complete: Boolean) {
+        val oldest = if (complete) null else items.lastOrNull()?.key
+        if (complete || oldest != null) {
+            val kept = items.mapTo(HashSet()) { it.id }
+            val gone = deviceKeys(deviceId)
+                .filter { it.id !in kept && it.isWithin(newerBound = null, oldestIncluded = oldest) }
                 .map { it.id }
             if (gone.isNotEmpty()) deleteIds(gone)
         }
@@ -93,6 +124,9 @@ abstract class TimelineDao {
         petId: Long?,
         filterPattern: String?,
     ): List<TimelineKey>
+
+    @Query("SELECT id, ts FROM timeline_items WHERE device_id = :deviceId")
+    protected abstract suspend fun deviceKeys(deviceId: Long): List<TimelineKey>
 
     @Query("DELETE FROM timeline_items WHERE id IN (:ids)")
     protected abstract suspend fun deleteIds(ids: List<Long>)

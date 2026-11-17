@@ -36,7 +36,9 @@ class RepositoriesTest {
 
     private val devices by lazy { DeviceRepositoryImpl(server.api, server.db.deviceDao()) }
     private val pets by lazy { PetRepositoryImpl(server.api, server.db.petDao(), Clock.systemUTC()) { server.base } }
-    private val timeline by lazy { TimelineRepositoryImpl(server.api, server.db.timelineDao()) { server.base } }
+    private val timeline by lazy {
+        TimelineRepositoryImpl(server.api, server.db.timelineDao(), Clock.systemUTC()) { server.base }
+    }
 
     @Test
     fun `a device refresh caches the list and each detail, typed`() = runTest {

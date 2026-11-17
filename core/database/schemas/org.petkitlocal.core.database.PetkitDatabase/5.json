@@ -1,8 +1,8 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 4,
-    "identityHash": "eefa9181bec6bfacac6c347b86562edd",
+    "version": 5,
+    "identityHash": "40d6582437efd0fe235fa335016d572b",
     "entities": [
       {
         "tableName": "devices",
@@ -428,7 +428,7 @@
       },
       {
         "tableName": "timeline_items",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `day` TEXT NOT NULL, `kind` TEXT NOT NULL, `filters_json` TEXT NOT NULL, `device_id` INTEGER, `device_type` TEXT, `ts` REAL, `display_ts` REAL, `event_type` TEXT, `event_kind` TEXT, `label` TEXT, `pet_id` INTEGER, `pet_name` TEXT, `duration_sec` INTEGER, `weight_g` INTEGER, `facts_json` TEXT NOT NULL, `media_json` TEXT, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `day` TEXT NOT NULL, `kind` TEXT NOT NULL, `filters_json` TEXT NOT NULL, `device_id` INTEGER, `device_type` TEXT, `ts` REAL, `display_ts` REAL, `event_type` TEXT, `event_kind` TEXT, `label` TEXT, `pet_id` INTEGER, `pet_name` TEXT, `duration_sec` INTEGER, `weight_g` INTEGER, `facts_json` TEXT NOT NULL, `media_json` TEXT, `has_clip` INTEGER NOT NULL, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -519,6 +519,12 @@
             "fieldPath": "mediaJson",
             "columnName": "media_json",
             "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "hasClip",
+            "columnName": "has_clip",
+            "affinity": "INTEGER",
+            "notNull": true
           }
         ],
         "primaryKey": {
@@ -551,7 +557,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'eefa9181bec6bfacac6c347b86562edd')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '40d6582437efd0fe235fa335016d572b')"
     ]
   }
 }

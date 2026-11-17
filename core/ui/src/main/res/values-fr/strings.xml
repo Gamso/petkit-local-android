@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="timeline_unknown_pet">Animal inconnu</string>
+
+    <string name="recent_clips_title">Vidéos récentes</string>
+    <string name="recent_clips_empty">Cette caméra n’a encore enregistré aucune vidéo.</string>
+    <string name="recent_clips_unreachable">Le serveur est injoignable.</string>
+    <string name="recent_clips_failed">Les vidéos n’ont pas pu être chargées.</string>
+    <string name="recent_clips_see_all">Plus de vidéos dans l’historique</string>
+    <string name="recent_clips_play">Lire</string>
+    <string name="recent_clips_today">Aujourd’hui, %1$s</string>
+    <string name="recent_clips_yesterday">Hier, %1$s</string>
+    <string name="recent_clips_on_day">%1$s, %2$s</string>
+</resources>

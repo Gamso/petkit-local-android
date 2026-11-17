@@ -4,6 +4,8 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.time.Clock
+import java.time.LocalDate
 import javax.inject.Inject
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
@@ -13,16 +15,21 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.petkitlocal.core.domain.Outcome
 import org.petkitlocal.core.domain.device.ObserveDeviceUseCase
 import org.petkitlocal.core.domain.model.Device
 import org.petkitlocal.core.domain.video.LiveFailure
 import org.petkitlocal.core.domain.video.LivePhase
 import org.petkitlocal.core.domain.video.LiveSession
 import org.petkitlocal.core.domain.video.LiveTransport
+import org.petkitlocal.core.domain.video.ObserveRecentClipsUseCase
+import org.petkitlocal.core.domain.video.RefreshRecentClipsUseCase
 import org.petkitlocal.core.domain.video.SaveSnapshotUseCase
+import org.petkitlocal.core.ui.RecentClipsState
 
 /** Whether the screen has a camera to show. */
 enum class LiveAvailability {
@@ -57,6 +64,8 @@ data class LiveUiState(
     val fullscreen: Boolean = false,
     val savingSnapshot: Boolean = false,
     val snapshot: SnapshotResult? = null,
+    /** The camera's recent clips, under the picture. */
+    val clips: RecentClipsState = RecentClipsState(),
 ) {
     /** The player to build, or none: not a camera, in the background, waiting or stopped. */
     val playback: LivePlayback?
@@ -69,25 +78,43 @@ data class LiveUiState(
 /**
  * The live video of one camera. The [LiveSession] decides which transport to try and when; this
  * ViewModel feeds it what the screen and the player report, counts down its waits, and saves
- * snapshots. The player itself is the screen's (it needs a Context) and follows [LiveUiState.playback].
+ * snapshots, and keeps the camera's recent clips under it. The player itself is the screen's (it needs a Context) and follows [LiveUiState.playback].
  */
 @HiltViewModel
 @Suppress("TooManyFunctions") // One function per user intent and player event (ARCHITECTURE.md §3).
 class LiveViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    observeDevice: ObserveDeviceUseCase,
+    private val observeDevice: ObserveDeviceUseCase,
     private val saveSnapshot: SaveSnapshotUseCase,
+    observeRecentClips: ObserveRecentClipsUseCase,
+    private val refreshRecentClips: RefreshRecentClipsUseCase,
+    private val clock: Clock,
     /** Handed to the screen, which builds its players with it. */
     val playerFactory: LivePlayerFactory,
 ) : ViewModel() {
-    private val deviceId: Long = checkNotNull(savedStateHandle[DEVICE_ID_KEY])
-    private val local = MutableStateFlow(LiveUiState(deviceId))
+    val deviceId: Long = checkNotNull(savedStateHandle[DEVICE_ID_KEY])
+    private val local = MutableStateFlow(
+        LiveUiState(deviceId, clips = RecentClipsState(zone = clock.zone, today = LocalDate.now(clock))),
+    )
     private var retry: Job? = null
     private var snapshotNotice: Job? = null
+    private var clipsRefresh: Job? = null
 
-    val uiState: StateFlow<LiveUiState> = combine(observeDevice(deviceId), local) { device, state ->
-        state.copy(deviceName = device?.model, availability = device.availability())
+    val uiState: StateFlow<LiveUiState> = combine(
+        observeDevice(deviceId),
+        observeRecentClips(deviceId),
+        local,
+    ) { device, clips, state ->
+        state.copy(
+            deviceName = device?.model,
+            availability = device.availability(),
+            clips = state.clips.copy(clips = clips, cacheLoaded = true),
+        )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), local.value)
+
+    init {
+        onRefreshClips()
+    }
 
     /** The screen is visible: play. */
     fun onVisible() = updateSession { it.start() }
@@ -108,6 +135,26 @@ class LiveViewModel @Inject constructor(
         val current = attempt == state.session.attempt && state.session.phase == LivePhase.Playing
         if (current) state.copy(delay = delay) else state
     }
+
+    /** Reads the camera's newest clips from the server; one refresh at a time, for a camera only. */
+    fun onRefreshClips() {
+        if (clipsRefresh?.isActive == true) return
+        clipsRefresh = viewModelScope.launch {
+            if (observeDevice(deviceId).first()?.isCamera != true) return@launch
+            updateClips { it.copy(refreshing = true, error = null, today = LocalDate.now(clock)) }
+            val result = refreshRecentClips(deviceId)
+            updateClips {
+                it.copy(
+                    refreshing = false,
+                    refreshed = it.refreshed || result is Outcome.Success,
+                    error = (result as? Outcome.Failure)?.error,
+                )
+            }
+        }
+    }
+
+    private fun updateClips(transform: (RecentClipsState) -> RecentClipsState) =
+        local.update { it.copy(clips = transform(it.clips)) }
 
     fun onToggleMute() = local.update { it.copy(muted = !it.muted) }
 
