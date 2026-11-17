@@ -32,6 +32,7 @@ import org.petkitlocal.core.designsystem.component.PkButtonStyle
 import org.petkitlocal.core.designsystem.component.PkCard
 import org.petkitlocal.core.designsystem.icon.PkIcons
 import org.petkitlocal.core.designsystem.theme.PkTheme
+import org.petkitlocal.core.domain.feeder.FeederDayFilter
 import org.petkitlocal.core.domain.feeder.FeederPage
 import org.petkitlocal.core.domain.feeder.MealState
 import org.petkitlocal.feature.device.R
@@ -340,6 +341,11 @@ object FeederTestTags {
     const val PLAN_EDITOR = "feeder:plan_editor"
     const val FEED_FORM = "feeder:feed_form"
     const val SAVE = "feeder:save"
+
+    /** The day's card, and its chips. */
+    const val DAY = "feeder:day"
+
+    fun dayFilter(filter: FeederDayFilter): String = "feeder:day:${filter.name.lowercase()}"
 
     fun oneOff(id: String): String = "feeder:one_off:$id"
 

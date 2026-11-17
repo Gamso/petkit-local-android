@@ -1,6 +1,7 @@
 package org.petkitlocal.feature.device.feeder
 
 import java.time.DayOfWeek
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 import org.petkitlocal.core.domain.DomainError
@@ -17,6 +18,7 @@ import org.petkitlocal.core.domain.model.EntityValue
 import org.petkitlocal.core.domain.model.FeedingGroup
 import org.petkitlocal.core.domain.model.FeedingPlan
 import org.petkitlocal.core.domain.model.Meal
+import org.petkitlocal.core.domain.model.MediaKind
 import org.petkitlocal.core.domain.model.Portions
 import org.petkitlocal.core.domain.model.TimelineCategory
 import org.petkitlocal.core.domain.model.TimelineItem
@@ -25,6 +27,7 @@ import org.petkitlocal.core.testing.Household.at
 import org.petkitlocal.core.testing.Household.binary
 import org.petkitlocal.core.testing.Household.item
 import org.petkitlocal.core.testing.Household.sensor
+import org.petkitlocal.core.testing.Household.withClips
 
 /**
  * Feeders as the mock serves them (mock-server/README.md): a Fresh Element Solo (D4) and a
@@ -111,25 +114,42 @@ object FeederFixtures {
 
     val tomorrowFeed = DeferredFeed("d_1", at(12, 30).plusSeconds(DAY), Portions.Single(1))
 
+    /**
+     * This morning on both feeders: on the Solo the 07:00 meal, then one that put nothing out; on
+     * the Dual-Hopper the 08:00 meal (with its clip), Mochi at the camera, and a feed from hopper 2
+     * the camera did not record.
+     */
     val todayItems: List<TimelineItem> = listOf(
-        item(30, 2001, at(7, 0).plusSeconds(7), TimelineCategory.Feeding).copy(
-            kind = "feeding",
-            eventKind = "feeding",
-            label = "Feeding completed",
-        ),
-        item(31, 2004, at(8, 0), TimelineCategory.Feeding).copy(
-            kind = "feeding",
-            eventKind = "feeding",
-            label = "Feeding completed",
-        ),
+        meal(34, 2001, at(9, 15), "Feeding failed (nothing dispensed)"),
+        meal(33, 2004, at(9, 40), "Feeding completed"),
+        item(32, 2004, at(9, 20), TimelineCategory.Pet, pet = 1).copy(label = "Pet detected")
+            .withClips(MediaKind.Highlight),
+        meal(31, 2004, at(8, 0), "Feeding completed").withClips(MediaKind.Highlight),
+        meal(30, 2001, at(7, 0).plusSeconds(7), "Feeding completed"),
+    )
+
+    /** What each of [todayItems]' meals put out, as their events say. */
+    val servedPortions: Map<Long, Portions> = mapOf(
+        30L to Portions.Single(1),
+        31L to Portions.Dual(1, 1),
+        33L to Portions.Dual(0, 2),
+        34L to Portions.Single(0),
     )
 
     fun page(
         device: Device = solo,
         plan: FeedingPlan? = soloPlan,
         deferred: List<DeferredFeed>? = listOf(tomorrowFeed),
-    ): FeederPage =
-        FeederRules.page(device, plan, deferred, todayItems, Household.clock.instant(), Household.zone, Household.pets)
+    ): FeederPage = FeederRules.page(
+        device,
+        plan,
+        deferred,
+        todayItems,
+        Household.clock.instant(),
+        Household.zone,
+        Household.pets,
+        servedPortions,
+    )
 
     private fun state(page: FeederPage) =
         FeederUiState(page = page, loaded = true, zone = Household.zone, today = Household.today)
@@ -162,6 +182,9 @@ object FeederFixtures {
     val today: LocalDate = Household.today
 
     private const val DAY = 86_400L
+
+    private fun meal(id: Long, device: Long, at: Instant, label: String) =
+        item(id, device, at, TimelineCategory.Feeding).copy(kind = "feeding", eventKind = "feeding", label = label)
 
     private fun meal(hour: Int, minute: Int, portions: Portions) =
         Meal("n_${hour * 3600 + minute * 60}", LocalTime.of(hour, minute), portions)

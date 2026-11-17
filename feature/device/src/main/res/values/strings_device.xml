@@ -83,6 +83,8 @@
     <string name="device_activity">Activity</string>
     <string name="device_activity_empty">Nothing yet today.</string>
     <string name="device_see_history">See all in History</string>
+    <!-- The thumbnail of a row's clip, read by TalkBack. -->
+    <string name="device_activity_play">Play the video</string>
     <string name="activity_visit">%1$s spent %2$s</string>
     <string name="activity_visit_short">%1$s visited</string>
     <string name="activity_visit_unknown">A pet spent %1$s</string>

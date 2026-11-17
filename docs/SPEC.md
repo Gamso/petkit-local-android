@@ -124,6 +124,12 @@ screen).
 - Next meal card with a **feed now** control (portions; per hopper on dual feeders).
 - **Feeding plan**: today's meals with their state (served, skipped, upcoming), an active/paused
   switch, edit sheet for the weekly plan.
+- **Today**: the day's meals, newest first, as the activity card lists them, and the pets the
+  camera saw; a meal that failed in the error colour with its reason. Chips with counts: all,
+  meals, and "at the camera" on a camera feeder only. A meal says what it put out, read from its
+  event: "2 portions" on a single hopper, "2 portions · Hopper 1 ×1 · Hopper 2 ×1" on a
+  Dual-Hopper, each hopper in its colour. A row whose event has a clip shows its thumbnail, which
+  opens the clip player. A camera feeder's eating episodes are rows of it, under "at the camera".
 - One-off feeds ("later"): list, add, cancel.
 - Bottom action sheet: feed, plan, later, history.
 

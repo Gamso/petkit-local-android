@@ -76,8 +76,11 @@ is always dark.
 
 Pets get colours in a fixed order so charts and avatars agree everywhere: accent, secondary,
 then purple (`#7B4FA8` light, `#C8A2EC` dark) and rose (`#A8436A` light, `#F291B3` dark), each
-at least 5.7:1 on `surface`. Every coloured state also has a label or a shape, never colour
-alone: a selected filter chip carries a check mark, a mode chip says "On" or "Off".
+at least 5.7:1 on `surface`. A Dual-Hopper's hoppers have theirs too, the food drawn in each and
+the portions it gave: hopper 1 teal (`#0B7A72` light, `#5CC8BD` dark), hopper 2 orange (`#B45309`
+light, `#F2A65A` dark), each at least 4.5:1 on `surface` and always beside its name. Every
+coloured state also has a label or a shape, never colour alone: a selected filter chip carries a
+check mark, a mode chip says "On" or "Off".
 
 ### Type
 
@@ -129,9 +132,9 @@ arrow mirrored in right-to-left languages.
 | `DayStemChart` | Litter, Fountain (W7H) | 24 h × duration: a stem from the axis per visit or drink, capped with a dot in its pet's colour (unknown pet neutral); events close in time are spread a few dp apart; pet filter |
 | `ActionSheet` | Device pages | Pull handle, 4 actions per row, primary action filled; none when the device has no everyday action and every other one is on a part's pill |
 | `ConfirmDialog` | Destructive actions | Explains the effect, danger-coloured confirm |
-| `TimelineRow` | History, device activity | Time rail, icon or pet avatar, title, details, media thumbnails; on a device page, one row per visit, drink or meal (photo, else initial on the pet's colour, else a paw) with the steps that followed indented under a dotted connector, a failed one in `danger` with its reason |
+| `TimelineRow` | History, device activity | Time rail, icon or pet avatar, title, details, media thumbnails; on a device page, one row per visit, drink or meal (photo, else initial on the pet's colour, else a paw) with the steps that followed indented under a dotted connector, a failed one in `danger` with its reason; on the feeder's day, a meal's portions per hopper in the hopper's colour and the event's clip as a thumbnail at the end, nothing when it has none |
 | `DayStrip` | History | 7 days, selected one filled |
-| `FilterChips` | History | Single-select |
+| `FilterChips` | History, feeder's day | Single-select; the feeder's day counts each chip ("Meals 4") |
 | `SettingRow` | Settings, device settings | Switch, select, number, time, text editors per entity type |
 | `VideoPlayer` | Live | Live badge, measured delay, fullscreen, mute, snapshot |
 | `StateViews` | Everywhere | Skeleton loading, empty (illustration and one line), error with retry, offline banner |

@@ -14,6 +14,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
@@ -32,6 +33,7 @@ import org.petkitlocal.core.domain.device.SetEntityValueUseCase
 import org.petkitlocal.core.domain.devicepage.DevicePart
 import org.petkitlocal.core.domain.devicepage.RefreshDevicePageUseCase
 import org.petkitlocal.core.domain.feeder.FeedNow
+import org.petkitlocal.core.domain.feeder.FeederDayFilter
 import org.petkitlocal.core.domain.feeder.FeederPage
 import org.petkitlocal.core.domain.feeder.FeederRules
 import org.petkitlocal.core.domain.feeder.FeedingPlanRules
@@ -42,6 +44,7 @@ import org.petkitlocal.core.domain.model.EntityValue
 import org.petkitlocal.core.domain.model.Portions
 import org.petkitlocal.core.domain.repository.CommandDelivery
 import org.petkitlocal.core.domain.repository.FeedingRepository
+import org.petkitlocal.core.domain.repository.ServedPortionsRepository
 import org.petkitlocal.feature.device.DEVICE_ID_KEY
 import org.petkitlocal.feature.device.R
 import org.petkitlocal.feature.device.common.CommandSubject
@@ -52,7 +55,8 @@ import org.petkitlocal.feature.device.generic.isUnreachable
  * The feeder page (SPEC.md §5.6). It observes the caches only (ADR 0002), keeps the live socket
  * open while shown, and refreshes when it opens; the plan and one-off feeds are read again
  * whenever the feeder's stored schedule changes (its `feeding_schedule` entity, which live
- * updates patch), so a change made elsewhere shows. Every command, the plan's and the feeds'
+ * updates patch), so a change made elsewhere shows, and the portions of each new meal of the day
+ * are read from its event. Every command, the plan's and the feeds'
  * included, goes through the device screens' shared [DeviceCommandController], which says how
  * it went out; a form's refusal stays in the form.
  */
@@ -65,6 +69,7 @@ class FeederViewModel @Inject constructor(
     observeLiveUpdates: ObserveLiveUpdatesUseCase,
     private val refreshPage: RefreshDevicePageUseCase,
     private val feeding: FeedingRepository,
+    private val served: ServedPortionsRepository,
     runAction: RunDeviceActionUseCase,
     setEntityValue: SetEntityValueUseCase,
     private val today: TodayUseCase,
@@ -98,6 +103,13 @@ class FeederViewModel @Inject constructor(
                 .drop(1)
                 .collect { feeding.refresh(deviceId) }
         }
+        // Each meal's portions are read once, from its own event, as the meals arrive.
+        viewModelScope.launch {
+            pages
+                .map { page -> page?.day?.mealIds.orEmpty() }
+                .distinctUntilChanged()
+                .collectLatest { meals -> served.fetch(meals) }
+        }
     }
 
     fun onRefresh() {
@@ -113,6 +125,8 @@ class FeederViewModel @Inject constructor(
             local.update {
                 it.copy(refreshing = false, today = day.value, refreshError = (result as? Outcome.Failure)?.error)
             }
+            // The meals whose portions could not be read before; a failure here is not the page's.
+            page()?.day?.mealIds?.let { served.fetch(it) }
         }
     }
 
@@ -132,6 +146,9 @@ class FeederViewModel @Inject constructor(
     fun onDismissFeedback() = commands.onDismissFeedback()
 
     fun onHotspot(part: DevicePart?) = local.update { it.copy(openPart = part) }
+
+    /** A chip over the day's list. */
+    fun onDayFilter(filter: FeederDayFilter) = local.update { it.copy(dayFilter = filter) }
 
     /** A hopper's feed-now portions, within its setting's bounds. */
     fun onPortions(hopperIndex: Int, portions: Int) {

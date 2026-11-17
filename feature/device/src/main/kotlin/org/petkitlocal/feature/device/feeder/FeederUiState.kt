@@ -8,6 +8,7 @@ import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.core.domain.devicepage.DevicePart
 import org.petkitlocal.core.domain.devicepage.Hotspot
 import org.petkitlocal.core.domain.feeder.FeedProblem
+import org.petkitlocal.core.domain.feeder.FeederDayFilter
 import org.petkitlocal.core.domain.feeder.FeederPage
 import org.petkitlocal.core.domain.feeder.FeedingPlanRules
 import org.petkitlocal.core.domain.feeder.PlanProblem
@@ -41,6 +42,8 @@ data class FeederUiState(
     val nothingChosen: Boolean = false,
     val planDraft: PlanDraft? = null,
     val feedDraft: FeedDraft? = null,
+    /** The chip picked over the day's list. */
+    val dayFilter: FeederDayFilter = FeederDayFilter.All,
 ) : PageLoadState {
     val offline: Boolean get() = liveUnreachable || refreshError is DomainError.Network
 
@@ -49,6 +52,10 @@ data class FeederUiState(
         get() = chosenPortions ?: page?.manualFeed?.hoppers?.map { it.portions }.orEmpty()
 
     val openHotspot: Hotspot? get() = page?.hotspots?.firstOrNull { it.part == openPart }
+
+    /** The chip the day's list follows: All when the one picked is not offered. */
+    val shownDayFilter: FeederDayFilter
+        get() = dayFilter.takeIf { it in page?.day?.filters.orEmpty() } ?: FeederDayFilter.All
 
     /** Whether the command or write [key] is in flight. */
     fun sending(key: String): Boolean = key in commands.sending

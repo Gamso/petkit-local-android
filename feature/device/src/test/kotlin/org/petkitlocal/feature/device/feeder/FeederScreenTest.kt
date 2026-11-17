@@ -1,23 +1,33 @@
 package org.petkitlocal.feature.device.feeder
 
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import java.time.DayOfWeek
+import java.util.Locale
+import kotlin.time.toKotlinInstant
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.petkitlocal.core.designsystem.theme.PkTheme
+import org.petkitlocal.core.domain.feeder.FeederDayFilter
+import org.petkitlocal.core.testing.Household
+import org.petkitlocal.core.ui.formatTimeOfDay
 import org.petkitlocal.feature.device.DeviceNavigation
+import org.petkitlocal.feature.device.common.ActivityTestTags
 import org.petkitlocal.feature.device.common.DeviceTestTags
 import org.petkitlocal.feature.device.litter.PageCommandCallbacks
 import org.petkitlocal.feature.device.litter.PageTestTags
@@ -44,14 +54,23 @@ class FeederScreenTest {
         onAddFeed = { calls += "add" },
         onSaveFeed = { calls += "save-feed" },
         onCancelFeed = { calls += "cancel:$it" },
+        onDayFilter = { calls += "day:$it" },
         commands = PageCommandCallbacks(onAction = { calls += "action:${it.key}" }),
     )
 
     private fun show(state: FeederUiState) {
         compose.setContent {
-            PkTheme { FeederScreen(state, DeviceNavigation(onOpenHistory = { calls += "history:$it" }), callbacks) }
+            PkTheme { FeederScreen(state, navigation, callbacks) }
         }
     }
+
+    private val navigation = DeviceNavigation(
+        onOpenHistory = { calls += "history:$it" },
+        onOpenClip = { calls += "clip:${it.kind}" },
+    )
+
+    private fun time(hour: Int, minute: Int) =
+        formatTimeOfDay(Household.at(hour, minute).toKotlinInstant(), Household.zone, Locale.getDefault())
 
     private fun scrollTo(text: String) {
         compose.onNodeWithTag(PageTestTags.LIST).performScrollToNode(hasText(text, substring = true))
@@ -81,14 +100,56 @@ class FeederScreenTest {
     }
 
     @Test
-    fun `today's meals are listed under the plan, and lead to History`() {
+    fun `a single hopper's day reads each meal with its amount, a failed one with its reason`() {
         show(FeederFixtures.single)
         scrollTo("See all in History")
 
-        compose.onNodeWithText("Meal served", useUnmergedTree = true).assertExists()
+        compose.onNodeWithText("All 2").assertExists()
+        compose.onNodeWithText("Meals 2").assertExists()
+        // No camera, no chip for it.
+        compose.onNodeWithText("At the camera", substring = true).assertDoesNotExist()
+        compose.onNodeWithTag(
+            ActivityTestTags.row(30),
+        ).assertContentDescriptionEquals("${time(7, 0)}, Meal served, 1 portion")
+        compose.onNodeWithTag(ActivityTestTags.row(34))
+            .assertContentDescriptionEquals("${time(9, 15)}, Meal failed: nothing dispensed")
         compose.onNodeWithText("See all in History").performClick()
 
         assertEquals(listOf("history:2001"), calls)
+    }
+
+    @Test
+    fun `a dual hopper's meals give their portions per hopper, and a clip opens in the player`() {
+        show(FeederFixtures.dualPaused)
+        scrollTo("See all in History")
+
+        compose.onNodeWithText(
+            "2 portions · Hopper\u00A01\u00A0×1 · Hopper\u00A02\u00A0×1",
+            useUnmergedTree = true,
+        ).assertExists()
+        compose.onNodeWithTag(ActivityTestTags.row(31)).assertContentDescriptionEquals(
+            "${time(8, 0)}, Meal served, 2 portions, 1 from hopper 1, 1 from hopper 2",
+        )
+        compose.onNodeWithTag(ActivityTestTags.row(33))
+            .assertContentDescriptionEquals("${time(9, 40)}, Meal served, 2 portions, 2 from hopper 2")
+        compose.onNodeWithTag(ActivityTestTags.row(32)).assertContentDescriptionEquals("${time(9, 20)}, Mochi came by")
+        // Two rows have a clip; the feed the camera did not record has none, and says nothing of it.
+        compose.onAllNodesWithContentDescription("Play the video").assertCountEquals(2)
+        compose.onAllNodesWithContentDescription("Play the video").onFirst().performClick()
+        compose.onNodeWithTag(FeederTestTags.dayFilter(FeederDayFilter.Camera)).assert(hasText("At the camera 1"))
+        compose.onNodeWithTag(FeederTestTags.dayFilter(FeederDayFilter.Camera)).performClick()
+
+        assertEquals(listOf("clip:Highlight", "day:Camera"), calls)
+    }
+
+    @Test
+    fun `a chip shows only its rows`() {
+        show(FeederFixtures.dualPaused.copy(dayFilter = FeederDayFilter.Camera))
+        scrollTo("See all in History")
+
+        compose.onNodeWithTag(ActivityTestTags.row(32)).assertExists()
+        compose.onNodeWithTag(ActivityTestTags.row(31)).assertDoesNotExist()
+        compose.onNodeWithTag(FeederTestTags.dayFilter(FeederDayFilter.Camera)).assertIsSelected()
     }
 
     @Test

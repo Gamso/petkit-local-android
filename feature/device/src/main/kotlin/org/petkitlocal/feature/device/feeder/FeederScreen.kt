@@ -14,12 +14,12 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.devicepage.DevicePart
+import org.petkitlocal.core.domain.feeder.FeederDayFilter
 import org.petkitlocal.core.domain.feeder.FeederPage
 import org.petkitlocal.core.domain.model.DeviceAction
 import org.petkitlocal.core.ui.rememberServerLabels
 import org.petkitlocal.feature.device.DeviceNavigation
 import org.petkitlocal.feature.device.R
-import org.petkitlocal.feature.device.common.ActivityCard
 import org.petkitlocal.feature.device.common.DeviceHeader
 import org.petkitlocal.feature.device.common.DeviceStatusLine
 import org.petkitlocal.feature.device.common.DeviceTestTags
@@ -52,6 +52,7 @@ data class FeederCallbacks(
     val onSaveFeed: () -> Unit = {},
     val onDismissFeed: () -> Unit = {},
     val onCancelFeed: (String) -> Unit = {},
+    val onDayFilter: (FeederDayFilter) -> Unit = {},
     val commands: PageCommandCallbacks = PageCommandCallbacks(),
 )
 
@@ -81,6 +82,7 @@ internal fun FeederRoute(navigation: DeviceNavigation, viewModel: FeederViewMode
             onSaveFeed = viewModel::onSaveFeed,
             onDismissFeed = viewModel::onDismissFeed,
             onCancelFeed = viewModel::onCancelFeed,
+            onDayFilter = viewModel::onDayFilter,
             commands = PageCommandCallbacks(
                 onAction = viewModel::onAction,
                 onConfirmAction = viewModel::onConfirmAction,
@@ -94,9 +96,9 @@ internal fun FeederRoute(navigation: DeviceNavigation, viewModel: FeederViewMode
 /**
  * The feeder page (SPEC.md §5.6): header and hero with the food, bowl and desiccant hotspots,
  * the live status line, the next meal with feed now, today's plan with its pause switch and the
- * weekly plan's editor, the one-off feeds, the day's activity, a camera's recent clips, and the
- * action sheet every device screen shares: the feeder's buttons (feed is feed now), then the plan,
- * a one-off feed and History behind More.
+ * weekly plan's editor, the day's meals and what the camera saw, the one-off feeds, a camera's
+ * recent clips, and the action sheet every device screen shares: the feeder's buttons (feed is
+ * feed now), then the plan, a one-off feed and History behind More.
  */
 @Composable
 internal fun FeederScreen(
@@ -169,10 +171,18 @@ private fun LazyListScope.feederContent(
     }
     item(key = "next") { NextMealCard(uiState, page, callbacks, Modifier.gutter()) }
     item(key = "plan") { PlanCard(uiState, page, callbacks, Modifier.gutter()) }
-    item(key = "later") { OneOffCard(uiState, page, callbacks, Modifier.gutter()) }
-    item(key = "activity") {
-        ActivityCard(page.activity, uiState.zone, { navigation.onOpenHistory(page.device.id) }, Modifier.gutter())
+    item(key = "day") {
+        FeederDayCard(
+            day = page.day,
+            filter = uiState.shownDayFilter,
+            zone = uiState.zone,
+            onFilter = callbacks.onDayFilter,
+            onOpenClip = navigation.onOpenClip,
+            onOpenHistory = { navigation.onOpenHistory(page.device.id) },
+            modifier = Modifier.gutter(),
+        )
     }
+    item(key = "later") { OneOffCard(uiState, page, callbacks, Modifier.gutter()) }
 }
 
 /**
