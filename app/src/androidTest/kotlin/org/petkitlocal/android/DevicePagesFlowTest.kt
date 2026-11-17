@@ -2,6 +2,7 @@ package org.petkitlocal.android
 
 import android.os.ParcelFileDescriptor
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
@@ -26,7 +27,9 @@ import org.junit.Test
 import org.junit.rules.ExternalResource
 import org.junit.runner.RunWith
 import org.petkitlocal.core.designsystem.component.PkConfirmTestTags
+import org.petkitlocal.core.domain.feeder.FeederDayFilter
 import org.petkitlocal.core.e2e.MockOnly
+import org.petkitlocal.core.e2e.MockServer
 import org.petkitlocal.core.e2e.TestServer
 import org.petkitlocal.core.e2e.TestServerRule
 import org.petkitlocal.feature.auth.SignInTestTags
@@ -39,7 +42,8 @@ import org.petkitlocal.feature.home.HomeTestTags
  * The litter box and feeder pages end to end, against the mock server: sign in, open each device
  * from Home. A destructive action is confirmed before it is sent, its banner says it was queued
  * for the HTTP box, and the box reports the cycle over `/ws`; feed now is queued and the feeder
- * reports feeding; a one-off feed is added and cancelled on the server.
+ * reports feeding; a one-off feed is added and cancelled on the server; a meal served shows in
+ * the feeder's day, counted, with what each hopper gave.
  */
 @MockOnly("the mock's Pura Max and feeder, and the commands they answer")
 @OptIn(ExperimentalTestApi::class) // waitUntil...Exists
@@ -102,6 +106,31 @@ class DevicePagesFlowTest {
         list.performScrollToNode(hasText("None planned."))
     }
 
+    @Test
+    fun aMealServedShowsInTheDayWithItsPortionsPerHopper() {
+        signIn()
+        open(DUAL_HOPPER)
+        waitFor(hasText("YumShare Dual-Hopper"))
+        val list = compose.onNodeWithTag(PageTestTags.LIST)
+        val meals = hasTestTag(FeederTestTags.dayFilter(FeederDayFilter.Meals))
+        list.performScrollToNode(meals)
+        waitFor(hasTestTag(FeederTestTags.dayFilter(FeederDayFilter.Camera)))
+        val before = compose.onNode(meals).chipCount()
+
+        // Two portions from hopper 1 and one from hopper 2: no meal of the seed gave that.
+        MockServer.control("POST", "devices/$DUAL_HOPPER/meal", """{"amount1": 2, "amount2": 1}""")
+
+        // The feeder reports the meal over /ws: its row says what each hopper gave, read from its
+        // event, and the chip counts it.
+        list.performScrollToNode(meals)
+        waitFor(hasText("3 portions · Hopper\u00A01\u00A0×2 · Hopper\u00A02\u00A0×1"), unmerged = true)
+        compose.waitUntil(TIMEOUT_MS) { compose.onNode(meals).chipCount() > before }
+    }
+
+    /** The count a chip of the feeder's day shows: "Meals 4" is 4. */
+    private fun SemanticsNodeInteraction.chipCount(): Int =
+        fetchSemanticsNode().config[SemanticsProperties.Text].joinToString("").substringAfterLast(' ').toInt()
+
     /** From Home: the grid is lazy, so the first card says the cache is read, then [deviceId]'s is scrolled to. */
     private fun open(deviceId: Long) {
         waitFor(hasTestTag(HomeTestTags.device(FIRST_CARD)))
@@ -129,8 +158,14 @@ class DevicePagesFlowTest {
         performSemanticsAction(SemanticsActions.OnClick)
     }
 
-    private fun waitFor(matcher: SemanticsMatcher) {
-        compose.waitUntilAtLeastOneExists(matcher, TIMEOUT_MS)
+    private fun waitFor(matcher: SemanticsMatcher, unmerged: Boolean = false) {
+        if (unmerged) {
+            compose.waitUntil(TIMEOUT_MS) {
+                compose.onAllNodes(matcher, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+            }
+        } else {
+            compose.waitUntilAtLeastOneExists(matcher, TIMEOUT_MS)
+        }
     }
 
     /** Sets the device's time zone for the test and puts the previous one back. */
@@ -156,6 +191,7 @@ class DevicePagesFlowTest {
         const val FIRST_CARD = 1001L
         const val PURA_MAX = 1002L
         const val FRESH_ELEMENT = 2001L
+        const val DUAL_HOPPER = 2004L
         const val MOCK_ZONE = "Europe/Paris"
 
         // A page's first refresh reads every device's detail and two days of the timeline.
