@@ -38,6 +38,8 @@ import org.petkitlocal.core.domain.activity.ActivityAvatar
 import org.petkitlocal.core.domain.activity.ActivityEntry
 import org.petkitlocal.core.domain.activity.ActivityKind
 import org.petkitlocal.core.domain.activity.ActivityStep
+import org.petkitlocal.core.domain.model.MediaFile
+import org.petkitlocal.core.ui.MediaThumbnail
 import org.petkitlocal.core.ui.PetAvatar
 import org.petkitlocal.core.ui.ServerLabels
 import org.petkitlocal.core.ui.SymbolAvatar
@@ -59,9 +61,25 @@ object ActivityTestTags {
 }
 
 /**
+ * What a page adds to a row of its activity: the feeder's portions in place of the row's own
+ * details, and a clip to open beside it.
+ */
+internal data class ActivityRowExtras(
+    /** Shown under the sentence instead of the row's own details. */
+    val details: AnnotatedString? = null,
+    /** What TalkBack reads for [details]. */
+    val spokenDetails: String? = null,
+    /** A clip of the event, opened from its thumbnail; nothing is drawn without one. */
+    val clip: MediaFile? = null,
+)
+
+/**
  * Today's activity of a device, newest first (SPEC.md §5.3, Activity): one row per visit, drink or
  * meal with the pet's picture and a sentence, the steps that followed indented under it, and the
  * way to History. TalkBack reads each row, its steps included, as one item.
+ *
+ * A page may name it otherwise ([title]), put chips over it ([header]), list the whole day rather
+ * than its last [maxRows], and add to each row ([extras]): the feeder's day does all four.
  */
 @Composable
 internal fun ActivityCard(
@@ -69,11 +87,17 @@ internal fun ActivityCard(
     zone: ZoneId,
     onOpenHistory: () -> Unit,
     modifier: Modifier = Modifier,
+    title: String = stringResource(R.string.device_activity),
+    maxRows: Int = MAX_ROWS,
+    onOpenClip: (MediaFile) -> Unit = {},
+    extras: @Composable (ActivityEntry) -> ActivityRowExtras? = { null },
+    header: @Composable () -> Unit = {},
 ) {
     val locale = LocalConfiguration.current.locales[0]
     val timeWidth = rememberTimeColumnWidth(locale)
     PkCard(modifier.fillMaxWidth().testTag(ActivityTestTags.CARD)) {
-        CardTitle(stringResource(R.string.device_activity))
+        CardTitle(title)
+        header()
         if (entries.isEmpty()) {
             Text(
                 stringResource(R.string.device_activity_empty),
@@ -82,7 +106,9 @@ internal fun ActivityCard(
                 modifier = Modifier.padding(top = PkTheme.spacing.xs),
             )
         }
-        entries.take(MAX_ROWS).forEach { entry -> ActivityRow(entry, zone, locale, timeWidth) }
+        entries.take(maxRows).forEach { entry ->
+            ActivityRow(entry, zone, locale, timeWidth, extras(entry), onOpenClip)
+        }
         PkButton(
             stringResource(R.string.device_see_history),
             onClick = onOpenHistory,
@@ -96,11 +122,22 @@ internal fun ActivityCard(
 private const val MAX_ROWS = 6
 private val AVATAR_SIZE = 36.dp
 
+/** A clip's thumbnail beside its row: small, at the clips' own 16:10. */
+private val CLIP_WIDTH = 64.dp
+private const val CLIP_ASPECT = 1.6f
+
 /** The connector runs just inside the picture's edge. */
 private val CONNECTOR_INSET = 4.dp
 
 @Composable
-private fun ActivityRow(entry: ActivityEntry, zone: ZoneId, locale: Locale, timeWidth: Dp) {
+private fun ActivityRow(
+    entry: ActivityEntry,
+    zone: ZoneId,
+    locale: Locale,
+    timeWidth: Dp,
+    extras: ActivityRowExtras?,
+    onOpenClip: (MediaFile) -> Unit,
+) {
     val colors = PkTheme.colors
     val labels = rememberServerLabels()
     val durations = rememberDayChangeFormatter()
@@ -113,10 +150,11 @@ private fun ActivityRow(entry: ActivityEntry, zone: ZoneId, locale: Locale, time
         entry.petName,
     )
     val spokenHeadline = listOfNotNull(sentence(entry, labels, durations::spokenDuration), weight).joinToString(", ")
-    val details = eventDetails(entry, labels, locale)
+    val details = extras?.details ?: eventDetails(entry, labels, locale)?.let(::AnnotatedString)
+    val spokenDetails = extras?.spokenDetails ?: details?.text
     val steps = entry.steps.map { step -> StepLine(step, zone, locale, labels) }
     // One item for TalkBack: the row, then each step, durations in words.
-    val spoken = (listOf(listOfNotNull(time, spokenHeadline, details)) + steps.map { listOf(it.time, it.text) })
+    val spoken = (listOf(listOfNotNull(time, spokenHeadline, spokenDetails)) + steps.map { listOf(it.time, it.text) })
         .joinToString(". ") { parts -> parts.filter(String::isNotEmpty).joinToString(", ") }
     Column(
         modifier = Modifier
@@ -142,6 +180,16 @@ private fun ActivityRow(entry: ActivityEntry, zone: ZoneId, locale: Locale, time
                     color = if (entry.outcome?.done == false) colors.danger else colors.onSurface,
                 )
                 details?.let { Text(it, style = PkTheme.typography.labelMedium, color = colors.onSurfaceMuted) }
+            }
+            extras?.clip?.let { clip ->
+                MediaThumbnail(
+                    clip,
+                    size = CLIP_WIDTH,
+                    aspectRatio = CLIP_ASPECT,
+                    description = stringResource(R.string.device_activity_play),
+                    onClick = { onOpenClip(clip) },
+                    modifier = Modifier.padding(start = PkTheme.spacing.s),
+                )
             }
         }
         if (steps.isNotEmpty()) StepLines(steps, Modifier.padding(start = timeWidth))

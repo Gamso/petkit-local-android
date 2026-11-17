@@ -52,6 +52,21 @@
     <string name="feeder_add_one_off">Add a one-off feed</string>
     <string name="feeder_cancel_feed">Cancel the feed of %1$s</string>
 
+    <!-- The feeder's day: its meals and what its camera saw, behind counted chips ("All 5"). -->
+    <string name="feeder_day_title">Today</string>
+    <string name="feeder_day_all">All</string>
+    <string name="feeder_day_meals">Meals</string>
+    <string name="feeder_day_camera">At the camera</string>
+    <!-- A chip: %1$s is its name, %2$d how many rows it holds. -->
+    <string name="feeder_day_chip">%1$s %2$d</string>
+    <!-- What one hopper gave, after the meal's total: "Hopper 1 ×2". %1$s is the hopper's name. -->
+    <string name="feeder_day_hopper">%1$s ×%2$d</string>
+    <!-- The same, read by TalkBack: "2 from hopper 1". -->
+    <plurals name="feeder_day_hopper_spoken">
+        <item quantity="one">%1$d from hopper %2$d</item>
+        <item quantity="other">%1$d from hopper %2$d</item>
+    </plurals>
+
     <string name="feeder_sheet_plan">Plan</string>
     <string name="feeder_sheet_later">Later</string>
     <string name="feeder_sheet_history">History</string>

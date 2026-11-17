@@ -49,6 +49,7 @@ class PkColorsContrastTest {
                 "danger/surface" to (c.danger to c.surface),
                 "onDanger/danger" to (c.onDanger to c.danger),
             ).plus(c.pets.mapIndexed { i, pet -> "pet$i/surface" to (pet to c.surface) })
+                .plus(c.hoppers.mapIndexed { i, hopper -> "hopper${i + 1}/surface" to (hopper to c.surface) })
                 .map { (pair, colors) -> Arguments.of(name, pair, colors.first.toArgb(), colors.second.toArgb()) }
         }
     }

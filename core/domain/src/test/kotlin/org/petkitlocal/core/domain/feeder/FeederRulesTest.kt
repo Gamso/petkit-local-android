@@ -52,7 +52,7 @@ class FeederRulesTest {
 
         assertEquals(listOf(MealState.Served, MealState.Skipped, MealState.Upcoming), page.today.map { it.state })
         assertEquals(2, page.mealsToday)
-        assertEquals(listOf(1L, 2L), page.activity.map { it.item.id })
+        assertEquals(listOf(1L, 2L), page.day.rows.map { it.id })
         assertEquals(Quantity(20.0, "g"), page.dispensed)
         assertEquals(NextMeal(at(19, 0), Portions.Single(2), oneOff = false), page.nextMeal)
     }

@@ -172,7 +172,7 @@ fun World.playFeed(
                     device.setIfShown("state.lastFeed", iso(clock.now()))
                     if (device.isDualHopper) countHoppers(device, source, a1 ?: 0, a2 ?: 0)
                     device.number("state.bowl")?.let { device["state.bowl"] = minOf(100.0, it + 15) }
-                    feedCard(device, clock.now(), total, source)
+                    feedCard(device, clock.now(), source, portions ?: 1, a1, a2)
                 }
             publish(card)
         }

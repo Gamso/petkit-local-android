@@ -6,6 +6,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.devicepage.DevicePart
 import org.petkitlocal.feature.device.litter.PartAnchor
@@ -15,9 +16,9 @@ import org.petkitlocal.feature.device.litter.roundRect
 
 /**
  * Our own simple drawing of an automatic feeder: a tall body with a lid, the hopper's window with
- * its food (split in two on a Dual-Hopper), the outlet and the bowl (docs/DESIGN.md, Illustrations:
- * no PetKit artwork). Its own composable, so a photo can replace it later; [feederAnchor] says
- * where each part is on it.
+ * its food (split in two on a Dual-Hopper, each hopper in its colour), the outlet and the bowl
+ * (docs/DESIGN.md, Illustrations: no PetKit artwork). Its own composable, so a photo can replace
+ * it later; [feederAnchor] says where each part is on it.
  */
 @Composable
 fun FeederIllustration(dualHopper: Boolean, modifier: Modifier = Modifier) {
@@ -32,7 +33,17 @@ fun FeederIllustration(dualHopper: Boolean, modifier: Modifier = Modifier) {
         roundRect(colors.onSurfaceMuted, 23f, 5f, 77f, 17f, 6f, u, stroke)
         // The hopper's window and the food in it.
         roundRect(colors.surfaceMuted, 34f, 22f, 66f, 58f, 6f, u)
-        roundRect(colors.secondary.copy(alpha = FOOD_ALPHA), 34f, 38f, 66f, 58f, 6f, u)
+        if (dualHopper) {
+            // Each hopper's food in its own colour, which its portions are written in on the page.
+            clipRect(right = 50f * u) {
+                roundRect(colors.hopper(1).copy(alpha = FOOD_ALPHA), 34f, 38f, 66f, 58f, 6f, u)
+            }
+            clipRect(left = 50f * u) {
+                roundRect(colors.hopper(2).copy(alpha = FOOD_ALPHA), 34f, 38f, 66f, 58f, 6f, u)
+            }
+        } else {
+            roundRect(colors.secondary.copy(alpha = FOOD_ALPHA), 34f, 38f, 66f, 58f, 6f, u)
+        }
         roundRect(colors.onSurfaceMuted, 34f, 22f, 66f, 58f, 6f, u, stroke)
         if (dualHopper) {
             drawLine(colors.onSurfaceMuted, Offset(50f * u, 22f * u), Offset(50f * u, 58f * u), strokeWidth = 1.6f * u)

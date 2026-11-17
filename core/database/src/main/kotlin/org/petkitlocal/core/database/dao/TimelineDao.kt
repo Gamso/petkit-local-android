@@ -5,6 +5,7 @@ import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
+import org.petkitlocal.core.database.model.ServedPortionsRow
 import org.petkitlocal.core.database.model.TimelineItemRow
 
 @Dao
@@ -91,6 +92,17 @@ abstract class TimelineDao {
         if (gone.isNotEmpty()) deleteIds(gone)
         upsert(listOf(item))
     }
+
+    /** The portions read so far of the meals [ids]. */
+    @Query("SELECT * FROM served_portions WHERE id IN (:ids)")
+    abstract fun observeServedPortions(ids: List<Long>): Flow<List<ServedPortionsRow>>
+
+    /** Which of [ids] have had their portions read. */
+    @Query("SELECT id FROM served_portions WHERE id IN (:ids)")
+    abstract suspend fun servedPortionIds(ids: List<Long>): List<Long>
+
+    @Upsert
+    abstract suspend fun upsertServedPortions(row: ServedPortionsRow)
 
     @Query(
         """

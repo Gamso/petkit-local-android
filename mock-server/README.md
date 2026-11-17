@@ -179,6 +179,12 @@ the commit recorded in `api/SOURCE`.
   auto, periodic and manual cleanings, scheduled meals, drinks, cats seen by a camera, one fault
   episode and one visit flagged as a health alert. The history is generated from the seed, so a
   given seed always replays the same week relative to today.
+- **Today on the feeders:** besides the meals already due, whatever the hour (once the day is
+  ten minutes old), a meal served from the app on the Solo, the YumShare Solo and the
+  Dual-Hopper, a meal that put nothing out on the Solo and the Dual-Hopper ("Feeding failed
+  (nothing dispensed)"), and a cat at the camera of both YumShares (code 8 "Pet detected", with
+  a clip). A meal's event carries what it put out as petkit-local passes the device's report
+  through: `real_amount` on a single hopper, `real_amount1` and `real_amount2` on a Dual-Hopper.
 
 Each model's entity keys and action keys are exactly the ones petkit-local defines for it.
 `src/main/resources/catalog.json` is generated from petkit-local's own definitions

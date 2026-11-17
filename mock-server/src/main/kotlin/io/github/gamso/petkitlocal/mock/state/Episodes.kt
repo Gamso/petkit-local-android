@@ -251,26 +251,42 @@ enum class FeedSource(
     ONE_OFF(5, "one-off"),
 }
 
+/**
+ * A meal's report, code 4 "Feeding completed", as petkit-local stores a feeder's `feed_over`: the
+ * device's own `real_amount` (single hopper) or `real_amount1`/`real_amount2` (Dual-Hopper) are
+ * passed through undecoded, which is where the app reads what each hopper put out. A [failure]
+ * ("nothing dispensed", a `FEED_RESULT` wording) is a feed that ran and put nothing out.
+ */
+@Suppress("LongParameterList") // The meal's device, time, source and counts.
 fun World.feedCard(
     device: MockDevice,
     ts: Double,
-    portions: Int,
     source: FeedSource,
+    amount: Int?,
+    a1: Int? = null,
+    a2: Int? = null,
+    failure: String? = null,
 ): Card {
+    val result = failure?.let { "failed ($it)" } ?: "completed"
+
+    fun out(
+        key: String,
+        count: Int?,
+    ) = f(key, key, "${if (failure != null) 0 else count ?: 0}")
+    val served =
+        if (device.isDualHopper) {
+            listOf(out("real_amount1", a1), out("real_amount2", a2))
+        } else {
+            listOf(out("real_amount", amount))
+        }
     val r =
         row(
             device,
             ts,
             "4",
             Kinds.FEEDING,
-            "Feeding completed",
-            fields =
-                listOf(
-                    f("result", "Result", "completed"),
-                    f("amount", "amount", "$portions"),
-                    f("realAmount", "realAmount", "$portions"),
-                    f("src", "Source", source.text),
-                ),
+            "Feeding $result",
+            fields = listOf(f("result", "Result", result)) + served + f("src", "Source", source.text),
         )
     val media =
         if (device.model.isCamera) {
@@ -280,6 +296,26 @@ fun World.feedCard(
             null
         }
     return card(r, Kinds.FEEDING, media = media)
+}
+
+/** The portions a meal's report says it put out, all hoppers together. */
+fun EventRow.servedPortions(): Int =
+    fields
+        .filter { it.key in setOf("real_amount", "real_amount1", "real_amount2") }
+        .sumOf { it.text.toIntOrNull() ?: 0 }
+
+/**
+ * A camera feeder saw a pet (code 8 "Pet detected", `events/codes.py` FEEDER_HTTP_CODES): the app
+ * files it under "Pet", the feeder page under "At the camera". Its snapshot and short clip.
+ */
+fun World.feederPetCard(
+    device: MockDevice,
+    ts: Double,
+    petId: Int?,
+): Card {
+    val r = row(device, ts, "8", Kinds.PET, "Pet detected", petId)
+    val paths = mediaFor(device, r.id, ts, listOf("snapshot", "highlight"))
+    return card(r, Kinds.PET, media = CardMedia(snapshot = paths["snapshot"], highlight = paths["highlight"]))
 }
 
 // --- fountain -------------------------------------------------------------------------------------

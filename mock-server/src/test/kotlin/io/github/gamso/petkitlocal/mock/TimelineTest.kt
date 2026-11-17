@@ -1,8 +1,10 @@
 package io.github.gamso.petkitlocal.mock
 
 import io.github.gamso.petkitlocal.mock.seed.Seed
+import io.github.gamso.petkitlocal.mock.state.Card
 import io.github.gamso.petkitlocal.mock.state.Timeline
 import io.ktor.http.HttpMethod
+import kotlinx.coroutines.delay
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.double
@@ -13,6 +15,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 
 class TimelineTest {
@@ -190,4 +193,77 @@ class TimelineTest {
             assertEquals(1, media["waste"]!!.jsonArray.size)
             assertNull(media["health"]!!.jsonArray.firstOrNull())
         }
+
+    @Test
+    fun `today the feeders served a meal, failed one, and saw a cat, and a meal says what each hopper gave`() =
+        mockTest { world, api ->
+            api.login()
+            val today = world.clock.today()
+            val (start, _) = world.clock.dayBounds(today)
+            assumeTrue(world.clock.now() - start > 15 * 60, "the day is too young for its feeders' events")
+
+            fun labels(cards: List<JsonObject>) = cards.map { it["label"]!!.jsonPrimitive.content }
+            val dual = api.walk("device=${Seed.D4SH}&day=$today&limit=100")
+            assertTrue("Feeding completed" in labels(dual))
+            assertTrue("Feeding failed (nothing dispensed)" in labels(dual))
+            val seen = dual.first { it["label"]!!.jsonPrimitive.content == "Pet detected" }
+            assertEquals(listOf("pet"), seen["filters"]!!.jsonArray.map { it.jsonPrimitive.content })
+            assertTrue(seen["media"]!!.jsonObject["highlight"]!!.jsonPrimitive.isString)
+            assertTrue("Pet detected" in labels(api.walk("device=${Seed.D4H}&day=$today&limit=100")))
+            val single = labels(api.walk("device=${Seed.D4}&day=$today&limit=100"))
+            assertTrue("Feeding completed" in single && "Feeding failed (nothing dispensed)" in single)
+
+            // The meal's own event carries what each hopper put out, as petkit-local passes it through.
+            val meal = dual.first { it["label"]!!.jsonPrimitive.content == "Feeding completed" }
+            assertEquals(setOf("real_amount1", "real_amount2"), served(api, meal).keys)
+            val solo =
+                api.walk("device=${Seed.D4}&day=$today&limit=100").first {
+                    it["label"]!!.jsonPrimitive.content == "Feeding completed"
+                }
+            assertEquals(setOf("real_amount"), served(api, solo).keys)
+        }
+
+    @Test
+    fun `a meal served from the control API gives each hopper's count`() =
+        mockTest { world, api ->
+            api.login()
+            val before =
+                synchronized(world.lock) {
+                    world.timeline.cards.keys
+                        .toSet()
+                }
+
+            api.client.control(HttpMethod.Post, "/devices/${Seed.D4SH}/meal", """{"amount1":2,"amount2":1}""")
+
+            var card: Card? = null
+            repeat(100) {
+                card =
+                    synchronized(world.lock) {
+                        world.timeline.cards.values
+                            .firstOrNull { it.id !in before && it.deviceId == Seed.D4SH }
+                    }
+                if (card == null) delay(20)
+            }
+            val fields =
+                synchronized(world.lock) {
+                    world.timeline.rows
+                        .getValue(card!!.id)
+                        .fields
+                }.associate { it.key to it.text }
+            assertEquals("2", fields["real_amount1"])
+            assertEquals("1", fields["real_amount2"])
+        }
+
+    /** The `real_amount*` fields of [card]'s event. */
+    private suspend fun served(
+        api: Api,
+        card: JsonObject,
+    ): Map<String, String> =
+        api
+            .get("/timeline/{event_id}", "/timeline/${card["id"]!!.jsonPrimitive.int}")["event"]
+            .jsonObject["fields"]!!
+            .jsonArray
+            .map { it.jsonObject }
+            .filter { it["key"]!!.jsonPrimitive.content.startsWith("real_amount") }
+            .associate { it["key"]!!.jsonPrimitive.content to it["text"]!!.jsonPrimitive.content }
 }

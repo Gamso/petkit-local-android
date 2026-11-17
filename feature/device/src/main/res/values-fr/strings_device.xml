@@ -81,6 +81,7 @@
     <string name="device_activity">Activité</string>
     <string name="device_activity_empty">Rien pour l\'instant aujourd\'hui.</string>
     <string name="device_see_history">Tout voir dans l\'historique</string>
+    <string name="device_activity_play">Lire la vidéo</string>
     <string name="activity_visit">%1$s a passé %2$s</string>
     <string name="activity_visit_short">Passage de %1$s</string>
     <string name="activity_visit_unknown">Un animal a passé %1$s</string>

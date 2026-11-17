@@ -1,8 +1,8 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 6,
-    "identityHash": "c03603311c681cb0a6b27a74a8732c36",
+    "version": 7,
+    "identityHash": "c937d640cec4eb9f2975ac6cbd68e477",
     "entities": [
       {
         "tableName": "devices",
@@ -559,11 +559,44 @@
             "createSql": "CREATE INDEX IF NOT EXISTS `index_timeline_items_device_id` ON `${TABLE_NAME}` (`device_id`)"
           }
         ]
+      },
+      {
+        "tableName": "served_portions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `amount` INTEGER, `amount1` INTEGER, `amount2` INTEGER, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "amount",
+            "columnName": "amount",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "amount1",
+            "columnName": "amount1",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "amount2",
+            "columnName": "amount2",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
       }
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'c03603311c681cb0a6b27a74a8732c36')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'c937d640cec4eb9f2975ac6cbd68e477')"
     ]
   }
 }

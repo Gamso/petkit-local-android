@@ -35,10 +35,15 @@ data class PkColors(
     val heroPet: Color,
     /** Pet colours in their fixed order, so charts and avatars agree everywhere. */
     val pets: List<Color>,
+    /** A Dual-Hopper's hoppers, 1 then 2: the food drawn in each and the portions it gave. */
+    val hoppers: List<Color>,
     val isDark: Boolean,
 ) {
     /** The colour of the pet at [index] in the household's order, cycling past the last. */
     fun pet(index: Int): Color = pets[Math.floorMod(index, pets.size)]
+
+    /** The colour of hopper [number] (1 or 2). */
+    fun hopper(number: Int): Color = hoppers[Math.floorMod(number - 1, hoppers.size)]
 }
 
 val LightPkColors = PkColors(
@@ -65,6 +70,7 @@ val LightPkColors = PkColors(
     heroFountain = Color(0xFFE2EFF7),
     heroPet = Color(0xFFF6EBDF),
     pets = listOf(Color(0xFF0B7A72), Color(0xFF2E4C78), Color(0xFF7B4FA8), Color(0xFFA8436A)),
+    hoppers = listOf(Color(0xFF0B7A72), Color(0xFFB45309)),
     isDark = false,
 )
 
@@ -92,5 +98,6 @@ val DarkPkColors = PkColors(
     heroFountain = Color(0xFF15293A),
     heroPet = Color(0xFF33281C),
     pets = listOf(Color(0xFF5CC8BD), Color(0xFF9DB8E3), Color(0xFFC8A2EC), Color(0xFFF291B3)),
+    hoppers = listOf(Color(0xFF5CC8BD), Color(0xFFF2A65A)),
     isDark = true,
 )
