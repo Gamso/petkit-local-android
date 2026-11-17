@@ -2,6 +2,7 @@ package org.petkitlocal.android
 
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
@@ -21,14 +22,16 @@ import org.petkitlocal.core.e2e.MockOnly
 import org.petkitlocal.core.e2e.MockServer
 import org.petkitlocal.core.e2e.TestServer
 import org.petkitlocal.core.e2e.TestServerRule
+import org.petkitlocal.core.ui.LiveCardTestTags
 import org.petkitlocal.feature.auth.SignInTestTags
 import org.petkitlocal.feature.device.common.DeviceTestTags
 import org.petkitlocal.feature.home.HomeTestTags
 import org.petkitlocal.feature.live.LiveTestTags
 
 /**
- * Live video end to end, against the mock's test pattern: a camera's page leads to its live
- * video, which plays over the WebSocket; the socket closing with 1013 (the phone read too slowly)
+ * Live video end to end, against the mock's test pattern: the live card at the top of a camera's
+ * page shows the camera's latest still and nothing plays until it is tapped; then its live video
+ * plays over the WebSocket; the socket closing with 1013 (the phone read too slowly)
  * moves it to HLS by itself; and leaving the screen closes what it had open, which the mock
  * counts (`GET /mock`: `live_sockets`, `hls_views`).
  */
@@ -41,6 +44,20 @@ class LiveFlowTest {
 
     @get:Rule(order = 1)
     val compose = createAndroidComposeRule<MainActivity>()
+
+    @Test
+    fun theLiveCardShowsTheLatestStillAndPlaysOnlyWhenTapped() {
+        signIn()
+        openDevice(PUROBOT)
+        // The mock's camera visits all have a snapshot: the card names when the newest was taken.
+        waitFor(hasTestTag(LiveCardTestTags.CARD) and hasContentDescription("Still from", substring = true))
+        check(mockCount("live_sockets") == 0) { "the page opened a live socket by itself" }
+
+        compose.onNodeWithTag(LiveCardTestTags.CARD).performClick()
+        waitFor(hasTestTag(LiveTestTags.SCREEN))
+        waitFor(hasTestTag(LiveTestTags.BADGE))
+        waitUntil("one live socket") { mockCount("live_sockets") == 1 }
+    }
 
     @Test
     fun leavingTheLiveVideoClosesItsSocket() {
@@ -77,15 +94,20 @@ class LiveFlowTest {
         check(mockCount("live_sockets") == 0) { "a live socket is still open" }
     }
 
-    /** From Home to [deviceId]'s page, then its header's way to the live video. */
+    /** From Home to [deviceId]'s page, then the live card at its top. */
     private fun openLive(deviceId: Long) {
+        openDevice(deviceId)
+        compose.onNodeWithTag(LiveCardTestTags.CARD).performClick()
+        waitFor(hasTestTag(LiveTestTags.SCREEN))
+    }
+
+    /** From Home to [deviceId]'s page. */
+    private fun openDevice(deviceId: Long) {
         waitFor(hasTestTag(HomeTestTags.device(FIRST_CARD)))
         val card = hasTestTag(HomeTestTags.device(deviceId))
         compose.onNodeWithTag(HomeTestTags.LIST).performScrollToNode(card)
         compose.onNode(card).performClick()
         waitFor(hasTestTag(DeviceTestTags.STATUS))
-        compose.onNodeWithContentDescription("Live video").performClick()
-        waitFor(hasTestTag(LiveTestTags.SCREEN))
     }
 
     /** One of the counts `GET /mock` reports. */
