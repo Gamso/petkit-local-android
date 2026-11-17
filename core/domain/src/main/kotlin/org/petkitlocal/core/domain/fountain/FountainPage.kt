@@ -1,11 +1,11 @@
 package org.petkitlocal.core.domain.fountain
 
 import org.petkitlocal.core.domain.activity.ActivityEntry
+import org.petkitlocal.core.domain.devicepage.DevicePart
 import org.petkitlocal.core.domain.devicepage.Hotspot
 import org.petkitlocal.core.domain.home.DeviceStatus
 import org.petkitlocal.core.domain.model.Device
 import org.petkitlocal.core.domain.model.DeviceAction
-import org.petkitlocal.core.domain.model.EntityValue
 import org.petkitlocal.core.domain.model.Pet
 
 /** Everything the fountain page shows, derived from the cache by [FountainRules]. */
@@ -15,8 +15,10 @@ data class FountainPage(
     val status: DeviceStatus,
     /** For a Bluetooth fountain, the device relaying it, once the cache holds it. */
     val relay: Device?,
-    /** The header's mode chips, from the switches and the mode the model reports. */
+    /** The header's chips: the features the fountain reports ON, nothing for one that is off. */
     val modes: List<FountainMode>,
+    /** The fountain's mode as the bottom bar offers it, when the server lets it be set. */
+    val modeBar: FountainModeBar?,
     val hotspots: List<Hotspot>,
     /** The buttons of the action sheet: the device's, but those on a part this model lacks. */
     val actions: List<DeviceAction>,
@@ -38,21 +40,25 @@ data class FountainPage(
     /** The pets the chart can be filtered on: those with a drink today, in the household's order. */
     val chartPets: List<Pet> get() = drinks.mapNotNull { it.petId }.toSet().let { ids -> pets.filter { it.id in ids } }
 
+    /** The battery's pill, when the fountain reports its level: what the top status line shows. */
+    val battery: Hotspot? get() = hotspots.firstOrNull { it.part == DevicePart.Battery }
+
     /** A pet's place in the household's order, which picks its colour; null for an unknown pet. */
     fun colorIndexOf(petId: Long?): Int? = pets.indexOfFirst { it.id == petId }.takeIf { it >= 0 }
 }
 
 /**
- * A mode chip: a switch, or the smart mode of a fountain's mode select. A tap writes [onValue] or
- * [offValue] to entity [key]; the chip follows the device's next report, never the tap.
+ * A status chip of the header: a feature entity [key] reports ON (a switch, or the smart option
+ * of a mode select the bottom bar does not offer). An off feature has no chip.
  */
-data class FountainMode(
-    val key: String,
-    val kind: FountainModeKind,
-    val on: Boolean,
-    val onValue: EntityValue,
-    val offValue: EntityValue,
-)
+data class FountainMode(val key: String, val kind: FountainModeKind)
+
+/**
+ * The fountain's mode select, as the bottom bar offers it: entity [key], its [options] in the
+ * server's order (their labels are translated by value), and the one the device last reported
+ * ([selected], null while it has not said). The bar shows [selected], never what was tapped.
+ */
+data class FountainModeBar(val key: String, val options: List<String>, val selected: String?)
 
 enum class FountainModeKind {
     /** Smart mode (the pump runs, then rests) rather than normal (it runs all the time). */

@@ -1,11 +1,8 @@
 package org.petkitlocal.feature.device.fountain
 
-import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -28,10 +25,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.petkitlocal.core.designsystem.component.PkCard
-import org.petkitlocal.core.designsystem.component.PkModeChip
 import org.petkitlocal.core.designsystem.theme.PkTheme
-import org.petkitlocal.core.domain.fountain.FountainMode
-import org.petkitlocal.core.domain.fountain.FountainModeKind
 import org.petkitlocal.core.domain.fountain.FountainPage
 import org.petkitlocal.core.domain.fountain.PetDrinks
 import org.petkitlocal.core.ui.formatDurationMinSec
@@ -39,44 +33,6 @@ import org.petkitlocal.feature.device.R
 import org.petkitlocal.feature.device.common.StatCompareTile
 import org.petkitlocal.feature.device.common.rememberDayChangeFormatter
 import org.petkitlocal.feature.device.litter.CardTitle
-import org.petkitlocal.feature.device.litter.PageTestTags
-
-/**
- * The header's mode chips: smart mode, do not disturb, child lock, as the model has and reports
- * them. A tap writes the switch (or the mode's `smart`/`normal`); the chip follows the device's
- * next report, never the tap (ADR 0002). While a chip's write is in flight, its taps are ignored.
- */
-@OptIn(ExperimentalLayoutApi::class) // FlowRow
-@Composable
-internal fun FountainModeChips(
-    modes: List<FountainMode>,
-    sending: Set<String>,
-    onToggle: (key: String, on: Boolean) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    if (modes.isEmpty()) return
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(PkTheme.spacing.xs),
-        verticalArrangement = Arrangement.spacedBy(PkTheme.spacing.xs),
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        modes.forEach { mode ->
-            PkModeChip(
-                label = stringResource(modeLabel(mode.kind)),
-                on = mode.on,
-                onToggle = { if (mode.key !in sending) onToggle(mode.key, it) },
-                modifier = Modifier.testTag(PageTestTags.mode(mode.key)),
-            )
-        }
-    }
-}
-
-@StringRes
-private fun modeLabel(kind: FountainModeKind): Int = when (kind) {
-    FountainModeKind.Smart -> R.string.fountain_mode_smart
-    FountainModeKind.DoNotDisturb -> R.string.fountain_mode_dnd
-    FountainModeKind.ChildLock -> R.string.fountain_mode_lock
-}
 
 /**
  * Today at this fountain: its drinks and their average duration since yesterday, and each pet's

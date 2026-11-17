@@ -8,6 +8,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
@@ -158,29 +159,175 @@ class FountainViewModelTest {
         assertEquals(CommandResult.Sent(CommandDelivery.Mqtt), viewModel.uiState.value.commands.feedback?.result)
     }
 
+    /** The W5 as the fountain would report it in [option]: `states.mode` 1 normal, 2 smart. */
+    private fun w5In(option: String) = FountainFixtures.w5.copy(
+        entities = FountainFixtures.w5.entities.map {
+            if (it.key == "w5_mode") {
+                it.copy(value = EntityValue.Number(if (option == "smart") 2.0 else 1.0), display = option)
+            } else {
+                it
+            }
+        },
+    )
+
     @Test
-    fun `mode chips write a switch, or the smart or normal option of the mode`() = runTest(main.dispatcher) {
+    fun `a mode tapped is sent and pending, the selection moving only when the fountain reports it`() =
+        runTest(main.dispatcher) {
+            val viewModel = viewModel(3002L)
+            collect(viewModel)
+            advanceUntilIdle()
+            assertEquals("normal", viewModel.uiState.value.page?.modeBar?.selected)
+
+            viewModel.onMode("smart")
+            runCurrent()
+
+            assertEquals(
+                listOf(FakeDeviceCommandRepository.Write(3002, "w5_mode", EntityValue.Text("smart"))),
+                commands.writes,
+            )
+            assertEquals(CommandResult.Sent(CommandDelivery.Mqtt), viewModel.uiState.value.commands.feedback?.result)
+            // No optimistic UI: still normal, smart pending.
+            assertEquals("normal", viewModel.uiState.value.page?.modeBar?.selected)
+            assertEquals("smart", viewModel.uiState.value.pendingMode)
+
+            // The relay brings the fountain's report: smart is selected, nothing pending.
+            devices.devices.value = listOf(FountainFixtures.w7h, w5In("smart"), FountainFixtures.relay)
+            runCurrent()
+            assertEquals("smart", viewModel.uiState.value.page?.modeBar?.selected)
+            assertNull(viewModel.uiState.value.pendingMode)
+            assertNull(viewModel.uiState.value.requestedMode)
+
+            // Back to normal by a button on the fountain itself: nothing pending reappears.
+            devices.devices.value = listOf(FountainFixtures.w7h, w5In("normal"), FountainFixtures.relay)
+            runCurrent()
+            assertNull(viewModel.uiState.value.pendingMode)
+        }
+
+    @Test
+    fun `a mode the server refuses is no longer pending, and says why`() = runTest(main.dispatcher) {
+        commands.result = Outcome.Failure(DomainError.AccessoryUnreachable("YumShare Dual-Hopper"))
         val viewModel = viewModel(3002L)
         collect(viewModel)
         advanceUntilIdle()
 
-        viewModel.onModeToggle("w5_mode", true)
-        runCurrent()
-        viewModel.onModeToggle("w5_dnd", true)
-        runCurrent()
-        // A key that is not one of the page's chips writes nothing.
-        viewModel.onModeToggle("w5_light", false)
+        viewModel.onMode("smart")
         runCurrent()
 
         assertEquals(
-            listOf(
-                FakeDeviceCommandRepository.Write(3002, "w5_mode", EntityValue.Text("smart")),
-                FakeDeviceCommandRepository.Write(3002, "w5_dnd", EntityValue.Bool(true)),
-            ),
+            CommandResult.Failed(DomainError.AccessoryUnreachable("YumShare Dual-Hopper")),
+            viewModel.uiState.value.commands.feedback?.result,
+        )
+        assertNull(viewModel.uiState.value.pendingMode)
+        assertEquals("normal", viewModel.uiState.value.page?.modeBar?.selected)
+    }
+
+    @Test
+    fun `a mode the fountain never reports stops being pending after a while`() = runTest(main.dispatcher) {
+        val viewModel = viewModel(3002L)
+        collect(viewModel)
+        advanceUntilIdle()
+
+        viewModel.onMode("smart")
+        runCurrent()
+        assertEquals("smart", viewModel.uiState.value.pendingMode)
+
+        advanceTimeBy(FountainViewModel.MODE_CONFIRMATION_TIMEOUT_MS + 1)
+        runCurrent()
+        assertNull(viewModel.uiState.value.pendingMode)
+        assertEquals("normal", viewModel.uiState.value.page?.modeBar?.selected)
+    }
+
+    @Test
+    fun `taps while a mode is on its way, on the reported mode, or on no option, send nothing`() =
+        runTest(main.dispatcher) {
+            val gate = CompletableDeferred<Unit>().also { commands.gate = it }
+            val viewModel = viewModel(3002L)
+            collect(viewModel)
+            advanceUntilIdle()
+
+            // The reported mode, nothing pending: nothing to send. Not an option: nothing either.
+            viewModel.onMode("normal")
+            viewModel.onMode("turbo")
+            runCurrent()
+            assertTrue(commands.writes.isEmpty())
+
+            viewModel.onMode("smart")
+            runCurrent()
+            assertTrue("w5_mode" in viewModel.uiState.value.commands.sending)
+            // In flight: a second tap is ignored.
+            viewModel.onMode("normal")
+            runCurrent()
+            assertEquals(1, commands.writes.size)
+
+            gate.complete(Unit)
+            runCurrent()
+            // Sent, still pending: going back to the reported mode is a write of its own.
+            viewModel.onMode("normal")
+            runCurrent()
+            assertEquals(
+                listOf(EntityValue.Text("smart"), EntityValue.Text("normal")),
+                commands.writes.map { it.value },
+            )
+            assertNull(viewModel.uiState.value.pendingMode)
+        }
+
+    @Test
+    fun `a W7H's flow mode is the bar, its four options in the server's order`() = runTest(main.dispatcher) {
+        val viewModel = viewModel()
+        collect(viewModel)
+        advanceUntilIdle()
+
+        val bar = viewModel.uiState.value.page?.modeBar
+        assertEquals("flow_mode", bar?.key)
+        assertEquals(listOf("do_not_flow", "continuous", "intermittent", "motion_activated"), bar?.options)
+        assertEquals("continuous", bar?.selected)
+
+        viewModel.onMode("intermittent")
+        runCurrent()
+        assertEquals(
+            listOf(FakeDeviceCommandRepository.Write(3001, "flow_mode", EntityValue.Text("intermittent"))),
             commands.writes,
         )
-        // No optimistic UI: smart mode still reads off until the fountain reports it.
-        assertEquals(false, viewModel.uiState.value.page?.modes?.first()?.on)
+    }
+
+    @Test
+    fun `status chips are only the features that are on, and the battery is reported`() = runTest(main.dispatcher) {
+        devices.devices.value = listOf(FountainFixtures.ctw3, Household.feeder)
+        val viewModel = viewModel(3003L)
+        collect(viewModel)
+        advanceUntilIdle()
+
+        val page = viewModel.uiState.value.page!!
+        // Do not disturb is on, the lock off; smart mode is on the bar, not a chip.
+        assertEquals(listOf("ctw3_dnd"), page.modes.map { it.key })
+        assertEquals("smart", page.modeBar?.selected)
+        assertEquals(PartReading.Percent(9), page.battery?.reading)
+        assertTrue(page.battery!!.attention)
+        // The W5 has every feature off: no chip at all.
+        devices.devices.value = listOf(FountainFixtures.w5, FountainFixtures.relay)
+        val w5 = viewModel(3002L)
+        collect(w5)
+        advanceUntilIdle()
+        assertTrue(w5.uiState.value.page!!.modes.isEmpty())
+        assertNull(w5.uiState.value.page!!.battery)
+    }
+
+    @Test
+    fun `a relayed fountain says whether its relay is online, and when it was seen`() = runTest(main.dispatcher) {
+        val viewModel = viewModel(3002L)
+        collect(viewModel)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertEquals(true, state.page?.relay?.online)
+        assertEquals(Household.clock.instant(), state.now)
+        assertEquals(SeenAgo.Hours(3), SeenAgo.of(state.page!!.device.lastSeen!!, state.now))
+
+        // The relay drops off: the page follows it, offline.
+        devices.devices.value =
+            listOf(FountainFixtures.w7h, FountainFixtures.w5, FountainFixtures.relay.copy(online = false))
+        runCurrent()
+        assertEquals(false, viewModel.uiState.value.page?.relay?.online)
     }
 
     @Test

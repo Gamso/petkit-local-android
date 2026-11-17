@@ -157,6 +157,7 @@ internal fun familyIcon(family: DeviceFamily): ImageVector = when (family) {
 /**
  * The live status line (SPEC.md §5.3): a dot and the words (never the colour alone), then how
  * the device reaches the server and when it last did, which says how fast a command arrives.
+ * A page that says when the device was last seen elsewhere leaves it out ([showLastSeen]).
  */
 @Composable
 fun DeviceStatusLine(
@@ -165,6 +166,7 @@ fun DeviceStatusLine(
     labels: ServerLabels,
     zone: ZoneId,
     modifier: Modifier = Modifier,
+    showLastSeen: Boolean = true,
 ) {
     val colors = PkTheme.colors
     val color = when (status) {
@@ -192,7 +194,9 @@ fun DeviceStatusLine(
                 DeviceTransport.Http -> stringResource(R.string.device_transport_http)
                 DeviceTransport.Unknown -> null
             },
-            device.lastSeen?.let { stringResource(R.string.device_last_seen, instantText(it, zone)) },
+            device.lastSeen?.takeIf { showLastSeen }?.let {
+                stringResource(R.string.device_last_seen, instantText(it, zone))
+            },
         )
         if (details.isNotEmpty()) {
             Text(details.joinToString(" · "), style = PkTheme.typography.bodyMedium, color = colors.onSurfaceMuted)

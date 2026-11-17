@@ -9,7 +9,6 @@ import org.petkitlocal.core.domain.devicepage.HotspotRules
 import org.petkitlocal.core.domain.home.HomeRules
 import org.petkitlocal.core.domain.model.Device
 import org.petkitlocal.core.domain.model.EntityComponent
-import org.petkitlocal.core.domain.model.EntityValue
 import org.petkitlocal.core.domain.model.Pet
 import org.petkitlocal.core.domain.model.TimelineCategory
 import org.petkitlocal.core.domain.model.TimelineItem
@@ -22,7 +21,14 @@ import org.petkitlocal.core.domain.model.asDouble
  * model has is [FountainParts]'s table.
  */
 object FountainRules {
-    /** The mode select whose `smart` option is the smart mode chip (`normal` is its "off"). */
+    /**
+     * The fountain's mode select, offered by the bottom bar when settable: the W7H's flow mode
+     * (`do_not_flow`, `continuous`, `intermittent`, `motion_activated`), then the Bluetooth
+     * fountains' `normal`/`smart` (`ha/entities/ble.py`).
+     */
+    private val MODE_KEYS = listOf("flow_mode", "w5_mode", "ctw3_mode")
+
+    /** The mode select whose `smart` option is the smart mode chip, when the bar does not offer it. */
     private val SMART_MODE_KEYS = listOf("w5_mode", "ctw3_mode")
     private val DND_KEYS = listOf("w5_dnd", "ctw3_dnd")
     private val LOCK_KEYS = listOf("w5_child_lock", "ctw3_child_lock", "child_lock")
@@ -31,7 +37,6 @@ object FountainRules {
     private val PUMP_TODAY_KEYS = listOf("w5_pump_today", "ctw3_pump_today")
 
     private const val SMART = "smart"
-    private const val NORMAL = "normal"
     private const val MINUTES_PER_HOUR = 60
     private const val MINUTES_PER_DAY = 24 * MINUTES_PER_HOUR
 
@@ -58,6 +63,7 @@ object FountainRules {
             status = HomeRules.status(device),
             relay = relay?.takeIf { device.isAccessory && it.id == device.parentId },
             modes = modes(device),
+            modeBar = modeBar(device),
             hotspots = HotspotRules.fountain(device),
             actions = FountainParts.actions(device),
             recordsDrinks = recordsDrinks,
@@ -72,36 +78,40 @@ object FountainRules {
     }
 
     /**
-     * The chips: smart mode, do not disturb, child lock, each only when the model has it AND
-     * reports where it stands. A Bluetooth fountain sends its settings only when its parent asks,
-     * so an unreported one has no chip rather than an "off" it never said.
+     * The status chips: smart mode, do not disturb, child lock, each only when the model has it
+     * AND reports it ON. An off feature has no chip, and neither has an unreported one: a
+     * Bluetooth fountain sends its settings only when its parent asks. Smart mode is a chip only
+     * when the bottom bar does not offer the mode it is an option of.
      */
     fun modes(device: Device): List<FountainMode> = listOfNotNull(
-        smartMode(device),
+        smartMode(device)?.takeIf { modeBar(device) == null },
         switchMode(device, DND_KEYS, FountainModeKind.DoNotDisturb),
         switchMode(device, LOCK_KEYS, FountainModeKind.ChildLock),
     )
 
+    /**
+     * The bottom bar's mode selector: the fountain's mode select when the server lets it be set,
+     * with its options in the server's order. Null when there is none, or it cannot be written.
+     */
+    fun modeBar(device: Device): FountainModeBar? {
+        val entity = MODE_KEYS.firstNotNullOfOrNull { device.entity(it) }
+            ?.takeIf { it.component == EntityComponent.Select && it.settable && it.options.isNotEmpty() }
+            ?: return null
+        return FountainModeBar(entity.key, entity.options, EntityWrites.selectedOption(entity))
+    }
+
     private fun smartMode(device: Device): FountainMode? {
         val entity = SMART_MODE_KEYS.firstNotNullOfOrNull { device.entity(it) }
-            ?.takeIf { it.component == EntityComponent.Select && SMART in it.options && NORMAL in it.options }
+            ?.takeIf { it.component == EntityComponent.Select }
             ?: return null
-        val option = EntityWrites.selectedOption(entity) ?: return null
-        return FountainMode(
-            entity.key,
-            FountainModeKind.Smart,
-            on = option == SMART,
-            onValue = EntityValue.Text(SMART),
-            offValue = EntityValue.Text(NORMAL),
-        )
+        return FountainMode(entity.key, FountainModeKind.Smart).takeIf { EntityWrites.selectedOption(entity) == SMART }
     }
 
     private fun switchMode(device: Device, keys: List<String>, kind: FountainModeKind): FountainMode? {
         val entity = keys.firstNotNullOfOrNull { device.entity(it) }
             ?.takeIf { it.component == EntityComponent.Switch }
             ?: return null
-        val on = entity.value.asBoolean ?: return null
-        return FountainMode(entity.key, kind, on, EntityValue.Bool(true), EntityValue.Bool(false))
+        return FountainMode(entity.key, kind).takeIf { entity.value.asBoolean == true }
     }
 
     /** A day's drinks among [items] (one fountain's drink cards of one day), and their average. */

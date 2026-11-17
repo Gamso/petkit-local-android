@@ -45,4 +45,36 @@
         <item quantity="one">Chart of %1$d drink today, by time and duration</item>
         <item quantity="other">Chart of %1$d drinks today, by time and duration</item>
     </plurals>
+
+    <!-- The bottom bar's mode selector, one tile per option the server lists (by its value). -->
+    <string name="fountain_mode_bar">Fountain mode</string>
+    <string name="fountain_mode_option_do_not_flow">Pause</string>
+    <string name="fountain_mode_option_continuous">Continuous</string>
+    <string name="fountain_mode_option_intermittent">Intermittent</string>
+    <string name="fountain_mode_option_motion_activated">On motion</string>
+    <string name="fountain_mode_option_normal">Normal</string>
+    <string name="fountain_mode_option_smart">Smart</string>
+    <!-- TalkBack, on the option tapped until the fountain reports it. -->
+    <string name="fountain_mode_pending">Requested, waiting for the fountain</string>
+
+    <!-- The status line at the top: battery, then when a Bluetooth fountain last reported and through which device. -->
+    <string name="fountain_battery">Battery %1$d %%</string>
+    <string name="fountain_battery_low">Battery %1$d %%, low</string>
+    <string name="fountain_seen_now">Seen just now</string>
+    <plurals name="fountain_seen_minutes">
+        <item quantity="one">Seen %1$d min ago</item>
+        <item quantity="other">Seen %1$d min ago</item>
+    </plurals>
+    <plurals name="fountain_seen_hours">
+        <item quantity="one">Seen %1$d h ago</item>
+        <item quantity="other">Seen %1$d h ago</item>
+    </plurals>
+    <plurals name="fountain_seen_days">
+        <item quantity="one">Seen %1$d day ago</item>
+        <item quantity="other">Seen %1$d days ago</item>
+    </plurals>
+    <string name="fountain_via_online">via %1$s (online)</string>
+    <string name="fountain_via_offline">via %1$s (offline)</string>
+    <string name="fountain_via_online_alone">Via %1$s (online)</string>
+    <string name="fountain_via_offline_alone">Via %1$s (offline)</string>
 </resources>

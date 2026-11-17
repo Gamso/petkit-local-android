@@ -48,4 +48,39 @@
         <item quantity="many">Graphique de %1$d boissons aujourd\'hui, par heure et durée</item>
         <item quantity="other">Graphique de %1$d boissons aujourd\'hui, par heure et durée</item>
     </plurals>
+
+    <!-- Le sélecteur de mode de la barre du bas, une tuile par option que liste le serveur (par sa valeur). -->
+    <string name="fountain_mode_bar">Mode de la fontaine</string>
+    <string name="fountain_mode_option_do_not_flow">Pause</string>
+    <string name="fountain_mode_option_continuous">Continu</string>
+    <string name="fountain_mode_option_intermittent">Intermittent</string>
+    <string name="fountain_mode_option_motion_activated">Au passage</string>
+    <string name="fountain_mode_option_normal">Normal</string>
+    <string name="fountain_mode_option_smart">Intelligent</string>
+    <!-- TalkBack, sur l'option touchée tant que la fontaine ne l'a pas signalée. -->
+    <string name="fountain_mode_pending">Demandé, en attente de la fontaine</string>
+
+    <!-- La ligne d'état en haut : batterie, puis quand une fontaine Bluetooth s'est signalée et par quel appareil. -->
+    <string name="fountain_battery">Batterie %1$d %%</string>
+    <string name="fountain_battery_low">Batterie %1$d %%, faible</string>
+    <string name="fountain_seen_now">Vu à l\'instant</string>
+    <plurals name="fountain_seen_minutes">
+        <item quantity="one">Vu il y a %1$d min</item>
+        <item quantity="many">Vu il y a %1$d min</item>
+        <item quantity="other">Vu il y a %1$d min</item>
+    </plurals>
+    <plurals name="fountain_seen_hours">
+        <item quantity="one">Vu il y a %1$d h</item>
+        <item quantity="many">Vu il y a %1$d h</item>
+        <item quantity="other">Vu il y a %1$d h</item>
+    </plurals>
+    <plurals name="fountain_seen_days">
+        <item quantity="one">Vu il y a %1$d jour</item>
+        <item quantity="many">Vu il y a %1$d jours</item>
+        <item quantity="other">Vu il y a %1$d jours</item>
+    </plurals>
+    <string name="fountain_via_online">via %1$s (en ligne)</string>
+    <string name="fountain_via_offline">via %1$s (hors ligne)</string>
+    <string name="fountain_via_online_alone">Via %1$s (en ligne)</string>
+    <string name="fountain_via_offline_alone">Via %1$s (hors ligne)</string>
 </resources>
