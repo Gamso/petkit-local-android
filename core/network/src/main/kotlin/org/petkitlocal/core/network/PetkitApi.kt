@@ -72,7 +72,8 @@ interface PetkitApi {
     @POST("auth/password")
     suspend fun changePassword(@Body body: ChangePasswordRequestDto): ChangePasswordResponseDto
 
-    // notifications: the socket itself (`notifications/ws`) and UnifiedPush come with issue #23.
+    // notifications: the socket itself (`notifications/ws`) is NotificationSocket. UnifiedPush
+    // (`/push`) is not used by the app in v1 (ADR 0007).
 
     /** This session's notification kinds, and whether it holds the notification socket. */
     @GET("notifications")
