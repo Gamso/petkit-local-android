@@ -114,7 +114,11 @@ fun PetkitNavHost(
                 onOpenHistory = { petId, day -> navController.navigateToHistory(petId = petId, day = day) },
             ),
         )
-        liveScreen(onBack = back)
+        liveScreen(
+            onBack = back,
+            onOpenClip = { clip -> navController.navigateToClip(clip) },
+            onOpenHistory = { deviceId -> navController.navigateToHistory(deviceId = deviceId) },
+        )
         settingsScreen(onBack = back)
     }
     LaunchedEffect(signedIn) { navController.followSession(signedIn) }

@@ -20,14 +20,19 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.RegisterExtension
+import org.petkitlocal.core.domain.DomainError
+import org.petkitlocal.core.domain.Outcome
 import org.petkitlocal.core.domain.device.ObserveDeviceUseCase
 import org.petkitlocal.core.domain.repository.SnapshotRepository
 import org.petkitlocal.core.domain.video.LiveFailure
 import org.petkitlocal.core.domain.video.LivePhase
 import org.petkitlocal.core.domain.video.LiveSession
 import org.petkitlocal.core.domain.video.LiveTransport
+import org.petkitlocal.core.domain.video.ObserveRecentClipsUseCase
+import org.petkitlocal.core.domain.video.RefreshRecentClipsUseCase
 import org.petkitlocal.core.domain.video.SaveSnapshotUseCase
 import org.petkitlocal.core.testing.FakeDeviceRepository
+import org.petkitlocal.core.testing.FakeTimelineRepository
 import org.petkitlocal.core.testing.Household
 import org.petkitlocal.core.testing.MainDispatcherExtension
 
@@ -40,11 +45,15 @@ class LiveViewModelTest {
 
     private val devices = FakeDeviceRepository(Household.devices)
     private val snapshots = FakeSnapshots()
+    private val timeline = FakeTimelineRepository().apply { clips.value = mapOf(CAMERA to Household.cameraClipItems) }
 
     private fun viewModel(deviceId: Long = CAMERA) = LiveViewModel(
         SavedStateHandle(mapOf(LiveViewModel.DEVICE_ID_KEY to deviceId)),
         ObserveDeviceUseCase(devices),
         SaveSnapshotUseCase(snapshots, Household.clock),
+        ObserveRecentClipsUseCase(timeline),
+        RefreshRecentClipsUseCase(timeline),
+        Household.clock,
         NoPlayers,
     )
 
@@ -204,6 +213,55 @@ class LiveViewModelTest {
         viewModel.onSnapshot(byteArrayOf(1))
         runCurrent()
         assertEquals(SnapshotResult.Failed, viewModel.uiState.value.snapshot)
+    }
+
+    @Test
+    fun `the camera's recent clips show from the cache and are asked for once on opening`() = runTest(main.dispatcher) {
+        val gate = CompletableDeferred<Unit>().also { timeline.clipsGate = it }
+        val viewModel = viewModel()
+        collect(viewModel)
+        runCurrent()
+
+        with(viewModel.uiState.value.clips) {
+            assertEquals(Household.cameraClips, clips)
+            assertTrue(refreshing)
+            assertEquals(Household.today, today)
+            assertEquals(Household.zone, zone)
+        }
+        viewModel.onRefreshClips()
+        gate.complete(Unit)
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.clips.refreshed)
+        assertFalse(viewModel.uiState.value.clips.refreshing)
+        assertEquals(listOf(CAMERA), timeline.refreshedClips)
+    }
+
+    @Test
+    fun `a failed refresh of the clips is shown until a retry answers, the video untouched`() =
+        runTest(main.dispatcher) {
+            timeline.clips.value = emptyMap()
+            timeline.clipsResult = Outcome.Failure(DomainError.Network("down"))
+            val viewModel = started()
+            advanceUntilIdle()
+            assertTrue(viewModel.uiState.value.clips.failedEmpty)
+            assertEquals(LivePhase.Starting, viewModel.uiState.value.session.phase)
+
+            timeline.clipsResult = Outcome.Success(Unit)
+            viewModel.onRefreshClips()
+            advanceUntilIdle()
+
+            assertTrue(viewModel.uiState.value.clips.empty)
+            assertEquals(listOf(CAMERA, CAMERA), timeline.refreshedClips)
+        }
+
+    @Test
+    fun `a device without a camera asks for no clips`() = runTest(main.dispatcher) {
+        val viewModel = viewModel(deviceId = Household.feeder.id)
+        collect(viewModel)
+        advanceUntilIdle()
+
+        assertEquals(emptyList<Long>(), timeline.refreshedClips)
     }
 
     private class FakeSnapshots : SnapshotRepository {

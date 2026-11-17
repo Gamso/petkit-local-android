@@ -7,16 +7,27 @@ import org.petkitlocal.core.domain.video.LivePhase
 import org.petkitlocal.core.domain.video.LiveSession
 import org.petkitlocal.core.domain.video.LiveTransport
 import org.petkitlocal.core.testing.Household
+import org.petkitlocal.core.ui.RecentClipsState
 
 /** The live screen's states, for its screen and screenshot tests. */
 internal object LiveFixtures {
     private val camera = Household.cameraLitterBox
+
+    /** The camera's recent clips, once the server answered. */
+    val clips = RecentClipsState(
+        clips = Household.cameraClips,
+        cacheLoaded = true,
+        refreshed = true,
+        zone = Household.zone,
+        today = Household.today,
+    )
 
     private fun state(session: LiveSession) = LiveUiState(
         deviceId = camera.id,
         deviceName = camera.model,
         availability = LiveAvailability.Camera,
         session = session,
+        clips = clips,
     )
 
     val connecting = state(LiveSession(phase = LivePhase.Starting, attempt = 1))
