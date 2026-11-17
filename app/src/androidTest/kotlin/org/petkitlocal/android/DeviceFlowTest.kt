@@ -66,10 +66,12 @@ class DeviceFlowTest {
         MockServer.control("POST", "devices/$FOUNTAIN/online")
         waitFor(hasText("Idle") and hasAnyAncestor(hasTestTag(DeviceTestTags.STATUS)))
 
-        // A button that can be undone goes at once and says how it was delivered.
+        // Its sheet's row is its mode, every action behind More. A button that can be undone
+        // goes at once and says how it was delivered.
+        compose.onNodeWithTag(DeviceTestTags.SHEET_MORE).performClick()
         compose.onNode(hasText("Refill") and hasAnyAncestor(hasTestTag(DeviceTestTags.ACTION_SHEET))).performClick()
         waitFor(hasText("Sent to the device."))
-        // A destructive one is behind More, and asks first.
+        // A destructive one asks first.
         compose.onNodeWithTag(DeviceTestTags.SHEET_MORE).performClick()
         compose.onNode(hasText("Drain") and hasAnyAncestor(hasTestTag(DeviceTestTags.ACTION_SHEET))).performClick()
         waitFor(hasText("Drain?"))

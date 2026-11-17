@@ -4,6 +4,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
@@ -11,6 +12,7 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.isEnabled
+import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -36,8 +38,9 @@ import org.petkitlocal.feature.home.HomeTestTags
 /**
  * The fountain page end to end, against the mock server: the EverSweet Ultra AI's pump follows a
  * button over `/ws` and a new drink reaches its pet's count; the EverSweet 3 Pro, relayed by the
- * YumShare Dual-Hopper (MQTT), names its relay, has no action sheet (its one button is on its
- * filter's pill) and takes a confirmed filter reset, its filter pill following the server.
+ * YumShare Dual-Hopper (MQTT), says when it was seen and that its relay is online, changes mode
+ * from its bottom bar (selected once the fountain reports it), has no More (its one button is on
+ * its filter's pill) and takes a confirmed filter reset, its filter pill following the server.
  */
 @MockOnly("the mock's fountains and a pet's drink made through the control API")
 @OptIn(ExperimentalTestApi::class) // waitUntil...Exists
@@ -75,12 +78,21 @@ class FountainFlowTest {
     }
 
     @Test
-    fun aBluetoothFountainNamesItsRelayAndTakesAConfirmedFilterReset() {
+    fun aBluetoothFountainChangesModeAndTakesAConfirmedFilterReset() {
         signIn()
         open(EVERSWEET_3_PRO)
-        waitFor(hasText("Reports through YumShare Dual-Hopper"))
+        waitFor(hasTestTag(DeviceTestTags.RELAY) and hasText("via YumShare Dual-Hopper (online)", substring = true))
         waitFor(hasContentDescription("Water level, OK"))
-        compose.onNodeWithTag(DeviceTestTags.ACTION_SHEET).assertDoesNotExist()
+
+        // Its mode, normal, is the bottom bar; smart is sent through the relay, and selected once
+        // the fountain's report says so. No More: its one button is on its filter's pill.
+        val smart = hasTestTag(FountainTestTags.mode("smart"))
+        waitFor(hasTestTag(FountainTestTags.mode("normal")) and isSelected())
+        compose.onNodeWithTag(DeviceTestTags.SHEET_MORE).assertDoesNotExist()
+        compose.onNode(smart).performClick()
+        waitFor(hasTestTag(DeviceTestTags.FEEDBACK) and hasText("Sent to the device."))
+        waitFor(smart and isSelected())
+        compose.onNode(hasTestTag(FountainTestTags.mode("normal"))).assertIsNotSelected()
 
         // The filter's pill explains it and offers its reset, which cannot be undone.
         val filter = hasContentDescription("Filter, ", substring = true)
