@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="push_channel_connection">Connexion au serveur</string>
+    <string name="push_channel_connection_help">La notification silencieuse qu\'Android exige tant que Petkit Local reste connecté pour les alertes. Vous pouvez la masquer.</string>
+    <string name="push_channel_toilet">Passages à la litière</string>
+    <string name="push_channel_feed_served">Repas servis</string>
+    <string name="push_channel_feed_failed">Repas manqués</string>
+    <string name="push_channel_error">Pannes d\'appareil</string>
+    <string name="push_channel_food_low">Croquettes bientôt épuisées</string>
+    <string name="push_channel_consumable">Consommables</string>
+    <string name="push_channel_offline">Appareil hors ligne</string>
+    <string name="push_channel_other">Autres alertes</string>
+
+    <string name="push_ongoing_connecting">Connexion au serveur…</string>
+    <string name="push_ongoing_connecting_text">Petkit Local se connecte à votre serveur pour les alertes.</string>
+    <string name="push_ongoing_connected">Notifications activées</string>
+    <string name="push_ongoing_connected_text">Les alertes de votre serveur arrivent dès qu\'elles se produisent.</string>
+    <string name="push_ongoing_gap_text">Des alertes reçues pendant que le téléphone était hors ligne ont été perdues.</string>
+    <string name="push_ongoing_waiting">Reconnexion…</string>
+    <string name="push_ongoing_waiting_text">Votre serveur est injoignable. Les alertes manquées entre-temps suivront.</string>
+
+    <string name="push_some_device">Un appareil</string>
+    <string name="push_toilet_title">Passage à la litière</string>
+    <string name="push_toilet_title_pet">Passage de %1$s à la litière</string>
+    <string name="push_feed_served_title">Repas servi</string>
+    <string name="push_feed_served_text">%1$s : un repas prévu a été servi, ou sauté parce que la gamelle n\'était pas vide.</string>
+    <string name="push_feed_failed_title">Repas manqué</string>
+    <string name="push_feed_failed_text">%1$s n\'a pas pu servir un repas.</string>
+    <string name="push_error_title">Panne d\'appareil</string>
+    <string name="push_error_text">%1$s signale une panne.</string>
+    <string name="push_offline_title">Appareil hors ligne</string>
+    <string name="push_offline_text">%1$s ne répond plus au serveur.</string>
+    <string name="push_food_low_title">Croquettes bientôt épuisées</string>
+    <string name="push_food_low_text">Le réservoir de %1$s est vide.</string>
+    <string name="push_food_low_text_hopper1">Le réservoir 1 de %1$s est vide.</string>
+    <string name="push_food_low_text_hopper2">Le réservoir 2 de %1$s est vide.</string>
+    <string name="push_consumable_title">Consommable à voir</string>
+    <string name="push_consumable_text">%1$s a un consommable à voir.</string>
+    <string name="push_box_full_title">Bac à déchets plein</string>
+    <string name="push_box_full_text">Videz le bac à déchets de %1$s.</string>
+    <string name="push_litter_low_title">Litière basse</string>
+    <string name="push_litter_low_text">%1$s manque de litière.</string>
+    <string name="push_deodorizer_title">Désodorisant à remplacer</string>
+    <string name="push_deodorizer_text">Le désodorisant de %1$s est épuisé.</string>
+    <string name="push_spray_title">Spray désodorisant à remplacer</string>
+    <string name="push_spray_text">Le spray désodorisant de %1$s est épuisé.</string>
+    <string name="push_desiccant_title">Déshydratant à remplacer</string>
+    <string name="push_desiccant_text">Le sachet déshydratant de %1$s est épuisé.</string>
+    <string name="push_filter_title">Filtre à remplacer</string>
+    <string name="push_filter_text">Remplacez le filtre de %1$s.</string>
+    <string name="push_water_low_title">Eau basse</string>
+    <string name="push_water_low_text">Remplissez %1$s.</string>
+    <string name="push_tray_full_title">Bac plein</string>
+    <string name="push_tray_full_text">Videz le bac de %1$s.</string>
+    <string name="push_liquid_low_title">Liquide désodorisant bas</string>
+    <string name="push_liquid_low_text">Remplissez le liquide désodorisant de %1$s.</string>
+    <string name="push_other_title">Alerte de votre serveur</string>
+    <string name="push_other_text">%1$s : ouvrez Petkit Local pour la voir.</string>
+</resources>

@@ -12,6 +12,9 @@ object HomeFixtures {
 
     val content = HomeUiState(overview = overview)
 
+    /** Notifications on, but Android 13+ does not let them show: the banner above the alerts. */
+    val notificationsBlocked = content.copy(askNotifications = true)
+
     val offline = HomeUiState(overview = overview, refreshError = DomainError.Network("timeout"))
 
     val unreachableEmpty = HomeUiState(

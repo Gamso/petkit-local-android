@@ -3,9 +3,16 @@
 
 package org.petkitlocal.feature.settings
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
@@ -15,6 +22,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureRoboImage
 import org.junit.Assert.assertEquals
@@ -40,6 +48,11 @@ class SettingsScreenTest {
         onBack = { calls += "back" },
         onRetry = { calls += "retry" },
         onKindToggle = { kind, on -> calls += "$kind=$on" },
+        onNotificationsToggle = { on -> calls += "notifications=$on" },
+        onAllowNotifications = { calls += "allow notifications" },
+        onAllowBackground = { calls += "allow background" },
+        onBatteryConfirm = { calls += "battery continue" },
+        onBatteryDismiss = { calls += "battery not now" },
         onChangePassword = { calls += "password" },
         onOpenLicences = { calls += "licences" },
         onAppLicenceClick = { calls += "app licence" },
@@ -68,6 +81,37 @@ class SettingsScreenTest {
         val expected =
             listOf("back", "feed_served=true", "toilet=false", "password", "sign out", "app licence", "licences")
         assertEquals(expected, calls)
+    }
+
+    @Test
+    fun `the notifications switch, and what Android must allow, each with its button`() {
+        show(SettingsPreviewData.androidInTheWay)
+
+        compose.onNodeWithTag(SettingsTestTags.NOTIFICATIONS_SWITCH).performScrollTo().assertIsOn().performClick()
+        compose.onNodeWithText("does not let Petkit Local show notifications", substring = true).assertExists()
+        compose.onNodeWithTag(SettingsTestTags.ALLOW_NOTIFICATIONS).performScrollTo().assertIsEnabled().performClick()
+        compose.onNodeWithTag(SettingsTestTags.ALLOW_BACKGROUND).performScrollTo().assertIsEnabled().performClick()
+
+        assertEquals(listOf("notifications=false", "allow notifications", "allow background"), calls)
+    }
+
+    @Test
+    fun `notifications off, Android is asked for nothing`() {
+        show(SettingsPreviewData.notificationsOff)
+
+        compose.onNodeWithTag(SettingsTestTags.NOTIFICATIONS_SWITCH).performScrollTo().assertIsOff()
+        compose.onNodeWithTag(SettingsTestTags.ALLOW_NOTIFICATIONS).assertDoesNotExist()
+        compose.onNodeWithTag(SettingsTestTags.ALLOW_BACKGROUND).assertDoesNotExist()
+    }
+
+    @Test
+    fun `the battery is explained before Android asks`() {
+        show(SettingsPreviewData.androidInTheWay.copy(explainingBattery = true))
+
+        compose.onNodeWithText("Let alerts arrive on time").assertExists()
+        compose.onNodeWithText("Not now").performClick()
+        compose.onNodeWithTag(SettingsTestTags.BATTERY_CONTINUE).performClick()
+        assertEquals(listOf("battery not now", "battery continue"), calls)
     }
 
     @Test
@@ -134,6 +178,7 @@ class SettingsScreenTest {
         show(SettingsPreviewData.loaded)
         compose.onNodeWithText("Réglages").assertExists()
         compose.onNodeWithText("Passages à la litière").assertExists()
+        compose.onNodeWithText("Notifications sur ce téléphone").assertExists()
         compose.onNodeWithContentDescription("Retour").assertExists()
     }
 }
@@ -158,12 +203,47 @@ class SettingsScreenshotTest(private val variant: ScreenshotVariant) {
         SettingsScreen(SettingsPreviewData.unreachable, SettingsActions())
     }
 
+    @Test
+    fun androidInTheWay() = capture("settings_android_in_the_way") {
+        SettingsScreen(SettingsPreviewData.androidInTheWay, SettingsActions())
+    }
+
     private fun capture(name: String, content: @Composable () -> Unit) {
         captureRoboImage(
             filePath = "src/test/screenshots/${name}_$variant.png",
             roborazziComposeOptions = variant.options(),
         ) {
             PkTheme { CompositionLocalProvider(LocalInspectionMode provides true) { content() } }
+        }
+    }
+
+    companion object {
+        @JvmStatic
+        @ParameterizedRobolectricTestRunner.Parameters(name = "{0}")
+        fun variants(): List<ScreenshotVariant> = ScreenshotVariant.screens
+    }
+}
+
+/** The battery explanation, as it sits over the screen, in light/dark x EN/FR. SDK 36: see core:designsystem. */
+@RunWith(ParameterizedRobolectricTestRunner::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@Config(qualifiers = "w360dp-h800dp-xhdpi", sdk = [36])
+class BatteryDialogScreenshotTest(private val variant: ScreenshotVariant) {
+    @Test
+    fun batteryDialog() {
+        captureRoboImage(
+            filePath = "src/test/screenshots/settings_battery_dialog_$variant.png",
+            roborazziComposeOptions = variant.options(),
+        ) {
+            PkTheme {
+                // The dialog's card over the screen; a real window does not render here.
+                Box(
+                    Modifier.fillMaxSize().background(PkTheme.colors.background).padding(24.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    BatteryDialogContent(onConfirm = {}, onDismiss = {})
+                }
+            }
         }
     }
 

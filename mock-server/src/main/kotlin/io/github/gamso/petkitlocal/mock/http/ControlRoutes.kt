@@ -1,6 +1,7 @@
 package io.github.gamso.petkitlocal.mock.http
 
 import io.github.gamso.petkitlocal.mock.api.ApiException
+import io.github.gamso.petkitlocal.mock.api.PushMessage
 import io.github.gamso.petkitlocal.mock.scenario.Scenario
 import io.github.gamso.petkitlocal.mock.state.FeedSource
 import io.github.gamso.petkitlocal.mock.state.ForcedFailure
@@ -74,6 +75,11 @@ private fun MockDevice.notAccessory(): MockDevice =
         this
     }
 
+/** A litter box's visit summary (`events/codes.py`), the code a `toilet` notification carries. */
+private const val VISIT_CODE = "10"
+
+private fun now(world: World): Long = world.clock.now().toLong()
+
 /** The routes, for `GET /mock` (and the README). */
 private val CONTROL_ROUTES =
     listOf(
@@ -93,6 +99,9 @@ private val CONTROL_ROUTES =
         "DELETE /mock/sessions                        revoke all",
         "PUT    /mock/password                        {password: string | null}  null = no password set",
         "PUT    /mock/notifications                   {disabled: [kind, ...]}  the panel's per-kind switches off",
+        "POST   /mock/notifications                   {kind, device_id?, pet_id?, code?, ts?}  send one notification",
+        "POST   /mock/notifications/close             {code?, reason?}  close every notification socket (1001, 1013, 4401...)",
+        "DELETE /mock/notifications/log               lose the catch-up log: ids start again from 1",
         "POST   /mock/fail                            {method, path, status, error?, message?, retry_after?, times?}",
         "DELETE /mock/fail                            clear forced failures",
         "POST   /mock/ws/close                        {code?, reason?}  close every /ws socket (1001, 1013, 4401...)",
@@ -115,6 +124,7 @@ fun Route.controlRoutes(
                     put("scenario_interval_sec", scenario.intervalSec)
                     put("scenario_running", scenario.running)
                     put("sockets", world.hub.size)
+                    put("notification_sockets", synchronized(world.lock) { world.notify.size })
                     put("live_sockets", world.live.sockets)
                     put("hls_views", world.live.hlsViews)
                     put("routes", buildJsonArray { CONTROL_ROUTES.forEach { add(JsonPrimitive(it)) } })
@@ -151,6 +161,7 @@ private fun Route.deviceControl(world: World) {
                         body.bool("health_alert") ?: false,
                     )
                 }
+            world.sendNotification(PushMessage(kind = "toilet", deviceId = device.id, petId = petId, code = VISIT_CODE, ts = now(world)))
             call.ok(buildJsonObject { put("card_id", started) })
         }
         post("/meal") {
@@ -160,6 +171,7 @@ private fun Route.deviceControl(world: World) {
             synchronized(world.lock) {
                 world.playFeed(device, FeedSource.SCHEDULE, body.int("amount") ?: 1, body.int("amount1") ?: 1, body.int("amount2") ?: 0)
             }
+            world.sendNotification(PushMessage(kind = "feed_served", deviceId = device.id, petId = null, code = null, ts = now(world)))
             call.ok()
         }
         post("/drink") {
@@ -173,6 +185,8 @@ private fun Route.deviceControl(world: World) {
             val device = world.controlDevice(call)
             val message = call.optionalBody().str("message") ?: "bin full"
             val card = synchronized(world.lock) { world.raiseError(device, message) }
+            // The device's own text is never sent: the state key that carries it is.
+            world.sendNotification(PushMessage(kind = "error", deviceId = device.id, petId = null, code = "errorMsg", ts = now(world)))
             call.ok(buildJsonObject { put("card_id", card.id) })
         }
         post("/error/clear") {
@@ -183,6 +197,7 @@ private fun Route.deviceControl(world: World) {
         post("/offline") {
             val device = world.controlDevice(call).notAccessory()
             synchronized(world.lock) { world.setOnline(device, false) }
+            world.sendNotification(PushMessage(kind = "offline", deviceId = device.id, petId = null, code = null, ts = now(world)))
             call.ok()
         }
         post("/online") {
@@ -256,6 +271,30 @@ private fun Route.sessionControl(world: World) {
             world.disabledKinds.clear()
             world.disabledKinds += disabled
         }
+        call.ok()
+    }
+    post("/notifications") {
+        val body = call.jsonBody()
+        val kind = body.str("kind") ?: throw ApiException(400, "bad_request", "send {\"kind\": \"toilet\", ...}")
+        val message =
+            PushMessage(
+                kind = kind,
+                deviceId = body.int("device_id"),
+                petId = body.int("pet_id"),
+                code = body.str("code"),
+                ts = body.double("ts")?.toLong() ?: world.clock.now().toLong(),
+            )
+        val id = world.sendNotification(message)
+        call.ok(buildJsonObject { put("id", id) })
+    }
+    post("/notifications/close") {
+        val body = call.optionalBody()
+        val code = (body.int("code") ?: Subscriber.CLOSE_GOING_AWAY.toInt()).toShort()
+        val closed = synchronized(world.lock) { world.notify.end(code, body.str("reason") ?: "closed by the mock's control API") }
+        call.ok(buildJsonObject { put("closed", closed) })
+    }
+    delete("/notifications/log") {
+        synchronized(world.lock) { world.notify.loseLog() }
         call.ok()
     }
     put("/password") {

@@ -33,6 +33,11 @@ internal class SettingsActions(
     val onBack: () -> Unit = {},
     val onRetry: () -> Unit = {},
     val onKindToggle: (kind: String, on: Boolean) -> Unit = { _, _ -> },
+    val onNotificationsToggle: (on: Boolean) -> Unit = {},
+    val onAllowNotifications: () -> Unit = {},
+    val onAllowBackground: () -> Unit = {},
+    val onBatteryConfirm: () -> Unit = {},
+    val onBatteryDismiss: () -> Unit = {},
     val onChangePassword: () -> Unit = {},
     val onOpenLicences: () -> Unit = {},
     val onAppLicenceClick: () -> Unit = {},
@@ -45,12 +50,18 @@ internal class SettingsActions(
 @Composable
 internal fun SettingsRoute(navigation: SettingsNavigation, viewModel: SettingsViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    NotificationPromptsEffects(viewModel)
     SettingsScreen(
         uiState,
         SettingsActions(
             onBack = navigation.onBack,
             onRetry = viewModel::onRetry,
             onKindToggle = viewModel::onKindToggle,
+            onNotificationsToggle = viewModel::onNotificationsToggle,
+            onAllowNotifications = viewModel::onAllowNotificationsClick,
+            onAllowBackground = viewModel::onAllowBackgroundClick,
+            onBatteryConfirm = viewModel::onBatteryExplanationConfirm,
+            onBatteryDismiss = viewModel::onBatteryExplanationDismiss,
             onChangePassword = navigation.onChangePassword,
             onOpenLicences = navigation.onOpenLicences,
             onAppLicenceClick = viewModel::onAppLicenceClick,
@@ -100,6 +111,7 @@ internal fun SettingsScreen(uiState: SettingsUiState, actions: SettingsActions, 
             actions.onAppLicenceDismiss,
         )
     }
+    if (uiState.explainingBattery) BatteryDialog(actions.onBatteryConfirm, actions.onBatteryDismiss)
     if (uiState.confirmingSignOut) {
         PkConfirmDialog(
             title = stringResource(R.string.settings_sign_out_title),
@@ -132,6 +144,11 @@ object SettingsTestTags {
     const val PHONE_NAME = "settings_phone_name"
     const val NOTIFICATIONS = "settings_notifications"
     const val NOTIFICATIONS_ERROR = "settings_notifications_error"
+    const val NOTIFICATIONS_SWITCH = "settings_notifications_switch"
+    const val ALLOW_NOTIFICATIONS = "settings_allow_notifications"
+    const val ALLOW_BACKGROUND = "settings_allow_background"
+    const val BATTERY_DIALOG = "settings_battery_dialog"
+    const val BATTERY_CONTINUE = "settings_battery_continue"
     const val RETRY = "settings_retry"
     const val CHANGE_PASSWORD = "settings_change_password"
     const val SIGN_OUT = "settings_sign_out"

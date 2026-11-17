@@ -26,6 +26,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -40,6 +41,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.petkitlocal.core.designsystem.component.PkButton
 import org.petkitlocal.core.designsystem.component.PkButtonStyle
@@ -51,6 +53,7 @@ import org.petkitlocal.core.designsystem.component.PkOfflineBanner
 import org.petkitlocal.core.designsystem.icon.PkIcons
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.home.HomeOverview
+import org.petkitlocal.core.ui.rememberNotificationPermissionRequest
 
 /** Where Home leads; the app wires each to a destination. */
 data class HomeNavigation(
@@ -61,10 +64,27 @@ data class HomeNavigation(
     val onOpenSettings: () -> Unit = {},
 )
 
+/** The answers to the banner asking for the notification permission. */
+internal class NotificationBannerActions(val onAllow: () -> Unit = {}, val onNotNow: () -> Unit = {})
+
 @Composable
 internal fun HomeRoute(navigation: HomeNavigation, viewModel: HomeViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    HomeScreen(uiState, onRefresh = viewModel::onRefresh, navigation = navigation)
+    val requestPermission = rememberNotificationPermissionRequest(viewModel::onNotificationPermissionResult)
+    LifecycleResumeEffect(viewModel) {
+        viewModel.onResume()
+        onPauseOrDispose {}
+    }
+    LaunchedEffect(viewModel) { viewModel.permissionRequests.collect { requestPermission(it) } }
+    HomeScreen(
+        uiState,
+        onRefresh = viewModel::onRefresh,
+        navigation = navigation,
+        notificationBanner = NotificationBannerActions(
+            onAllow = viewModel::onAllowNotificationsClick,
+            onNotNow = viewModel::onNotificationsNotNow,
+        ),
+    )
 }
 
 /** Home (SPEC.md §5.2): alert banners, the two-column device grid, the pets row. */
@@ -75,6 +95,7 @@ internal fun HomeScreen(
     onRefresh: () -> Unit,
     navigation: HomeNavigation,
     modifier: Modifier = Modifier,
+    notificationBanner: NotificationBannerActions = NotificationBannerActions(),
 ) {
     val insets = WindowInsets.safeDrawing.asPaddingValues()
     val direction = LocalLayoutDirection.current
@@ -100,6 +121,11 @@ internal fun HomeScreen(
                 .testTag(HomeTestTags.LIST),
         ) {
             item(key = "header") { HomeHeader(navigation) }
+            if (uiState.askNotifications) {
+                item(key = "notification-banner") {
+                    NotificationPermissionBanner(notificationBanner.onAllow, notificationBanner.onNotNow)
+                }
+            }
             homeBody(uiState, onRefresh, navigation)
         }
     }
@@ -257,6 +283,9 @@ private fun HomeHeader(navigation: HomeNavigation) {
 /** Test tags of Home's nodes, for the UI and end-to-end tests. */
 object HomeTestTags {
     const val LIST = "home:list"
+    const val NOTIFICATION_BANNER = "home:notification-banner"
+    const val NOTIFICATION_ALLOW = "home:notification-banner:allow"
+    const val NOTIFICATION_NOT_NOW = "home:notification-banner:not-now"
 
     fun device(id: Long): String = "home:device:$id"
 

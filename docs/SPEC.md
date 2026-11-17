@@ -67,6 +67,9 @@ screen).
 ### 2 · Home
 - Title (the household; single, not switchable in v1), notification bell, alert banners for
   anything needing attention (consumable, error, offline device).
+- While notifications are on but Android 13+ does not let them show, a banner above the alerts
+  says so, with "Allow" (Android's prompt, or its notification settings for the app once refused
+  for good) and "Not now", which puts it away until the next sign-in; Settings keeps its prompt.
 - **Device grid**, two columns, one card per device:
   - name and small device glyph;
   - the family's headline figure: visits today for a litter box, portions served for a feeder, water level for a fountain;
@@ -126,8 +129,10 @@ screen).
 
 ### 8 · Settings
 - Server: address, server version.
-- Notifications: on/off, connection state (connected, reconnecting, battery optimisation still
-  on, notification permission refused, each with the action that fixes it) and the kinds to show.
+- Notifications: on/off for this phone; while on, what Android must still allow (the notification
+  permission from Android 13, the battery-optimisation exemption), each with the action that
+  fixes it; and the kinds to show. Whether the connection is up is said by its own ongoing
+  notification, not here.
 - App: this phone's name. No language or theme setting: the app follows the phone's language
   and its light or dark theme.
 - Change password (needs the current one; signs out every other phone), sign out.

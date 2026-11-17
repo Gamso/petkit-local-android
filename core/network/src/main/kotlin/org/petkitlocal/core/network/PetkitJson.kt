@@ -2,6 +2,7 @@ package org.petkitlocal.core.network
 
 import kotlinx.serialization.json.Json
 import org.petkitlocal.core.network.dto.LiveVideoMessageDto
+import org.petkitlocal.core.network.dto.NotificationSocketMessageDto
 import org.petkitlocal.core.network.dto.UpdateMessageDto
 
 /**
@@ -25,6 +26,13 @@ val PetkitJson: Json = Json {
  */
 fun decodeUpdateMessage(text: String): UpdateMessageDto? = try {
     PetkitJson.decodeFromString(UpdateMessageDto.serializer(), text)
+} catch (_: IllegalArgumentException) { // SerializationException is one
+    null
+}
+
+/** One notification-socket text frame, or null for a type this app does not know yet. */
+fun decodeNotificationMessage(text: String): NotificationSocketMessageDto? = try {
+    PetkitJson.decodeFromString(NotificationSocketMessageDto.serializer(), text)
 } catch (_: IllegalArgumentException) { // SerializationException is one
     null
 }

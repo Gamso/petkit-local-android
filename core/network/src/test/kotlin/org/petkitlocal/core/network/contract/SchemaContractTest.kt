@@ -52,11 +52,13 @@ import org.petkitlocal.core.network.dto.MediaDto
 import org.petkitlocal.core.network.dto.NotificationKind
 import org.petkitlocal.core.network.dto.NotificationKindsRequestDto
 import org.petkitlocal.core.network.dto.NotificationSettingsDto
+import org.petkitlocal.core.network.dto.NotificationSocketMessageDto
 import org.petkitlocal.core.network.dto.OkDto
 import org.petkitlocal.core.network.dto.PetDetailDto
 import org.petkitlocal.core.network.dto.PetDto
 import org.petkitlocal.core.network.dto.PetRefDto
 import org.petkitlocal.core.network.dto.PetStatsDto
+import org.petkitlocal.core.network.dto.PushMessageDto
 import org.petkitlocal.core.network.dto.PushRegistrationDto
 import org.petkitlocal.core.network.dto.SessionDto
 import org.petkitlocal.core.network.dto.TimelineFilter
@@ -115,6 +117,8 @@ class SchemaContractTest {
         "PetStats" to PetStatsDto.serializer(),
         "PetDetail" to PetDetailDto.serializer(),
         "UpdateMessage" to UpdateMessageDto.serializer(),
+        "NotificationSocketMessage" to NotificationSocketMessageDto.serializer(),
+        "PushMessage" to PushMessageDto.serializer(),
         "PushRegistration" to PushRegistrationDto.serializer(),
         "NotificationSettings" to NotificationSettingsDto.serializer(),
         "NotificationKindsRequest" to NotificationKindsRequestDto.serializer(),
@@ -122,7 +126,10 @@ class SchemaContractTest {
         "NotificationKinds" to ListSerializer(String.serializer()).nullable,
     )
 
-    /** The `UpdateMessage` members: DTO subclasses, checked with `type` as the discriminator. */
+    /**
+     * The members of the two socket messages (`UpdateMessage`, `NotificationSocketMessage`): DTO
+     * subclasses, checked with `type` as the discriminator.
+     */
     private val updateMessages: Map<String, KSerializer<*>> = mapOf(
         "UpdateHello" to UpdateMessageDto.Hello.serializer(),
         "UpdateState" to UpdateMessageDto.State.serializer(),
@@ -130,6 +137,9 @@ class SchemaContractTest {
         "UpdateDeviceRemoved" to UpdateMessageDto.DeviceRemoved.serializer(),
         "UpdateTimeline" to UpdateMessageDto.Timeline.serializer(),
         "UpdatePong" to UpdateMessageDto.Pong.serializer(),
+        "NotificationHello" to NotificationSocketMessageDto.Hello.serializer(),
+        "NotificationDelivery" to NotificationSocketMessageDto.Delivery.serializer(),
+        "NotificationPong" to NotificationSocketMessageDto.Pong.serializer(),
     )
 
     /** String enums kept as Strings, with the values the app knows. */
@@ -202,6 +212,7 @@ class SchemaContractTest {
 
         assertEquals(enumOf("Delivered"), Delivered.KNOWN)
         assertEquals(enumOf("NotificationKind"), NotificationKind.KNOWN)
+        assertEquals(enumOf("PushMessage", "kind"), NotificationKind.KNOWN)
         assertEquals(enumOf("DeviceSummary", "connection"), DeviceConnection.KNOWN)
         assertEquals(enumOf("AccessoryRef", "kind"), AccessoryKind.KNOWN)
         assertEquals(enumOf("DeviceSummary", "kind"), DeviceKind.KNOWN)

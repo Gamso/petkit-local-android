@@ -13,6 +13,16 @@
     <string name="settings_server_unreachable">The server cannot be reached, so its version and this phone\'s name there are unknown.</string>
 
     <string name="settings_section_notifications">Notifications</string>
+    <string name="settings_notifications_on">Notifications on this phone</string>
+    <string name="settings_notifications_on_help">Petkit Local keeps a connection to your server so alerts arrive even when the app is closed. Android shows a silent notification while it is on.</string>
+    <string name="settings_notifications_permission_needed">Android does not let Petkit Local show notifications yet.</string>
+    <string name="settings_notifications_allow">Allow notifications</string>
+    <string name="settings_notifications_battery">Battery optimisation can hold alerts back while the phone sleeps.</string>
+    <string name="settings_notifications_allow_background">Allow in the background</string>
+    <string name="settings_battery_title">Let alerts arrive on time</string>
+    <string name="settings_battery_message">To save battery, Android cuts apps off the network while the phone sleeps, and alerts then arrive late. Petkit Local\'s connection is one quiet link to your server, about what a messaging app uses. Android will ask whether to let it run in the background.</string>
+    <string name="settings_battery_continue">Continue</string>
+    <string name="settings_battery_not_now">Not now</string>
     <string name="settings_notifications_intro">What this phone is told about. The server keeps this choice for this phone and sends nothing else.</string>
     <string name="settings_notifications_unreachable">The server cannot be reached, so this phone\'s notification choices cannot be shown.</string>
     <string name="settings_kind_not_saved">The change did not reach the server. The switches show what it still holds.</string>

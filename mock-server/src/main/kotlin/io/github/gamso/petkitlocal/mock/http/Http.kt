@@ -77,6 +77,9 @@ val OPERATIONS: List<Pair<HttpMethod, String>> =
         HttpMethod.Get to "/pets/{id}",
         HttpMethod.Get to "/pets/{id}/photo",
         HttpMethod.Get to "/ws",
+        HttpMethod.Get to "/notifications",
+        HttpMethod.Put to "/notifications",
+        HttpMethod.Get to "/notifications/ws",
     )
 
 /** Served without a session (still not before a password exists). */

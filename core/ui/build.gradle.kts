@@ -10,4 +10,6 @@ dependencies {
     implementation(projects.core.domain)
     // Thumbnails; the image loader itself (the app's OkHttp client) is configured in :app.
     implementation(libs.coil.compose)
+    // Android's permission prompt, asked the same way from every screen (NotificationPermission.kt).
+    implementation(libs.androidx.activity.compose)
 }

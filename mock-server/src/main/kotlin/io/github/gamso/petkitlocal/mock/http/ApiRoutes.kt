@@ -162,6 +162,7 @@ fun Route.apiRoutes(world: World) {
         petRoutes(world)
         updatesRoute(world)
         notificationRoutes(world)
+        notificationSocketRoute(world)
     }
 }
 
@@ -212,8 +213,8 @@ private fun Route.authRoutes(world: World) {
 }
 
 /**
- * `GET`/`PUT /notifications`: the session's kinds (`handlers/notifications.py`). The socket
- * itself, `/notifications/ws`, is not served yet (issue #23), so `connected` is always false.
+ * `GET`/`PUT /notifications`: the session's kinds (`handlers/notifications.py`), whether it holds
+ * the notification socket (NotifyRoutes.kt) and the newest id logged.
  */
 private fun Route.notificationRoutes(world: World) {
     get("/notifications") {

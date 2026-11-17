@@ -1,5 +1,7 @@
 package org.petkitlocal.feature.settings
 
+import org.petkitlocal.core.domain.notifications.NotificationPrompts
+import org.petkitlocal.core.domain.notifications.PhoneNotifications
 import org.petkitlocal.core.domain.settings.NotificationKinds
 import org.petkitlocal.core.domain.settings.NotificationSettings
 import org.petkitlocal.core.domain.settings.OpenSourceLicence
@@ -21,9 +23,28 @@ internal object SettingsPreviewData {
         server = "https://pets.example.com",
         details = Loaded.Ready(ServerDetails(version = "1.4.0", phoneName = "Google Pixel 8")),
         notifications = Loaded.Ready(notifications),
+        phone = PhoneNotifications(
+            enabled = true,
+            permissionNeeded = false,
+            batteryOptimised = false,
+            asked = NotificationPrompts(permission = true, battery = true),
+        ),
         appVersion = "0.1.0",
         appLicence = OpenSourceLicence("MIT License", "MIT License\n\nCopyright (c) 2026 Gamso"),
     )
+
+    /** Notifications on, but Android neither lets them show nor lets the connection run in Doze. */
+    val androidInTheWay = loaded.copy(
+        phone = PhoneNotifications(
+            enabled = true,
+            permissionNeeded = true,
+            batteryOptimised = true,
+            asked = NotificationPrompts(),
+        ),
+    )
+
+    /** Notifications off on this phone: nothing to ask Android for. */
+    val notificationsOff = androidInTheWay.copy(phone = androidInTheWay.phone!!.copy(enabled = false))
 
     /** The server out of reach: nothing read, a switch flip that did not get through. */
     val unreachable = SettingsUiState(

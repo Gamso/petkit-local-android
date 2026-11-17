@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -33,6 +34,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import org.petkitlocal.core.designsystem.component.PkButton
+import org.petkitlocal.core.designsystem.component.PkButtonStyle
 import org.petkitlocal.core.designsystem.icon.PkIcons
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.home.AlertKind
@@ -77,6 +80,52 @@ internal fun AlertBanner(alert: DeviceAlert, onClick: () -> Unit, modifier: Modi
             modifier = Modifier.weight(1f),
         )
         Icon(PkIcons.ChevronRight, contentDescription = null, tint = content, modifier = Modifier.size(18.dp))
+    }
+}
+
+/**
+ * Notifications are on for this phone but Android 13+ does not let them show (issue #23): one
+ * line saying so, Android's prompt behind "Allow", and "Not now", which puts it away for the rest
+ * of the session. Drawn as the alert banners are, in the same place.
+ */
+@Composable
+internal fun NotificationPermissionBanner(onAllow: () -> Unit, onNotNow: () -> Unit, modifier: Modifier = Modifier) {
+    val colors = PkTheme.colors
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(PkTheme.shapes.tile)
+            .background(colors.warningContainer)
+            .padding(start = 14.dp, end = PkTheme.spacing.xs, top = PkTheme.spacing.s, bottom = PkTheme.spacing.xxs)
+            .testTag(HomeTestTags.NOTIFICATION_BANNER),
+    ) {
+        Row(verticalAlignment = Alignment.Top, modifier = Modifier.padding(end = PkTheme.spacing.xs)) {
+            Icon(PkIcons.Warning, contentDescription = null, tint = colors.warning, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.size(10.dp))
+            Text(
+                stringResource(R.string.home_notifications_blocked),
+                style = PkTheme.typography.bodyMedium,
+                color = colors.onWarningContainer,
+                modifier = Modifier.weight(1f),
+            )
+        }
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(PkTheme.spacing.xxs, Alignment.End),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            PkButton(
+                stringResource(R.string.home_notifications_not_now),
+                onClick = onNotNow,
+                style = PkButtonStyle.Text,
+                modifier = Modifier.testTag(HomeTestTags.NOTIFICATION_NOT_NOW),
+            )
+            PkButton(
+                stringResource(R.string.home_notifications_allow),
+                onClick = onAllow,
+                style = PkButtonStyle.Text,
+                modifier = Modifier.testTag(HomeTestTags.NOTIFICATION_ALLOW),
+            )
+        }
     }
 }
 

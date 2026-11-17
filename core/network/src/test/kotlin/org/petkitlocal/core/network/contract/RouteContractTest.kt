@@ -14,6 +14,7 @@ import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestFactory
 import org.petkitlocal.core.network.LiveUpdatesSocket
+import org.petkitlocal.core.network.NotificationSocket
 import org.petkitlocal.core.network.PetkitApi
 import org.petkitlocal.core.network.PetkitHttpClient
 import org.petkitlocal.core.network.video.LiveMediaSources
@@ -40,6 +41,7 @@ class RouteContractTest {
     /** Routes of the document that are not REST, and the interface each one has in the app. */
     private val notRest: Map<String, KClass<*>> = mapOf(
         "GET /ws" to LiveUpdatesSocket::class,
+        "GET /notifications/ws" to NotificationSocket::class,
         "GET /devices/{id}/live" to LiveSocketDataSource::class,
         "GET /devices/{id}/live/hls/{file}" to LiveMediaSources::class,
     )
