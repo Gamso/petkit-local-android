@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalResources
+import org.petkitlocal.core.domain.activity.StepLabel
 
 /**
  * The labels the server sends in English (entity and action names, select options, event kinds),
@@ -35,6 +36,29 @@ class ServerLabels(private val resources: Resources) {
 
     /** A word an `EventField.text` is made of ("yes", "completed", "Auto"); anything else as it is. */
     fun eventFieldValue(text: String): String = EventFieldValueLabels[text]?.let(resources::getString) ?: option(text)
+
+    /**
+     * A completion's label read by [StepLabel]: "Cleaning done", "Deodorizing failed",
+     * "Meal failed: bowl not empty". [serverLabel] for a label not read, or an operation this app
+     * does not know; a reason it does not know is kept in the server's words.
+     */
+    fun step(parsed: StepLabel?, serverLabel: String): String {
+        val operation = parsed?.let { StepOperationLabels[it.operation] }
+        val reason = parsed?.reason
+        return when {
+            parsed == null || operation == null -> serverLabel
+
+            parsed.done -> resources.getString(operation.done)
+
+            reason == null -> resources.getString(R.string.server_step_failed, resources.getString(operation.name))
+
+            else -> resources.getString(
+                R.string.server_step_failed_because,
+                resources.getString(operation.name),
+                StepReasonLabels[reason]?.let(resources::getString) ?: reason,
+            )
+        }
+    }
 
     /** Whether [key] of that kind has a translation: for tests and for reporting gaps. */
     fun knowsEntity(key: String): Boolean = key in EntityLabels
