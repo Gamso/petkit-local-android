@@ -1,8 +1,11 @@
 package org.petkitlocal.feature.device.litter
 
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
@@ -14,6 +17,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import java.util.Locale
+import kotlin.time.toKotlinInstant
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -21,9 +26,12 @@ import org.junit.runner.RunWith
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.core.domain.devicepage.DevicePart
+import org.petkitlocal.core.testing.Household
 import org.petkitlocal.core.ui.RecentClipsTestTags
+import org.petkitlocal.core.ui.formatTimeOfDay
 import org.petkitlocal.feature.device.DeviceFixtures
 import org.petkitlocal.feature.device.DeviceNavigation
+import org.petkitlocal.feature.device.common.ActivityTestTags
 import org.petkitlocal.feature.device.common.CONFIRM_ARM_MS
 import org.petkitlocal.feature.device.common.CommandState
 import org.petkitlocal.feature.device.common.DeviceTestTags
@@ -64,6 +72,10 @@ class LitterScreenTest {
         compose.setContent { PkTheme { LitterScreen(state, navigation, callbacks, clips = clips) } }
     }
 
+    /** A time of today as the page writes it, in the test's locale. */
+    private fun time(hour: Int, minute: Int) =
+        formatTimeOfDay(Household.at(hour, minute).toKotlinInstant(), Household.zone, Locale.getDefault())
+
     private fun scrollTo(text: String) {
         compose.onNodeWithTag(PageTestTags.LIST).performScrollToNode(hasText(text, substring = true))
     }
@@ -101,6 +113,43 @@ class LitterScreenTest {
         compose.onNodeWithText("See all in History").performClick()
 
         assertEquals(listOf("pet:2", "history:1002"), calls)
+    }
+
+    @Test
+    fun `a visit is one row, read as one sentence with the steps that followed it`() {
+        show(LitterFixtures.content)
+        scrollTo("Mochi spent")
+
+        // Shown: the sentence with the weight, and each step under it with its time.
+        compose.onNodeWithText("Mochi spent 1:35 · 4.3\u00A0kg", useUnmergedTree = true).assertExists()
+        compose.onNodeWithText("${time(9, 47)} · Cleaning done", useUnmergedTree = true).assertExists()
+        // The weight check and the mechanism's start are low-level steps the app does not show.
+        compose.onNodeWithText("Weight check", substring = true, useUnmergedTree = true).assertDoesNotExist()
+        // Read: one item for the visit and its steps, durations in words.
+        compose.onNodeWithTag(ActivityTestTags.row(16)).assertContentDescriptionEquals(
+            "${time(9, 45)}, Mochi spent 1 minute 35 seconds, 4.3\u00A0kg. " +
+                "${time(9, 47)}, Cleaning done. ${time(9, 48)}, Deodorizing done",
+        )
+    }
+
+    @Test
+    fun `a failed step says so with its reason, and pets the box could not tell are a pet`() {
+        show(LitterFixtures.content)
+        scrollTo("A pet spent")
+
+        compose.onNodeWithTag(ActivityTestTags.row(14))
+            .assert(hasContentDescription("${time(6, 22)}, Deodorizing failed", substring = true))
+        compose.onNodeWithTag(ActivityTestTags.row(10))
+            .assert(hasContentDescription("${time(1, 22)}, Cleaning failed: bin full", substring = true))
+        // Tigrou has no photo: its initial stands for it.
+        compose.onNode(hasText("T") and hasAnyAncestor(hasTestTag(ActivityTestTags.row(14))), useUnmergedTree = true)
+            .assertExists()
+        compose.onNodeWithTag(ActivityTestTags.row(9))
+            .assertContentDescriptionEquals("${time(0, 40)}, A pet spent 40 seconds")
+        // A pet seen and a scheduled cleaning stay single rows.
+        compose.onNodeWithTag(ActivityTestTags.row(13)).assertContentDescriptionEquals("${time(5, 10)}, A pet came by")
+        compose.onNodeWithText("Cleaning done", useUnmergedTree = true).assertExists()
+        compose.onNodeWithText("Periodic", useUnmergedTree = true).assertExists()
     }
 
     @Test

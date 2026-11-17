@@ -14,6 +14,7 @@ import org.petkitlocal.core.domain.device.DeviceActionOrder
 import org.petkitlocal.core.domain.device.QuickActionEditResult
 import org.petkitlocal.core.domain.model.Device
 import org.petkitlocal.core.testing.ScreenshotVariant
+import org.petkitlocal.core.ui.PreviewImages
 import org.petkitlocal.feature.device.DeviceFixtures
 import org.petkitlocal.feature.device.DeviceNavigation
 import org.petkitlocal.feature.device.common.LocalQuickActions
@@ -73,7 +74,7 @@ class QuickActionsScreenshotTest(private val variant: ScreenshotVariant) {
             CompositionLocalProvider(
                 LocalQuickActions provides QuickActions(pinned = listOf("dump_litter", "level_litter"), onEdit = {}),
             ) {
-                LitterScreen(LitterFixtures.content, DeviceNavigation(), LitterCallbacks())
+                PreviewImages { LitterScreen(LitterFixtures.content, DeviceNavigation(), LitterCallbacks()) }
             }
         }
     }

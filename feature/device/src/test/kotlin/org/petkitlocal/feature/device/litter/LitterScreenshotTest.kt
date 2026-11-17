@@ -16,6 +16,7 @@ import org.junit.runner.RunWith
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.devicepage.DevicePart
 import org.petkitlocal.core.testing.ScreenshotVariant
+import org.petkitlocal.core.ui.PreviewImages
 import org.petkitlocal.feature.device.DeviceFixtures
 import org.petkitlocal.feature.device.DeviceNavigation
 import org.petkitlocal.feature.device.common.RecentClipsUi
@@ -34,8 +35,9 @@ import org.robolectric.annotation.GraphicsMode
 // some images blank (ComponentScreenshotTest).
 @Config(qualifiers = "w360dp-h1700dp-xhdpi", sdk = [36])
 class LitterScreenshotTest(private val variant: ScreenshotVariant) {
+    /** Mochi's photo is drawn as a placeholder: the capture fetches nothing. */
     @Test
-    fun content() = capture("litter_content") { Screen(LitterFixtures.content) }
+    fun content() = capture("litter_content") { PreviewImages { Screen(LitterFixtures.content) } }
 
     @Test
     fun trouble() {
@@ -50,7 +52,7 @@ class LitterScreenshotTest(private val variant: ScreenshotVariant) {
     @Test
     fun puraAir() {
         if (variant.toString() !in setOf("light_en_100", "dark_fr_100")) return
-        capture("litter_pura_air") { Screen(LitterFixtures.withPuraAir) }
+        capture("litter_pura_air") { PreviewImages { Screen(LitterFixtures.withPuraAir) } }
         val hotspot = LitterFixtures.withPuraAir.page!!.hotspots.first { it.part == DevicePart.PuraAirSpray }
         capture("litter_pura_air_hotspot") {
             Box(Modifier.background(PkTheme.colors.background).padding(16.dp)) {

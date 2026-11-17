@@ -70,7 +70,9 @@ class RecentClipsFlowTest {
         compose.onNode(hasText("This video could not be played.")).assertDoesNotExist()
 
         compose.onNodeWithContentDescription("Close").performClick()
-        waitFor(hasTestTag(DeviceTestTags.STATUS))
+        // Back on the page where it was left, scrolled down to the clips: the status line at the
+        // top may be out of the list's composition by now, the day's activity standing between.
+        waitFor(hasTestTag(RecentClipsTestTags.SECTION))
     }
 
     @Test

@@ -77,4 +77,22 @@
         <item quantity="other">%1$d caractères au plus.</item>
     </plurals>
     <string name="device_problem_not_settable">Ce réglage ne peut pas être modifié.</string>
+    <!-- L'activité d'un appareil (SPEC.md §5.3) : une ligne par passage, boisson ou repas. %1$s est le nom de l'animal, %2$s une durée (1:35). -->
+    <string name="device_activity">Activité</string>
+    <string name="device_activity_empty">Rien pour l\'instant aujourd\'hui.</string>
+    <string name="device_see_history">Tout voir dans l\'historique</string>
+    <string name="activity_visit">%1$s a passé %2$s</string>
+    <string name="activity_visit_short">Passage de %1$s</string>
+    <string name="activity_visit_unknown">Un animal a passé %1$s</string>
+    <string name="activity_visit_unknown_short">Passage d\'un animal</string>
+    <string name="activity_drink">%1$s a bu pendant %2$s</string>
+    <string name="activity_drink_short">%1$s a bu</string>
+    <string name="activity_drink_unknown">Un animal a bu pendant %1$s</string>
+    <string name="activity_drink_unknown_short">Un animal a bu</string>
+    <string name="activity_meal">%1$s a mangé pendant %2$s</string>
+    <string name="activity_meal_short">%1$s a mangé</string>
+    <string name="activity_meal_unknown">Un animal a mangé pendant %1$s</string>
+    <string name="activity_meal_unknown_short">Un animal a mangé</string>
+    <string name="activity_pet_seen">Passage de %1$s devant la caméra</string>
+    <string name="activity_pet_seen_unknown">Un animal est passé devant</string>
 </resources>

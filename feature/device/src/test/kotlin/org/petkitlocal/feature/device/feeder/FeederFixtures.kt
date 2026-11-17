@@ -112,15 +112,24 @@ object FeederFixtures {
     val tomorrowFeed = DeferredFeed("d_1", at(12, 30).plusSeconds(DAY), Portions.Single(1))
 
     val todayItems: List<TimelineItem> = listOf(
-        item(30, 2001, at(7, 0).plusSeconds(7), TimelineCategory.Feeding),
-        item(31, 2004, at(8, 0), TimelineCategory.Feeding),
+        item(30, 2001, at(7, 0).plusSeconds(7), TimelineCategory.Feeding).copy(
+            kind = "feeding",
+            eventKind = "feeding",
+            label = "Feeding completed",
+        ),
+        item(31, 2004, at(8, 0), TimelineCategory.Feeding).copy(
+            kind = "feeding",
+            eventKind = "feeding",
+            label = "Feeding completed",
+        ),
     )
 
     fun page(
         device: Device = solo,
         plan: FeedingPlan? = soloPlan,
         deferred: List<DeferredFeed>? = listOf(tomorrowFeed),
-    ): FeederPage = FeederRules.page(device, plan, deferred, todayItems, Household.clock.instant(), Household.zone)
+    ): FeederPage =
+        FeederRules.page(device, plan, deferred, todayItems, Household.clock.instant(), Household.zone, Household.pets)
 
     private fun state(page: FeederPage) =
         FeederUiState(page = page, loaded = true, zone = Household.zone, today = Household.today)

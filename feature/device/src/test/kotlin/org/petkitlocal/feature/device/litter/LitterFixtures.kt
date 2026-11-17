@@ -1,5 +1,6 @@
 package org.petkitlocal.feature.device.litter
 
+import java.time.Instant
 import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.core.domain.litter.LitterBoxPage
 import org.petkitlocal.core.domain.litter.LitterRules
@@ -13,6 +14,7 @@ import org.petkitlocal.core.domain.model.EntityComponent
 import org.petkitlocal.core.domain.model.EntityValue
 import org.petkitlocal.core.domain.model.TimelineCategory
 import org.petkitlocal.core.domain.model.TimelineItem
+import org.petkitlocal.core.domain.model.TimelineStep
 import org.petkitlocal.core.domain.repository.CommandDelivery
 import org.petkitlocal.core.testing.Household
 import org.petkitlocal.core.testing.Household.at
@@ -94,17 +96,31 @@ object LitterFixtures {
     }
 
     val todayItems: List<TimelineItem> = listOf(
-        item(16, 1002, at(9, 45), TimelineCategory.Toileting, pet = 1, duration = 95).copy(weightG = 4310),
-        item(
-            15,
-            1002,
-            at(8, 2),
-            TimelineCategory.Cleaning,
-        ).copy(eventKind = "cleaning", label = "Auto cleaning completed"),
-        item(14, 1002, at(6, 19), TimelineCategory.Toileting, pet = 2, duration = 186).copy(weightG = 6065),
-        item(13, 1002, at(5, 10), TimelineCategory.Pet, pet = 1).copy(eventKind = "pet", label = "Pet seen"),
-        item(11, 1002, at(3, 0), TimelineCategory.Cleaning).copy(eventKind = "cleaning", label = "Periodic cleaning"),
-        item(10, 1002, at(1, 20), TimelineCategory.Toileting, pet = 2, duration = 60).copy(weightG = 6010),
+        item(16, 1002, at(9, 45), TimelineCategory.Toileting, pet = 1, duration = 95).copy(
+            weightG = 4310,
+            steps = listOf(
+                step(161, at(9, 45), "Weight check", detail = true),
+                step(162, at(9, 46), "Mechanism started", detail = true),
+                step(163, at(9, 47), "Auto cleaning completed"),
+                step(164, at(9, 48), "Auto deodorizing completed"),
+            ),
+        ),
+        item(14, 1002, at(6, 19), TimelineCategory.Toileting, pet = 2, duration = 186).copy(
+            weightG = 6065,
+            steps = listOf(
+                step(141, at(6, 21), "Auto cleaning completed"),
+                step(142, at(6, 22), "Auto deodorizing failed"),
+            ),
+        ),
+        item(13, 1002, at(5, 10), TimelineCategory.Pet).copy(eventKind = "pet", label = "Appeared"),
+        item(11, 1002, at(3, 0), TimelineCategory.Cleaning).copy(
+            eventKind = "cleaning",
+            label = "Periodic cleaning completed",
+        ),
+        item(10, 1002, at(1, 20), TimelineCategory.Toileting, pet = 2, duration = 60).copy(
+            weightG = 6010,
+            steps = listOf(step(101, at(1, 22), "Auto cleaning stopped (bin full)")),
+        ),
         item(9, 1002, at(0, 40), TimelineCategory.Toileting, duration = 40),
     )
 
@@ -113,8 +129,19 @@ object LitterFixtures {
         item(4, 1002, at(12, 0).minusSeconds(DAY), TimelineCategory.Toileting, pet = 2, duration = 140),
     )
 
+    /** The household, Mochi with a photo (drawn as a placeholder in screenshots), Tigrou without. */
+    val pets = Household.pets.map {
+        if (it.id ==
+            1L
+        ) {
+            it.copy(photoUrl = "https://petkit.invalid/app/v1/pets/1/photo")
+        } else {
+            it
+        }
+    }
+
     fun page(device: Device = pura, today: List<TimelineItem> = todayItems, puraAir: Device? = null): LitterBoxPage =
-        LitterRules.page(device, Household.pets, today, yesterdayItems, Household.zone, puraAir)
+        LitterRules.page(device, pets, today, yesterdayItems, Household.zone, puraAir)
 
     val content = LitterUiState(page = page(), loaded = true, zone = Household.zone)
 
@@ -137,6 +164,9 @@ object LitterFixtures {
     val gone = LitterUiState(loaded = true, zone = Household.zone)
 
     private const val DAY = 86_400L
+
+    private fun step(id: Long, at: Instant, label: String, detail: Boolean = false) =
+        TimelineStep(id, at, label, detail)
 
     private fun switch(key: String, name: String, on: Boolean) =
         Entity(key, name, EntityComponent.Switch, EntityValue.Bool(on), settable = true)
