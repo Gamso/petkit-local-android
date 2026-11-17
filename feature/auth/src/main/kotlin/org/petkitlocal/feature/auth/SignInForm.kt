@@ -83,7 +83,7 @@ internal fun SignInForm(uiState: SignInUiState, actions: SignInActions, focus: S
 
 /** The eye in the password field; TalkBack says what it will do. */
 @Composable
-private fun PasswordVisibilityButton(visible: Boolean, onToggle: () -> Unit) {
+internal fun PasswordVisibilityButton(visible: Boolean, onToggle: () -> Unit) {
     IconButton(onClick = onToggle) {
         Icon(
             if (visible) PkIcons.VisibilityOff else PkIcons.Visibility,
@@ -152,7 +152,7 @@ private fun PhoneName(uiState: SignInUiState, actions: SignInActions, submit: ()
 
 @Suppress("LongParameterList") // A text field's own parameters, passed through.
 @Composable
-private fun PkTextField(
+internal fun PkTextField(
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
