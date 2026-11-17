@@ -20,6 +20,7 @@ import org.petkitlocal.core.domain.SessionEndReason
 import org.petkitlocal.core.network.dto.ActionRequestDto
 import org.petkitlocal.core.network.dto.ChangePasswordRequestDto
 import org.petkitlocal.core.network.dto.LoginRequestDto
+import org.petkitlocal.core.network.dto.NotificationKindsRequestDto
 import org.petkitlocal.core.network.error.apiCall
 
 /**
@@ -86,6 +87,24 @@ class PetkitApiIntegrationTest {
         apiCall { api.runDeviceAction(4, "clean", ActionRequestDto()) }
 
         assertEquals("{}", server.takeRequest(1, TimeUnit.SECONDS)!!.body!!.utf8())
+    }
+
+    @Test
+    fun `notification kinds are sent as a list, and every kind as an explicit null`() = runTest {
+        val answer = """{"kinds":null,"server_kinds":[{"kind":"toilet","enabled":true}],""" +
+            """"connected":false,"last_id":0}"""
+        json(200, answer)
+        json(200, answer)
+
+        apiCall { api.setNotificationKinds(NotificationKindsRequestDto(listOf("toilet", "offline"))) }
+        val all = apiCall { api.setNotificationKinds(NotificationKindsRequestDto(null)) }
+
+        assertEquals("""{"kinds":["toilet","offline"]}""", server.takeRequest(1, TimeUnit.SECONDS)!!.body!!.utf8())
+        val request = server.takeRequest(1, TimeUnit.SECONDS)!!
+        assertEquals("PUT", request.method)
+        assertEquals("/petkit/app/v1/notifications", request.url.encodedPath)
+        assertEquals("""{"kinds":null}""", request.body!!.utf8())
+        assertNull((all as Outcome.Success).value.kinds)
     }
 
     @Test

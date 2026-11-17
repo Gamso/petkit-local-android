@@ -19,6 +19,8 @@ import org.petkitlocal.core.network.dto.FeedingPlanWriteDto
 import org.petkitlocal.core.network.dto.InfoDto
 import org.petkitlocal.core.network.dto.LoginRequestDto
 import org.petkitlocal.core.network.dto.LoginResponseDto
+import org.petkitlocal.core.network.dto.NotificationKindsRequestDto
+import org.petkitlocal.core.network.dto.NotificationSettingsDto
 import org.petkitlocal.core.network.dto.OkDto
 import org.petkitlocal.core.network.dto.PetListResponseDto
 import org.petkitlocal.core.network.dto.PetResponseDto
@@ -69,6 +71,16 @@ interface PetkitApi {
     /** Revokes every other session; this one stays signed in. */
     @POST("auth/password")
     suspend fun changePassword(@Body body: ChangePasswordRequestDto): ChangePasswordResponseDto
+
+    // notifications: the socket itself (`notifications/ws`) and UnifiedPush come with issue #23.
+
+    /** This session's notification kinds, and whether it holds the notification socket. */
+    @GET("notifications")
+    suspend fun getNotificationSettings(): NotificationSettingsDto
+
+    /** Replaces this session's kinds, for every channel; answers the settings now held. */
+    @PUT("notifications")
+    suspend fun setNotificationKinds(@Body body: NotificationKindsRequestDto): NotificationSettingsDto
 
     // devices and controls
 

@@ -1,7 +1,16 @@
 package org.petkitlocal.core.network.dto
 
+import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonEncoder
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 
 /** `Session`: one signed-in phone. Times are Unix epoch seconds. */
 @Serializable
@@ -31,6 +40,51 @@ object NotificationKind {
     const val CONSUMABLE = "consumable"
     const val OFFLINE = "offline"
     val KNOWN = setOf(TOILET, FEED_SERVED, FEED_FAILED, ERROR, FOOD_LOW, CONSUMABLE, OFFLINE)
+}
+
+/** One entry of `NotificationSettings.server_kinds`: a kind and whether the panel lets it through. */
+@Serializable
+data class ServerKindDto(
+    /** One of [NotificationKind.KNOWN], or a kind a newer server added. */
+    @SerialName("kind") val kind: String,
+    @SerialName("enabled") val enabled: Boolean,
+)
+
+/** `NotificationSettings`, from `GET` and `PUT /notifications`: this session's kinds. */
+@Serializable
+data class NotificationSettingsDto(
+    /** `NotificationKinds`: the kinds this session receives, or null for every kind. */
+    @SerialName("kinds") val kinds: List<String>?,
+    @SerialName("server_kinds") val serverKinds: List<ServerKindDto>,
+    /** Whether this session holds the notification socket now. */
+    @SerialName("connected") val connected: Boolean,
+    @SerialName("last_id") val lastId: Long,
+)
+
+/**
+ * `NotificationKindsRequest`: [kinds] null for every kind the panel lets through, empty for none.
+ * `kinds` is required and may be `null`, which [org.petkitlocal.core.network.PetkitJson]'s
+ * `explicitNulls = false` would leave out, so [NotificationKindsRequestSerializer] writes it out.
+ */
+@Serializable(with = NotificationKindsRequestSerializer::class)
+data class NotificationKindsRequestDto(val kinds: List<String>?)
+
+/** The shape of [NotificationKindsRequestDto], for its descriptor and for reading one. */
+@Serializable
+private data class NotificationKindsRequestShape(@SerialName("kinds") val kinds: List<String>?)
+
+/** Writes `kinds` even when it is null; reads as the generated serializer would. */
+object NotificationKindsRequestSerializer : KSerializer<NotificationKindsRequestDto> {
+    private val shape = NotificationKindsRequestShape.serializer()
+    override val descriptor: SerialDescriptor = shape.descriptor
+
+    override fun serialize(encoder: Encoder, value: NotificationKindsRequestDto) {
+        val kinds = value.kinds?.let { list -> JsonArray(list.map(::JsonPrimitive)) } ?: JsonNull
+        (encoder as JsonEncoder).encodeJsonElement(JsonObject(mapOf("kinds" to kinds)))
+    }
+
+    override fun deserialize(decoder: Decoder): NotificationKindsRequestDto =
+        NotificationKindsRequestDto(decoder.decodeSerializableValue(shape).kinds)
 }
 
 /** `PushRegistration`: a session's UnifiedPush endpoint, of which only the host is ever sent back. */
