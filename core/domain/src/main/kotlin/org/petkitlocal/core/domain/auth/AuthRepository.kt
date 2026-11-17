@@ -1,6 +1,7 @@
 package org.petkitlocal.core.domain.auth
 
 import kotlinx.coroutines.flow.StateFlow
+import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.core.domain.Outcome
 import org.petkitlocal.core.domain.SessionEndReason
 
@@ -29,6 +30,20 @@ interface AuthRepository {
      * the server could be reached: a phone that cannot reach its server can still sign out.
      */
     suspend fun signOut()
+
+    /**
+     * `GET /info` with this session's token: the server's version, and this phone's session as
+     * the server knows it (its name). An answer saying the token is no longer accepted ends the
+     * session, as [validateSession] does; signed out, it fails with [DomainError.SessionEnded].
+     */
+    suspend fun serverInfo(): Outcome<ServerInfo>
+
+    /**
+     * `POST /auth/password`. The server checks [current] under its login lockout, and signs out
+     * every other phone; this one stays signed in. Answers how many phones were signed out.
+     * Neither password is kept.
+     */
+    suspend fun changePassword(current: String, new: String): Outcome<Int>
 
     /**
      * Asks the server whether the stored session still stands (`GET /info` with the token) and

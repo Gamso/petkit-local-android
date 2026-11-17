@@ -34,6 +34,7 @@ import org.petkitlocal.core.datastore.TokenCipher
 import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.core.domain.Outcome
 import org.petkitlocal.core.domain.SessionEndReason
+import org.petkitlocal.core.domain.UnauthorizedReason
 import org.petkitlocal.core.domain.auth.AddressCheck
 import org.petkitlocal.core.domain.auth.AuthState
 import org.petkitlocal.core.domain.auth.ServerAddress
@@ -288,6 +289,58 @@ class AuthRepositoryImplTest {
     }
 
     @Test
+    fun `server info carries the token and names this phone's session`() = runBlocking {
+        val harness = Harness()
+        harness.signIn()
+        json(200, SIGNED_IN_INFO)
+
+        val info = (harness.repository.serverInfo() as Outcome.Success).value
+
+        assertEquals("Bearer tok-1", take().headers["Authorization"])
+        assertEquals("1.4.0", info.serverVersion)
+        assertEquals("Pixel 8", info.session?.name)
+        assertEquals(AuthState.SignedIn(address.baseUrl), harness.repository.authState.value)
+    }
+
+    @Test
+    fun `server info signed out asks nothing and fails as an ended session`() = runBlocking {
+        val harness = Harness()
+        harness.repository.awaitState { it is AuthState.SignedOut }
+
+        val info = harness.repository.serverInfo()
+
+        assertEquals(Outcome.Failure(DomainError.SessionEnded(SessionEndReason.InvalidToken)), info)
+        assertEquals(0, server.requestCount)
+    }
+
+    @Test
+    fun `a password change sends both passwords and keeps this session`() = runBlocking {
+        val harness = Harness()
+        harness.signIn()
+        json(200, """{"ok":true,"revoked_sessions":2}""")
+
+        val result = harness.repository.changePassword("demo", "a new password")
+
+        assertEquals(Outcome.Success(2), result)
+        val request = take()
+        assertEquals("/proxy/app/v1/auth/password", request.url.encodedPath)
+        assertEquals("""{"current_password":"demo","new_password":"a new password"}""", request.body!!.utf8())
+        assertEquals(AuthState.SignedIn(address.baseUrl), harness.repository.authState.value)
+    }
+
+    @Test
+    fun `a wrong current password is said, with the lockout, and the session stands`() = runBlocking {
+        val harness = Harness()
+        harness.signIn()
+        json(401, """{"error":"invalid_password","message":"wrong password"}""", "Retry-After" to "2")
+
+        val result = harness.repository.changePassword("nope", "a new password")
+
+        assertEquals(Outcome.Failure(DomainError.Unauthorized(UnauthorizedReason.InvalidPassword, 2.seconds)), result)
+        assertEquals(AuthState.SignedIn(address.baseUrl), harness.repository.authState.value)
+    }
+
+    @Test
     fun `validation that cannot reach the server changes nothing`() = runBlocking {
         val harness = Harness()
         harness.signIn()
@@ -354,6 +407,8 @@ class AuthRepositoryImplTest {
         const val LOGIN = """{"token":"tok-1","token_type":"Bearer","idle_timeout_sec":7776000,"session":$SESSION}"""
         const val INFO =
             """{"api_version":1,"server_time":5.0,"authenticated":false,"server_version":null,"session":null}"""
+        const val SIGNED_IN_INFO =
+            """{"api_version":1,"server_time":5.0,"authenticated":true,"server_version":"1.4.0","session":$SESSION}"""
         const val DEVICES = """{"devices":[]}"""
     }
 }
