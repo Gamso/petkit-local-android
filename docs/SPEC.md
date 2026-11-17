@@ -128,8 +128,8 @@ screen).
 - Server: address, connection state, server version.
 - Notifications: on/off, connection state (connected, reconnecting, battery optimisation still
   on, notification permission refused, each with the action that fixes it) and the kinds to show.
-- App: theme (system, light, dark), this phone's name. No language setting: the app follows the
-  phone.
+- App: this phone's name. No language or theme setting: the app follows the phone's language
+  and its light or dark theme.
 - Change password (needs the current one; signs out every other phone), sign out.
 
 ### 9 · Fountain
@@ -172,7 +172,7 @@ screen).
   - After a network loss or a reboot, the alerts missed meanwhile are delivered on reconnection.
 - **Accessibility.** Contrast ≥ 4.5:1, touch targets ≥ 48 dp, TalkBack labels on every
   icon-only control, dynamic font size, no information carried by colour alone.
-- **Dark theme** from the same tokens.
+- **Dark theme** from the same tokens, following the phone's setting (no in-app switch).
 
 ## 7. Languages
 

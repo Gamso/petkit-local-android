@@ -47,6 +47,7 @@ These rules are binding for every contributor, human or agent.
   only when the device reports the part absent, never because a value is null.
 - **No PetKit image, logo, colour or product photo**, ever: illustrations are our own drawings, in
   their own composable so a user photo can replace them.
+- **The app follows the phone's theme**: light or dark as the system is, no in-app theme switch.
 - **Destructive actions are confirmed** (`PkConfirmDialog`) and every command reports how it was
   delivered (`mqtt`, `queued`, `local`) or the server's error.
 
