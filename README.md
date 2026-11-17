@@ -122,3 +122,7 @@ Requires Android 10 or later.
 
 This project is not affiliated with, endorsed by or connected to PetKit. "PetKit" is a trademark
 of its owner and is used here only to say which devices the app works with.
+
+## Licence
+
+MIT, see [LICENSE](LICENSE).
