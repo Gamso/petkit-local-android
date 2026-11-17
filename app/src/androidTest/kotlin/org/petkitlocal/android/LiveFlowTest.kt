@@ -17,8 +17,10 @@ import org.json.JSONObject
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.petkitlocal.core.e2e.MockOnly
 import org.petkitlocal.core.e2e.MockServer
-import org.petkitlocal.core.e2e.MockServerRule
+import org.petkitlocal.core.e2e.TestServer
+import org.petkitlocal.core.e2e.TestServerRule
 import org.petkitlocal.feature.auth.SignInTestTags
 import org.petkitlocal.feature.device.common.DeviceTestTags
 import org.petkitlocal.feature.home.HomeTestTags
@@ -30,11 +32,12 @@ import org.petkitlocal.feature.live.LiveTestTags
  * moves it to HLS by itself; and leaving the screen closes what it had open, which the mock
  * counts (`GET /mock`: `live_sockets`, `hls_views`).
  */
+@MockOnly("the mock's live stream, closed through the control API")
 @OptIn(ExperimentalTestApi::class) // waitUntil...Exists
 @RunWith(AndroidJUnit4::class)
 class LiveFlowTest {
     @get:Rule(order = 0)
-    val mock = MockServerRule()
+    val server = TestServerRule()
 
     @get:Rule(order = 1)
     val compose = createAndroidComposeRule<MainActivity>()
@@ -99,8 +102,8 @@ class LiveFlowTest {
     private fun signIn() {
         waitFor(hasTestTag(SignInTestTags.SCREEN))
         compose.onNodeWithTag(SignInTestTags.ADDRESS).performTextClearance()
-        compose.onNodeWithTag(SignInTestTags.ADDRESS).performTextInput(MockServer.baseUrl.toString().removeSuffix("/"))
-        compose.onNodeWithTag(SignInTestTags.PASSWORD).performTextInput(MockServer.PASSWORD)
+        compose.onNodeWithTag(SignInTestTags.ADDRESS).performTextInput(TestServer.address)
+        compose.onNodeWithTag(SignInTestTags.PASSWORD).performTextInput(TestServer.password)
         waitFor(hasTestTag(SignInTestTags.SUBMIT) and isEnabled())
         compose.onNodeWithTag(SignInTestTags.SUBMIT).performScrollTo().performClick()
         compose.waitUntilDoesNotExist(hasTestTag(SignInTestTags.SCREEN), TIMEOUT_MS)

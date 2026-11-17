@@ -23,8 +23,10 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.petkitlocal.core.designsystem.component.PkConfirmTestTags
+import org.petkitlocal.core.e2e.MockOnly
 import org.petkitlocal.core.e2e.MockServer
-import org.petkitlocal.core.e2e.MockServerRule
+import org.petkitlocal.core.e2e.TestServer
+import org.petkitlocal.core.e2e.TestServerRule
 import org.petkitlocal.feature.auth.SignInTestTags
 import org.petkitlocal.feature.device.common.DeviceTestTags
 import org.petkitlocal.feature.home.HomeTestTags
@@ -37,11 +39,12 @@ import org.petkitlocal.feature.settings.SettingsTestTags
  * HTTP refuses a button with the parent's name (409 `accessory_unreachable`). Each test signs
  * out at the end, so it starts and ends signed out like the others.
  */
+@MockOnly("the mock's Pura Max, its Pura Air and a Bluetooth fountain, changed through the control API")
 @OptIn(ExperimentalTestApi::class) // waitUntil...Exists
 @RunWith(AndroidJUnit4::class)
 class AccessoryFlowTest {
     @get:Rule(order = 0)
-    val mock = MockServerRule()
+    val server = TestServerRule()
 
     @get:Rule(order = 1)
     val compose = createAndroidComposeRule<MainActivity>()
@@ -107,8 +110,8 @@ class AccessoryFlowTest {
     private fun signIn() {
         waitFor(hasTestTag(SignInTestTags.SCREEN))
         compose.onNodeWithTag(SignInTestTags.ADDRESS).performTextClearance()
-        compose.onNodeWithTag(SignInTestTags.ADDRESS).performTextInput(MockServer.baseUrl.toString().removeSuffix("/"))
-        compose.onNodeWithTag(SignInTestTags.PASSWORD).performTextInput(MockServer.PASSWORD)
+        compose.onNodeWithTag(SignInTestTags.ADDRESS).performTextInput(TestServer.address)
+        compose.onNodeWithTag(SignInTestTags.PASSWORD).performTextInput(TestServer.password)
         waitFor(hasTestTag(SignInTestTags.SUBMIT) and isEnabled())
         compose.onNodeWithTag(SignInTestTags.SUBMIT).performScrollTo().performClick()
         compose.waitUntilDoesNotExist(hasTestTag(SignInTestTags.SCREEN), TIMEOUT_MS)

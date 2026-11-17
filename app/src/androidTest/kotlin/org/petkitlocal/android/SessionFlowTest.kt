@@ -17,21 +17,20 @@ import androidx.compose.ui.test.performTextInput
 import androidx.lifecycle.Lifecycle
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.petkitlocal.core.e2e.MockServer
-import org.petkitlocal.core.e2e.MockServerRule
+import org.petkitlocal.core.e2e.TestServer
+import org.petkitlocal.core.e2e.TestServerRule
 import org.petkitlocal.feature.auth.SignInTestTags
 import org.petkitlocal.feature.settings.SettingsTestTags
 
 /**
- * Sign-in and the end of a session, on a device, against the mock server (mock-server/), with
- * the app's real data layer: DataStore, the Keystore, OkHttp. The mock's address and control API
- * come from core:e2e (`MockServer`, instrumentation argument `petkitMockUrl`), and
- * `MockServerRule` grants the local network permission and resets the mock before each test.
+ * Sign-in and the end of a session, on a device, against the mock server (mock-server/) or the
+ * real one, with the app's real data layer: DataStore, the Keystore, OkHttp. The server's address
+ * and password, and what its panel does to sessions, come from core:e2e (`TestServer`), and
+ * `TestServerRule` grants the local network permission and resets the server before each test.
  *
  * Each test starts and ends signed out, so they run in any order on a fresh install.
  */
@@ -39,7 +38,7 @@ import org.petkitlocal.feature.settings.SettingsTestTags
 @RunWith(AndroidJUnit4::class)
 class SessionFlowTest {
     @get:Rule(order = 0)
-    val mock = MockServerRule()
+    val server = TestServerRule()
 
     @get:Rule(order = 1)
     val compose = createAndroidComposeRule<MainActivity>()
@@ -59,26 +58,26 @@ class SessionFlowTest {
         signInWith("not-the-password")
         compose.waitUntilAtLeastOneExists(hasText("Wrong password."), TIMEOUT_MS)
 
-        signInWith(PASSWORD)
+        signInWith(TestServer.password)
         compose.waitUntilDoesNotExist(hasTestTag(SignInTestTags.SCREEN), TIMEOUT_MS)
-        assertTrue(sessions().contains("\"id\""))
+        assertEquals(1, TestServer.sessions().size)
 
         openSettings()
         compose.onNodeWithTag(SettingsTestTags.SIGN_OUT).performScrollTo().performClick()
         compose.onAllNodes(hasText("Sign out") and hasClickAction()).onLast().performClick()
 
         compose.waitUntilExactlyOneExists(hasTestTag(SignInTestTags.SCREEN), TIMEOUT_MS)
-        assertEquals("""{"ok":true,"sessions":[]}""", sessions())
+        assertEquals(0, TestServer.sessions().size)
         compose.onNodeWithTag(SignInTestTags.SESSION_ENDED).assertDoesNotExist() // signed out by hand
     }
 
     @Test
     fun aSessionRevokedInThePanelSendsTheAppBackToSignInSayingWhy() {
         enterAddress()
-        signInWith(PASSWORD)
+        signInWith(TestServer.password)
         compose.waitUntilDoesNotExist(hasTestTag(SignInTestTags.SCREEN), TIMEOUT_MS)
 
-        MockServer.control("DELETE", "sessions") // what the panel's "revoke" does
+        TestServer.revokeSessions() // the panel's "revoke"
         // The app checks its session when it comes back to the foreground.
         compose.activityRule.scenario.moveToState(Lifecycle.State.CREATED)
         compose.activityRule.scenario.moveToState(Lifecycle.State.RESUMED)
@@ -89,7 +88,7 @@ class SessionFlowTest {
 
     private fun enterAddress() {
         compose.onNodeWithTag(SignInTestTags.ADDRESS).performTextClearance()
-        compose.onNodeWithTag(SignInTestTags.ADDRESS).performTextInput(MockServer.baseUrl.toString().removeSuffix("/"))
+        compose.onNodeWithTag(SignInTestTags.ADDRESS).performTextInput(TestServer.address)
     }
 
     private fun signInWith(password: String) {
@@ -109,10 +108,7 @@ class SessionFlowTest {
         compose.waitUntilExactlyOneExists(hasTestTag(SettingsTestTags.SCREEN), TIMEOUT_MS)
     }
 
-    private fun sessions(): String = MockServer.control("GET", "sessions")
-
     private companion object {
-        const val PASSWORD = "demo"
         const val TIMEOUT_MS = 10_000L
     }
 }

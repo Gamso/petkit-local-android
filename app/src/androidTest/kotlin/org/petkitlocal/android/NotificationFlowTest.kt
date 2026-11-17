@@ -23,8 +23,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.petkitlocal.core.e2e.MockOnly
 import org.petkitlocal.core.e2e.MockServer
-import org.petkitlocal.core.e2e.MockServerRule
+import org.petkitlocal.core.e2e.TestServer
+import org.petkitlocal.core.e2e.TestServerRule
 import org.petkitlocal.feature.auth.SignInTestTags
 import org.petkitlocal.feature.device.common.DeviceTestTags
 import org.petkitlocal.feature.history.HistoryTestTags
@@ -36,11 +38,12 @@ import org.petkitlocal.feature.history.HistoryTestTags
  * tapping it opens the right screen. A socket the server drops is reopened with the last id, and
  * what was already shown is not shown again.
  */
+@MockOnly("events made through the mock's control API")
 @OptIn(ExperimentalTestApi::class) // waitUntil...Exists
 @RunWith(AndroidJUnit4::class)
 class NotificationFlowTest {
     @get:Rule(order = 0)
-    val mock = MockServerRule()
+    val server = TestServerRule()
 
     @get:Rule(order = 1)
     val compose = createAndroidComposeRule<MainActivity>()
@@ -50,7 +53,7 @@ class NotificationFlowTest {
 
     @Test
     fun anEventIsNotifiedAndItsNotificationOpensItsPage() {
-        // MockServerRule granted Android 13's notification permission, as a user would.
+        // TestServerRule granted Android 13's notification permission, as a user would.
         manager.cancelAll()
         signIn()
         waitForSocket()
@@ -97,8 +100,8 @@ class NotificationFlowTest {
 
     private fun signIn() {
         waitFor(hasTestTag(SignInTestTags.SCREEN))
-        type(SignInTestTags.ADDRESS, MockServer.baseUrl.toString().removeSuffix("/"))
-        type(SignInTestTags.PASSWORD, MockServer.PASSWORD)
+        type(SignInTestTags.ADDRESS, TestServer.address)
+        type(SignInTestTags.PASSWORD, TestServer.password)
         waitFor(hasTestTag(SignInTestTags.SUBMIT) and isEnabled())
         compose.onNodeWithTag(SignInTestTags.SUBMIT).performScrollTo().performClick()
         compose.waitUntilDoesNotExist(hasTestTag(SignInTestTags.SCREEN), TIMEOUT_MS)
