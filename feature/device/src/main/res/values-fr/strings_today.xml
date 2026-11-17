@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Aujourd'hui comparé à hier, sous un chiffre des cartes Aujourd'hui (litière, fontaine). Une
+         flèche, vers le haut ou le bas, précède la quantité : « ↑ 2 depuis hier ». -->
+    <string name="today_since_yesterday">%1$s depuis hier</string>
+    <string name="today_same_as_yesterday">Comme hier</string>
+    <!-- Ce que TalkBack lit à la place de la flèche. -->
+    <plurals name="today_more_than_yesterday">
+        <item quantity="one">%1$d de plus qu\'hier</item>
+        <item quantity="many">%1$d de plus qu\'hier</item>
+        <item quantity="other">%1$d de plus qu\'hier</item>
+    </plurals>
+    <plurals name="today_fewer_than_yesterday">
+        <item quantity="one">%1$d de moins qu\'hier</item>
+        <item quantity="many">%1$d de moins qu\'hier</item>
+        <item quantity="other">%1$d de moins qu\'hier</item>
+    </plurals>
+    <!-- %1$s est une durée en toutes lettres, « 1 minute 5 secondes ». -->
+    <string name="today_longer_than_yesterday">%1$s de plus qu\'hier</string>
+    <string name="today_shorter_than_yesterday">%1$s de moins qu\'hier</string>
+    <plurals name="today_minutes">
+        <item quantity="one">%1$d minute</item>
+        <item quantity="many">%1$d minutes</item>
+        <item quantity="other">%1$d minutes</item>
+    </plurals>
+    <plurals name="today_seconds">
+        <item quantity="one">%1$d seconde</item>
+        <item quantity="many">%1$d secondes</item>
+        <item quantity="other">%1$d secondes</item>
+    </plurals>
+</resources>

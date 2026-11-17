@@ -52,9 +52,6 @@
     <string name="litter_today">Aujourd\'hui</string>
     <string name="litter_visits">Passages</string>
     <string name="litter_average_visit">Passage moyen</string>
-    <string name="litter_vs_yesterday">%1$s par rapport à hier</string>
-    <string name="litter_same_as_yesterday">Comme hier</string>
-    <string name="litter_no_visit_yesterday">Aucun passage hier</string>
     <string name="litter_no_average">–</string>
     <string name="litter_chart_title">Passages de la journée</string>
     <string name="litter_chart_all">Tous</string>

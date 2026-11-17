@@ -3,6 +3,7 @@ package org.petkitlocal.feature.device.fountain
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -80,10 +81,11 @@ class FountainScreenTest {
         compose.onNodeWithText("Child lock · Off", useUnmergedTree = true).assertExists()
 
         // Five drinks today, three yesterday; (42 + 18 + 25 + 11 + 30) / 5 = 25 s against 28 s.
-        scrollTo("Average drink")
-        compose.onNodeWithText("+2 vs yesterday", useUnmergedTree = true).assertExists()
-        compose.onNodeWithText("0:25", useUnmergedTree = true).assertExists()
-        compose.onNodeWithText("−0:03 vs yesterday", useUnmergedTree = true).assertExists()
+        // Each tile is read as words, never as an arrow.
+        compose.onNodeWithTag(PageTestTags.LIST).performScrollToNode(hasTestTag(FountainTestTags.TODAY))
+        compose.onNodeWithContentDescription("Drinks, 5, 2 more than yesterday").assertExists()
+        compose.onNodeWithContentDescription("Average drink, 25 seconds, 3 seconds shorter than yesterday")
+            .assertExists()
         compose.onNodeWithTag(FountainTestTags.pet(1)).assertExists()
         compose.onNodeWithText("2 drinks · 2 yesterday", useUnmergedTree = true).assertExists()
         compose.onNodeWithText("This fountain does not report drinks", substring = true).assertDoesNotExist()
@@ -110,8 +112,9 @@ class FountainScreenTest {
         compose.onNodeWithContentDescription("Pump, Running").assertExists()
         compose.onNodeWithText("Bluetooth", substring = true, useUnmergedTree = true).assertExists()
         compose.onNodeWithText("Reports through YumShare Dual-Hopper").performClick()
-        scrollTo("Pump running")
-        compose.onNodeWithText("4 h 00", useUnmergedTree = true).assertExists()
+        compose.onNodeWithTag(PageTestTags.LIST).performScrollToNode(hasTestTag(FountainTestTags.TODAY))
+        compose.onNodeWithContentDescription("Pump running, 4 h 00, Since midnight, by the fountain's count")
+            .assertExists()
         compose.onNodeWithText("This fountain does not report drinks", substring = true).assertExists()
         compose.onNodeWithText("Drinks over the day").assertDoesNotExist()
 

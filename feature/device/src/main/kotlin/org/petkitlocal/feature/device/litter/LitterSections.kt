@@ -26,7 +26,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import java.time.ZoneId
-import kotlin.math.abs
 import kotlin.time.toKotlinInstant
 import org.petkitlocal.core.designsystem.component.PkButton
 import org.petkitlocal.core.designsystem.component.PkButtonStyle
@@ -41,6 +40,8 @@ import org.petkitlocal.core.ui.formatTimeOfDay
 import org.petkitlocal.core.ui.formatWeightKg
 import org.petkitlocal.core.ui.rememberServerLabels
 import org.petkitlocal.feature.device.R
+import org.petkitlocal.feature.device.common.StatCompareTile
+import org.petkitlocal.feature.device.common.rememberDayChangeFormatter
 
 /** A card's title. */
 @Composable
@@ -48,9 +49,13 @@ internal fun CardTitle(text: String, modifier: Modifier = Modifier) {
     Text(text, style = PkTheme.typography.titleMedium, modifier = modifier.semantics { heading() })
 }
 
-/** Today's visits and average visit, each with the difference from yesterday (SPEC.md §5.3). */
+/**
+ * Today's visits and average visit, each with the change since yesterday (SPEC.md §5.3). A day
+ * with no visit yesterday has nothing to compare with: zero there is as likely a box that was off.
+ */
 @Composable
 internal fun TodayCard(page: LitterBoxPage, modifier: Modifier = Modifier) {
+    val changes = rememberDayChangeFormatter()
     PkCard(modifier.fillMaxWidth()) {
         CardTitle(stringResource(R.string.litter_today))
         Row(
@@ -62,56 +67,20 @@ internal fun TodayCard(page: LitterBoxPage, modifier: Modifier = Modifier) {
             StatCompareTile(
                 label = stringResource(R.string.litter_visits),
                 figure = page.today.visits.toString(),
-                comparison = comparison(page.today.visits, page.yesterday.visits.takeIf { it > 0 }) { signed(it) },
+                change = changes.count(page.today.visits, page.yesterday.visits.takeIf { it > 0 }),
                 modifier = Modifier.weight(1f).fillMaxHeight(),
             )
+            val average = page.today.averageDurationSec
             StatCompareTile(
                 label = stringResource(R.string.litter_average_visit),
-                figure = page.today.averageDurationSec?.let(::formatDurationMinSec)
-                    ?: stringResource(R.string.litter_no_average),
-                comparison = page.today.averageDurationSec?.let { today ->
-                    comparison(today, page.yesterday.averageDurationSec) { signedDuration(it) }
-                },
+                figure = average?.let(::formatDurationMinSec) ?: stringResource(R.string.litter_no_average),
+                change = average?.let { changes.duration(it, page.yesterday.averageDurationSec) },
+                spokenFigure = average?.let(changes::spokenDuration) ?: stringResource(R.string.litter_no_average),
                 modifier = Modifier.weight(1f).fillMaxHeight(),
             )
         }
     }
 }
-
-/** A big figure and how it compares with yesterday (docs/DESIGN.md, StatCompareTile). */
-@Composable
-internal fun StatCompareTile(label: String, figure: String, comparison: String?, modifier: Modifier = Modifier) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(PkTheme.spacing.xxs),
-        modifier = modifier
-            .clip(PkTheme.shapes.tile)
-            .background(PkTheme.colors.surfaceMuted)
-            .padding(PkTheme.spacing.s)
-            .semantics(mergeDescendants = true) {},
-    ) {
-        Text(label, style = PkTheme.typography.labelLarge, color = PkTheme.colors.onSurfaceMuted)
-        Text(figure, style = PkTheme.typography.headlineLarge, color = PkTheme.colors.onSurface, maxLines = 1)
-        if (comparison != null) {
-            Text(comparison, style = PkTheme.typography.labelMedium, color = PkTheme.colors.onSurfaceMuted)
-        }
-    }
-}
-
-/** "+2 vs yesterday", "Same as yesterday", or "No visit yesterday" when there is nothing to compare. */
-@Composable
-private fun comparison(today: Int, yesterday: Int?, format: (Int) -> String): String = when {
-    yesterday == null -> stringResource(R.string.litter_no_visit_yesterday)
-    today == yesterday -> stringResource(R.string.litter_same_as_yesterday)
-    else -> stringResource(R.string.litter_vs_yesterday, format(today - yesterday))
-}
-
-/** A difference with its sign, the minus a real one: "+2", "−1". */
-internal fun signed(value: Int): String = if (value < 0) "$MINUS${abs(value)}" else "+$value"
-
-internal fun signedDuration(seconds: Int): String =
-    (if (seconds < 0) MINUS else "+") + formatDurationMinSec(abs(seconds))
-
-private const val MINUS = "−"
 
 /** Today's cards of this box, newest first, and the way to History (SPEC.md §5.3, Activity). */
 @Composable

@@ -88,7 +88,8 @@ screen).
 
   Each pill opens the matching setting or explanation, and its colour follows its state.
 - Live status line: idle, cleaning, pet inside, error with its label.
-- **Today** card: visits and average duration, each with the difference from yesterday.
+- **Today** card: visits and average duration, each with the change since yesterday as a neutral
+  arrow and the amount ("↑ 2 since yesterday"); nothing when yesterday has no visit to compare with.
 - **24-hour chart**: one dot per visit (time × duration), coloured per pet, with a pet filter.
 - **Activity**: the day's timeline for this device, linking to History.
 - **Bottom action sheet**: the model's actions (clean, level, deodorize…), from

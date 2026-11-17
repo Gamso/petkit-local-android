@@ -36,11 +36,10 @@ import org.petkitlocal.core.domain.fountain.FountainPage
 import org.petkitlocal.core.domain.fountain.PetDrinks
 import org.petkitlocal.core.ui.formatDurationMinSec
 import org.petkitlocal.feature.device.R
+import org.petkitlocal.feature.device.common.StatCompareTile
+import org.petkitlocal.feature.device.common.rememberDayChangeFormatter
 import org.petkitlocal.feature.device.litter.CardTitle
 import org.petkitlocal.feature.device.litter.PageTestTags
-import org.petkitlocal.feature.device.litter.StatCompareTile
-import org.petkitlocal.feature.device.litter.signed
-import org.petkitlocal.feature.device.litter.signedDuration
 
 /**
  * The header's mode chips: smart mode, do not disturb, child lock, as the model has and reports
@@ -80,12 +79,13 @@ private fun modeLabel(kind: FountainModeKind): Int = when (kind) {
 }
 
 /**
- * Today at this fountain: its drinks and their average duration against yesterday, and each pet's
+ * Today at this fountain: its drinks and their average duration since yesterday, and each pet's
  * drinks, on a fountain that records them (the W7H); the pump's time today on one that counts it
  * (a Bluetooth fountain, which keeps no yesterday to compare with, and reports no drinks).
  */
 @Composable
 internal fun FountainTodayCard(page: FountainPage, modifier: Modifier = Modifier) {
+    val changes = rememberDayChangeFormatter()
     PkCard(modifier.fillMaxWidth().testTag(FountainTestTags.TODAY)) {
         CardTitle(stringResource(R.string.fountain_today))
         Row(
@@ -98,16 +98,15 @@ internal fun FountainTodayCard(page: FountainPage, modifier: Modifier = Modifier
                 StatCompareTile(
                     label = stringResource(R.string.fountain_drinks),
                     figure = page.today.drinks.toString(),
-                    comparison = comparison(page.today.drinks, page.yesterday.drinks.takeIf { it > 0 }) { signed(it) },
+                    change = changes.count(page.today.drinks, page.yesterday.drinks.takeIf { it > 0 }),
                     modifier = Modifier.weight(1f).fillMaxHeight(),
                 )
+                val average = page.today.averageDurationSec
                 StatCompareTile(
                     label = stringResource(R.string.fountain_average_drink),
-                    figure = page.today.averageDurationSec?.let(::formatDurationMinSec)
-                        ?: stringResource(R.string.litter_no_average),
-                    comparison = page.today.averageDurationSec?.let { today ->
-                        comparison(today, page.yesterday.averageDurationSec) { signedDuration(it) }
-                    },
+                    figure = average?.let(::formatDurationMinSec) ?: stringResource(R.string.litter_no_average),
+                    change = average?.let { changes.duration(it, page.yesterday.averageDurationSec) },
+                    spokenFigure = average?.let(changes::spokenDuration) ?: stringResource(R.string.litter_no_average),
                     modifier = Modifier.weight(1f).fillMaxHeight(),
                 )
             }
@@ -115,7 +114,8 @@ internal fun FountainTodayCard(page: FountainPage, modifier: Modifier = Modifier
                 StatCompareTile(
                     label = stringResource(R.string.fountain_pump_today),
                     figure = pumpTime(seconds),
-                    comparison = stringResource(R.string.fountain_pump_since_midnight),
+                    change = null,
+                    note = stringResource(R.string.fountain_pump_since_midnight),
                     modifier = Modifier.weight(1f).fillMaxHeight(),
                 )
             }
@@ -166,14 +166,6 @@ private fun PetDrinksRow(drinks: PetDrinks, colorIndex: Int?) {
         Spacer(Modifier.width(PkTheme.spacing.s))
         Text(counts, style = PkTheme.typography.labelMedium, color = colors.onSurfaceMuted)
     }
-}
-
-/** "+2 vs yesterday", "Same as yesterday", or "No drink yesterday" when there is nothing to compare. */
-@Composable
-private fun comparison(today: Int, yesterday: Int?, format: (Int) -> String): String = when {
-    yesterday == null -> stringResource(R.string.fountain_no_drink_yesterday)
-    today == yesterday -> stringResource(R.string.litter_same_as_yesterday)
-    else -> stringResource(R.string.litter_vs_yesterday, format(today - yesterday))
 }
 
 /** The pump's time today: "4 h 05", or "35 min" under an hour. */
