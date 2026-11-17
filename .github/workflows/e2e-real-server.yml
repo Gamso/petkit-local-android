@@ -1,0 +1,109 @@
+# Nightly: the end-to-end suite against the real petkit-local server instead of the mock
+# (docs/ARCHITECTURE.md §6 and §7), so the app, the mock and the server cannot drift apart
+# unnoticed. e2e.yml runs the same tests against the mock on every pull request.
+#
+# - The server is ghcr.io/gamso/petkit-local:dev, the floating tag of its latest published main
+#   (e2e/docker-compose.yml, service petkit-local), started without Home Assistant. Not a pin: the
+#   point is the server as it is now. scripts/real-server.sh says which build it got (digest and
+#   commit, also in the job summary), seeds it with the fake T5 of the server's own smoke test
+#   taken at that commit, and sets the app password.
+# - The tests that need the mock's control API or its seeded household (@MockOnly, core:e2e) are
+#   reported as skipped; every other one runs, reading what the server has from the server.
+#
+# Locally: README.md, "End-to-end and smoke tests".
+name: e2e (real server)
+
+on:
+  schedule:
+    # After e2e.yml's nightly run (02:23), so the two do not compete for the runners' cache.
+    - cron: "47 3 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: e2e-real-server-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    name: e2e (real server)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      DEVICE: pixel6Api37
+      PETKIT_SERVER_PORT: "8297"
+      PETKIT_PANEL_PORT: "8299"
+      PETKIT_SERVER_PASSWORD: petkit-e2e-password
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # The emulator needs hardware acceleration; GitHub's Linux runners have KVM, but only root
+      # may open it until this rule is in place.
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          distribution: temurin
+          java-version: "25"
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+
+      # Pulls the dev tag afresh, prints its digest and commit (and writes them to the job
+      # summary), seeds it at that commit and sets the app password.
+      - name: Start and seed petkit-local
+        run: scripts/real-server.sh up
+
+      - name: Instrumented tests on ${{ env.DEVICE }} against petkit-local
+        run: >-
+          scripts/gradle-ci.sh :app:${{ env.DEVICE }}DebugAndroidTest
+          -Pandroid.testoptions.manageddevices.emulator.gpu=swiftshader_indirect
+          -Pandroid.experimental.testOptions.managedDevices.emulator.showKernelLogging=true
+          -Pandroid.testInstrumentationRunnerArguments.petkitServerKind=real
+          -Pandroid.testInstrumentationRunnerArguments.petkitServerUrl=http://10.0.2.2:${{ env.PETKIT_SERVER_PORT }}
+          -Pandroid.testInstrumentationRunnerArguments.petkitServerPanelUrl=http://10.0.2.2:${{ env.PETKIT_PANEL_PORT }}
+          -Pandroid.testInstrumentationRunnerArguments.petkitServerPassword=${{ env.PETKIT_SERVER_PASSWORD }}
+      # AGP reports success when it cannot install the APKs at all (e2e.yml), and against the real
+      # server most of the suite is skipped by design: count what ran, and what did not.
+      - name: Check that the tests ran
+        run: |
+          results=app/build/outputs/androidTest-results/managedDevice/debug/$DEVICE
+          python3 - "$results" <<'EOF'
+          import glob, os, sys
+          import xml.etree.ElementTree as ET
+          cases = [c for f in glob.glob(os.path.join(sys.argv[1], "TEST-*.xml"))
+                   for c in ET.parse(f).iter("testcase")]
+          skipped = sum(1 for c in cases if c.find("skipped") is not None)
+          ran = len(cases) - skipped
+          line = f"{ran} instrumented tests ran against petkit-local, {skipped} mock-only skipped."
+          print(line)
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
+              summary.write(f"\n{line}\n")
+          if ran == 0:
+              print("::error::No instrumented test ran against petkit-local; see the Gradle log.")
+              sys.exit(1)
+          EOF
+
+      - name: Server log
+        if: always()
+        run: |
+          mkdir -p build/e2e
+          scripts/real-server.sh logs > build/e2e/petkit-local.log 2>&1 || true
+          scripts/real-server.sh down || true
+      - name: Upload reports
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-real-server-reports
+          # Test results include the device's logcat for each test.
+          path: |
+            app/build/reports/androidTests/managedDevice/
+            app/build/outputs/androidTest-results/managedDevice/
+            build/e2e/
+          if-no-files-found: ignore
+          retention-days: 14
