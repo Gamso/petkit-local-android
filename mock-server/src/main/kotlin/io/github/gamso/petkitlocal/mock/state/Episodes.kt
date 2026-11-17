@@ -185,19 +185,23 @@ fun World.cleaningStart(
         detail = true,
     )
 
-/** The completion report; `eventType` 5 cleaning, 6 litter emptied, 8 deodorizing, 12 levelling, 7 reset. */
+/**
+ * The completion report; `eventType` 5 cleaning, 6 litter emptied, 8 deodorizing, 12 levelling, 7 reset.
+ * [result] is how it ended, as `decode.py` words a cleaning cycle's `result`: "completed", "failed"...
+ */
 fun World.cleaningDone(
     device: MockDevice,
     ts: Double,
     reason: Reason,
     eventType: String = "5",
     what: String = "cleaning",
+    result: String = "completed",
 ): EventRow {
     val litter = device.number("state.sandPercent")?.roundToInt()?.takeIf { eventType == "5" }
     val fields =
-        listOf(f("start_reason", "Start reason", reason.label), f("result", "Result", "completed")) +
+        listOf(f("start_reason", "Start reason", reason.label), f("result", "Result", result)) +
             listOfNotNull(litter?.let { f("litter_percent", "Litter level", "$it%") })
-    val label = if (eventType == "7") "Reset done" else "${reason.word} $what completed"
+    val label = if (eventType == "7") "Reset done" else "${reason.word} $what $result"
     return row(device, ts, eventType, Kinds.CLEANING, label, fields = fields, facts = listOfNotNull(litter?.let { "litter $it%" }))
 }
 
