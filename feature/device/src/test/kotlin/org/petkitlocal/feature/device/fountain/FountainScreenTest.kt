@@ -1,7 +1,11 @@
 package org.petkitlocal.feature.device.fountain
 
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
@@ -10,6 +14,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -28,6 +33,7 @@ import org.petkitlocal.feature.device.common.ActivityTestTags
 import org.petkitlocal.feature.device.common.CONFIRM_ARM_MS
 import org.petkitlocal.feature.device.common.CommandState
 import org.petkitlocal.feature.device.common.DeviceTestTags
+import org.petkitlocal.feature.device.common.QuickActionsTestTags
 import org.petkitlocal.feature.device.litter.PageCommandCallbacks
 import org.petkitlocal.feature.device.litter.PageTestTags
 import org.robolectric.RobolectricTestRunner
@@ -51,7 +57,7 @@ class FountainScreenTest {
 
     private val callbacks = FountainCallbacks(
         onRefresh = { calls += "refresh" },
-        onModeToggle = { key, on -> calls += "mode:$key:$on" },
+        onMode = { calls += "mode:$it" },
         onPetFilter = { calls += "pet:$it" },
         onHotspot = { calls += "hotspot:$it" },
         commands = PageCommandCallbacks(
@@ -81,7 +87,10 @@ class FountainScreenTest {
         // No filter, water flag or battery on this model.
         compose.onNodeWithContentDescription("Filter", substring = true).assertDoesNotExist()
         compose.onNodeWithContentDescription("Battery", substring = true).assertDoesNotExist()
-        compose.onNodeWithText("Child lock · Off", useUnmergedTree = true).assertExists()
+        // Its child lock is off: no chip says so. On mains, not relayed: nothing else at the top.
+        compose.onNodeWithText("Child lock", substring = true, useUnmergedTree = true).assertDoesNotExist()
+        compose.onNodeWithTag(FountainTestTags.BATTERY).assertDoesNotExist()
+        compose.onNodeWithTag(DeviceTestTags.RELAY).assertDoesNotExist()
 
         // Five drinks today, three yesterday; (42 + 18 + 25 + 11 + 30) / 5 = 25 s against 28 s.
         // Each tile is read as words, never as an arrow.
@@ -129,7 +138,13 @@ class FountainScreenTest {
         compose.onNodeWithContentDescription("Filter, 64 %").assertExists()
         compose.onNodeWithContentDescription("Pump, Running").assertExists()
         compose.onNodeWithText("Bluetooth", substring = true, useUnmergedTree = true).assertExists()
-        compose.onNodeWithText("Reports through YumShare Dual-Hopper").performClick()
+        // Its last frame was decoded three hours ago, through a relay that is online; the line,
+        // not the status, says when, and opens the relay.
+        compose.onNodeWithText("Last seen", substring = true, useUnmergedTree = true).assertDoesNotExist()
+        compose.onNodeWithTag(DeviceTestTags.RELAY)
+            .assert(hasText("Seen 3 h ago · via YumShare Dual-Hopper (online)"))
+            .assert(hasClickAction())
+            .performClick()
         compose.onNodeWithTag(PageTestTags.LIST).performScrollToNode(hasTestTag(FountainTestTags.TODAY))
         compose.onNodeWithContentDescription("Pump running, 4 h 00, Since midnight, by the fountain's count")
             .assertExists()
@@ -142,15 +157,81 @@ class FountainScreenTest {
     }
 
     @Test
-    fun `mode chips say their state and write the other one`() {
+    fun `the mode selector shows the reported mode, and a tap sends another`() {
         show(FountainFixtures.bluetooth)
 
-        compose.onNodeWithText("Smart mode · Off", useUnmergedTree = true).assertExists()
-        compose.onNodeWithText("Do not disturb · Off", useUnmergedTree = true).assertExists()
-        compose.onNodeWithTag(PageTestTags.mode("w5_mode")).performClick()
-        compose.onNodeWithTag(PageTestTags.mode("w5_child_lock")).performClick()
+        val normal = compose.onNodeWithTag(FountainTestTags.mode("normal"))
+        val smart = compose.onNodeWithTag(FountainTestTags.mode("smart"))
+        normal.assertIsSelected().assert(hasText("Normal"))
+        smart.assertIsNotSelected().assert(hasText("Smart"))
+        compose.onNodeWithTag(
+            FountainTestTags.MODE_BAR,
+        ).assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.SelectableGroup))
+        // Every feature is off on this W5: no chip, and smart mode is on the bar, not a chip.
+        compose.onNodeWithText("Smart mode", substring = true, useUnmergedTree = true).assertDoesNotExist()
+        compose.onNodeWithText("Do not disturb", substring = true, useUnmergedTree = true).assertDoesNotExist()
 
-        assertEquals(listOf("mode:w5_mode:true", "mode:w5_child_lock:true"), calls)
+        smart.performClick()
+        assertEquals(listOf("mode:smart"), calls)
+    }
+
+    @Test
+    fun `a tapped mode is pending, never selected, until the fountain reports it`() {
+        show(FountainFixtures.bluetooth.copy(requestedMode = "smart"))
+
+        compose.onNodeWithTag(FountainTestTags.mode("normal")).assertIsSelected()
+        compose.onNodeWithTag(FountainTestTags.mode("smart"))
+            .assertIsNotSelected()
+            .assert(
+                SemanticsMatcher.expectValue(
+                    SemanticsProperties.StateDescription,
+                    "Requested, waiting for the fountain",
+                ),
+            )
+    }
+
+    @Test
+    fun `taps on the mode are ignored while its write is on its way`() {
+        show(
+            FountainFixtures.bluetooth.copy(
+                requestedMode = "smart",
+                commands = CommandState(sending = setOf("w5_mode")),
+            ),
+        )
+
+        compose.onNodeWithTag(FountainTestTags.mode("normal")).performClick()
+        assertEquals(emptyList<String>(), calls)
+    }
+
+    @Test
+    fun `chips are only for features that are on, and the battery reads its level`() {
+        show(FountainFixtures.trouble)
+
+        compose.onNodeWithText("Do not disturb · On", useUnmergedTree = true).assertExists()
+        compose.onNodeWithText("Child lock", substring = true, useUnmergedTree = true).assertDoesNotExist()
+        compose.onNodeWithTag(FountainTestTags.BATTERY).assert(hasContentDescription("Battery 9 %, low"))
+        // The relay is offline, and the line says so in words.
+        compose.onNodeWithTag(
+            DeviceTestTags.RELAY,
+        ).assert(hasText("Seen 19 min ago · via Fresh Element Solo (offline)"))
+    }
+
+    @Test
+    fun `drinks without a duration keep their count, lose the average, and lie on the chart's axis`() {
+        show(FountainFixtures.untimed)
+
+        compose.onNodeWithTag(PageTestTags.LIST).performScrollToNode(hasTestTag(FountainTestTags.TODAY))
+        compose.onNodeWithContentDescription("Drinks, 5, 2 more than yesterday").assertExists()
+        compose.onNodeWithText("Average drink", substring = true, useUnmergedTree = true).assertDoesNotExist()
+
+        scrollTo("Drinks over the day")
+        compose.onNodeWithContentDescription(
+            "Chart of 5 drinks today, by time and duration. 5 with no known duration, on the axis",
+        ).assertExists()
+        compose.onNodeWithText("Durations not reported", useUnmergedTree = true).assertExists()
+        // The activity says who drank, with no duration it does not have.
+        scrollTo("See all in History")
+        compose.onAllNodesWithText("Tigrou drank", useUnmergedTree = true).onFirst().assertExists()
     }
 
     @Test
@@ -193,25 +274,51 @@ class FountainScreenTest {
     }
 
     @Test
-    fun `the shared action sheet and the header's gear`() {
+    fun `the mode takes the collapsed row, every action behind More, and the header's gear`() {
         show(FountainFixtures.content)
 
+        // Four modes in view, the actions not: Refill is a tap on More away.
+        listOf("Pause", "Continuous", "Intermittent", "On motion").forEach {
+            compose.onNode(hasText(it) and hasAnyAncestor(hasTestTag(FountainTestTags.MODE_BAR))).assertExists()
+        }
+        compose.onNodeWithTag(FountainTestTags.mode("continuous")).assertIsSelected()
+        compose.onNodeWithText("Refill").assertDoesNotExist()
+        compose.onNodeWithTag(DeviceTestTags.SHEET_MORE).performClick()
         compose.onNode(hasText("Refill") and hasClickAction()).performClick()
-        // Drain cannot be undone: behind More, not in the collapsed row.
-        compose.onNodeWithText("Drain").assertDoesNotExist()
+        // The row is the mode's, not quick actions: nothing to edit.
+        compose.onNodeWithTag(QuickActionsTestTags.EDIT_ENTRY).assertDoesNotExist()
         compose.onNodeWithContentDescription("Settings").performClick()
 
         assertEquals(listOf("action:fountain_refill", "settings:3001"), calls)
     }
 
     @Test
-    fun `a fountain whose only action is on a pill has no action sheet`() {
-        // The W5's one button, Reset Filter, is on its filter's pill: a sheet would hold only More.
+    fun `a fountain whose only action is on a pill has its mode and no More`() {
+        // The W5's one button, Reset Filter, is on its filter's pill: More would hold only that.
         show(FountainFixtures.bluetooth)
-        compose.onNodeWithTag(DeviceTestTags.ACTION_SHEET).assertDoesNotExist()
+        compose.onNodeWithTag(FountainTestTags.MODE_BAR).assertExists()
+        compose.onNodeWithTag(DeviceTestTags.SHEET_MORE).assertDoesNotExist()
         compose.onNodeWithContentDescription("Filter, 64 %").performClick()
 
         assertEquals(listOf("hotspot:${DevicePart.Filter}"), calls)
+    }
+
+    @Test
+    fun `a fountain with no settable mode keeps the quick actions row`() {
+        val w7h = FountainFixtures.w7h.copy(
+            entities = FountainFixtures.w7h.entities.map {
+                if (it.key ==
+                    "flow_mode"
+                ) {
+                    it.copy(settable = false)
+                } else {
+                    it
+                }
+            },
+        )
+        show(FountainUiState(page = FountainFixtures.page(w7h), loaded = true))
+        compose.onNodeWithTag(FountainTestTags.MODE_BAR).assertDoesNotExist()
+        compose.onNode(hasText("Refill") and hasClickAction()).assertExists()
     }
 
     @Test

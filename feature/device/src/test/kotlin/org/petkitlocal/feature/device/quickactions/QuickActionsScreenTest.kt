@@ -226,20 +226,36 @@ class QuickActionsScreenTest {
     fun `the settings lead to the editor and say which actions are in view`() {
         show {
             CompositionLocalProvider(
-                LocalQuickActions provides QuickActions(pinned = listOf("fountain_drain"), onEdit = {
+                LocalQuickActions provides QuickActions(pinned = listOf("dump_litter"), onEdit = {
                     calls += "edit"
                 }),
             ) {
-                DeviceSettingsScreen(DeviceFixtures.settings(), DeviceSettingsActions())
+                DeviceSettingsScreen(
+                    DeviceFixtures.settings(device = DeviceFixtures.litterBox),
+                    DeviceSettingsActions(),
+                )
             }
         }
 
         compose.onNodeWithTag(DeviceTestTags.SETTINGS_LIST)
             .performScrollToNode(hasTestTag(QuickActionsTestTags.SETTINGS_ROW))
         compose.onNodeWithText("On this phone").assertExists()
-        compose.onNodeWithTag(QuickActionsTestTags.SETTINGS_ROW).assert(hasAnyText("Drain")).performClick()
+        compose.onNodeWithTag(QuickActionsTestTags.SETTINGS_ROW).assert(hasAnyText("Dump Litter")).performClick()
 
         assertEquals(listOf("edit"), calls)
+    }
+
+    @Test
+    fun `a fountain whose sheet shows its mode offers no quick actions in its settings`() {
+        // The W7H's flow mode is settable: its sheet's row is the mode, not the user's actions.
+        show {
+            CompositionLocalProvider(LocalQuickActions provides QuickActions(onEdit = { calls += "edit" })) {
+                DeviceSettingsScreen(DeviceFixtures.settings(), DeviceSettingsActions())
+            }
+        }
+
+        compose.onNodeWithTag(QuickActionsTestTags.SETTINGS_ROW).assertDoesNotExist()
+        compose.onNodeWithText("On this phone").assertDoesNotExist()
     }
 
     @Test

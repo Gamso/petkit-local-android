@@ -6,12 +6,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import java.time.Instant
+import kotlinx.coroutines.delay
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.devicepage.DevicePart
 import org.petkitlocal.core.domain.fountain.FountainPage
@@ -25,7 +28,7 @@ import org.petkitlocal.feature.device.common.DeviceHeader
 import org.petkitlocal.feature.device.common.DeviceStatusLine
 import org.petkitlocal.feature.device.common.DeviceTestTags
 import org.petkitlocal.feature.device.common.RecentClipsUi
-import org.petkitlocal.feature.device.common.RelayLink
+import org.petkitlocal.feature.device.common.UntimedWords
 import org.petkitlocal.feature.device.common.recentClips
 import org.petkitlocal.feature.device.common.rememberRecentClips
 import org.petkitlocal.feature.device.litter.DeviceHero
@@ -41,7 +44,8 @@ import org.petkitlocal.feature.device.liveOf
 /** What the user can do on the fountain page besides its commands, one callback per intent. */
 data class FountainCallbacks(
     val onRefresh: () -> Unit = {},
-    val onModeToggle: (String, Boolean) -> Unit = { _, _ -> },
+    /** An option of the bottom bar's mode selector. */
+    val onMode: (String) -> Unit = {},
     val onPetFilter: (Long?) -> Unit = {},
     val onHotspot: (DevicePart?) -> Unit = {},
     val commands: PageCommandCallbacks = PageCommandCallbacks(),
@@ -51,6 +55,13 @@ data class FountainCallbacks(
 internal fun FountainRoute(navigation: DeviceNavigation, viewModel: FountainViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val clips = rememberRecentClips(navigation)
+    // "Seen 2 min ago" moves on while the page is shown.
+    LaunchedEffect(viewModel) {
+        while (true) {
+            delay(TICK_MS)
+            viewModel.onTick()
+        }
+    }
     FountainScreen(
         uiState = uiState,
         navigation = navigation,
@@ -60,7 +71,7 @@ internal fun FountainRoute(navigation: DeviceNavigation, viewModel: FountainView
                 viewModel.onRefresh()
                 clips.onRefresh()
             },
-            onModeToggle = viewModel::onModeToggle,
+            onMode = viewModel::onMode,
             onPetFilter = viewModel::onPetFilter,
             onHotspot = viewModel::onHotspot,
             commands = PageCommandCallbacks(
@@ -73,11 +84,15 @@ internal fun FountainRoute(navigation: DeviceNavigation, viewModel: FountainView
     )
 }
 
+private const val TICK_MS = 60_000L
+
 /**
- * The fountain page: header with the mode chips and the settings gear, the hero with the parts the
- * model has, the live status line (and, for a Bluetooth fountain, the device relaying it), today
- * against yesterday, the drinks' 24-hour chart and the day's activity on a fountain that records
- * them, a camera's recent clips, and the action sheet every device screen shares.
+ * The fountain page: header with the settings gear; under it the battery and the features that
+ * are on, and for a Bluetooth fountain when it was seen and through which device (online or not);
+ * the hero with the parts the model has, the live status line, today against yesterday, the
+ * drinks' 24-hour chart and the day's activity on a fountain that records them, a camera's recent
+ * clips, and the action sheet every device screen shares. When the server lets the fountain's
+ * mode be set, the sheet's collapsed row is the mode selector, every action behind More.
  */
 @Composable
 internal fun FountainScreen(
@@ -100,6 +115,16 @@ internal fun FountainScreen(
         modifier = modifier,
         hotspots = page?.hotspots.orEmpty(),
         initiallyExpanded = initiallyExpanded,
+        sheetRow = page?.modeBar?.let { bar ->
+            {
+                FountainModeSelector(
+                    bar = bar,
+                    pending = uiState.pendingMode,
+                    sending = bar.key in uiState.commands.sending,
+                    onMode = callbacks.onMode,
+                )
+            }
+        },
     ) {
         if (page == null) {
             missingPage(uiState, tint, navigation.onBack, callbacks.onRefresh)
@@ -124,23 +149,7 @@ private fun LazyListScope.fountainContent(
     navigation: DeviceNavigation,
     callbacks: FountainCallbacks,
 ) {
-    item(key = "top") {
-        PageTop(PkTheme.colors.heroFountain) {
-            DeviceHeader(
-                title = page.device.model,
-                onBack = navigation.onBack,
-                onOpenSettings = { navigation.onOpenSettings(page.device.id) },
-                onOpenLive = navigation.liveOf(page.device),
-            )
-            FountainModeChips(page.modes, uiState.commands.sending, callbacks.onModeToggle)
-            DeviceHero(
-                hotspots = page.hotspots,
-                anchors = ::fountainAnchor,
-                onHotspot = callbacks.onHotspot,
-                modifier = Modifier.padding(top = PkTheme.spacing.xs),
-            ) { FountainIllustration(Modifier.fillMaxSize()) }
-        }
-    }
+    item(key = "top") { FountainTop(page, uiState.now, navigation, callbacks.onHotspot) }
     item(key = "status") {
         Column(Modifier.gutter(), verticalArrangement = Arrangement.spacedBy(PkTheme.spacing.xs)) {
             DeviceStatusLine(
@@ -149,8 +158,9 @@ private fun LazyListScope.fountainContent(
                 rememberServerLabels(),
                 uiState.zone,
                 Modifier.testTag(DeviceTestTags.STATUS),
+                // The relay's line at the top says when it was seen.
+                showLastSeen = page.relay == null,
             )
-            page.relay?.let { relay -> RelayLink(relay.model, onClick = { navigation.onOpenDevice(relay.id) }) }
             RefreshBanner(uiState.offline, uiState.refreshError)
         }
     }
@@ -163,6 +173,7 @@ private fun LazyListScope.fountainContent(
                 title = stringResource(R.string.fountain_chart_title),
                 emptyText = stringResource(R.string.fountain_chart_empty),
                 description = R.plurals.fountain_chart_description,
+                untimed = UntimedWords(R.plurals.fountain_chart_untimed, R.string.fountain_chart_no_durations),
                 dots = page.drinks.map { DayDot(it.minuteOfDay, it.durationSec, it.petId) },
                 pets = page.chartPets,
                 colorIndexOf = page::colorIndexOf,
@@ -182,10 +193,52 @@ private fun LazyListScope.fountainContent(
     }
 }
 
+/**
+ * The page's top, on its tint: the header, the battery and the features that are on, a Bluetooth
+ * fountain's freshness through its relay, and the hero.
+ */
+@Composable
+private fun FountainTop(
+    page: FountainPage,
+    now: Instant,
+    navigation: DeviceNavigation,
+    onHotspot: (DevicePart?) -> Unit,
+) {
+    PageTop(PkTheme.colors.heroFountain) {
+        DeviceHeader(
+            title = page.device.model,
+            onBack = navigation.onBack,
+            onOpenSettings = { navigation.onOpenSettings(page.device.id) },
+            onOpenLive = navigation.liveOf(page.device),
+        )
+        FountainStatusChips(page.battery, page.modes, Modifier.padding(top = PkTheme.spacing.xs))
+        page.relay?.let { relay ->
+            RelayFreshness(
+                relay = relay,
+                lastSeen = page.device.lastSeen,
+                now = now,
+                onOpen = { navigation.onOpenDevice(relay.id) },
+                modifier = Modifier.padding(top = PkTheme.spacing.xs),
+            )
+        }
+        DeviceHero(
+            hotspots = page.hotspots,
+            anchors = ::fountainAnchor,
+            onHotspot = onHotspot,
+            modifier = Modifier.padding(top = PkTheme.spacing.xs),
+        ) { FountainIllustration(Modifier.fillMaxSize()) }
+    }
+}
+
 /** Test tags of the fountain page's own nodes, for the UI and end-to-end tests. */
 object FountainTestTags {
     const val CHART = "fountain:chart"
     const val TODAY = "fountain:today"
+    const val BATTERY = "fountain:battery"
+    const val MODE_BAR = "fountain:mode-bar"
+
+    /** An option of the mode selector, by its value (`smart`, `continuous`...). */
+    fun mode(option: String): String = "fountain:mode:$option"
 
     fun pet(id: Long): String = "fountain:pet:$id"
 }

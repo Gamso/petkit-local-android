@@ -28,8 +28,9 @@ import org.petkitlocal.feature.device.common.CommandSubject
 
 /**
  * Fountains as the mock serves them (mock-server/README.md), with the entity and action keys
- * petkit-local defines: the EverSweet Ultra AI (W7H) with its drinks, the EverSweet 3 Pro (W5)
- * relayed by the YumShare Dual-Hopper, and an EverSweet Max Cordless (CTW3) in trouble.
+ * petkit-local defines: the EverSweet Ultra AI (W7H, on mains) with its drinks and its flow mode,
+ * the EverSweet 3 Pro (W5) relayed by the YumShare Dual-Hopper, and an EverSweet Max Cordless
+ * (CTW3, on battery) in trouble. Each has a settable mode, so each page has the mode selector.
  */
 object FountainFixtures {
     val actionsW7h = listOf(
@@ -53,6 +54,15 @@ object FountainFixtures {
         diagnostic("clean_tank_installed", true),
         diagnostic("waste_tank_installed", true),
         switch("child_lock", "Child Lock", false),
+        Entity(
+            "flow_mode",
+            "Flow Mode",
+            EntityComponent.Select,
+            EntityValue.Number(1.0),
+            display = "continuous",
+            options = listOf("do_not_flow", "continuous", "intermittent", "motion_activated"),
+            settable = true,
+        ),
         transport = DeviceTransport.Mqtt,
         isCamera = true,
         actions = actionsW7h,
@@ -80,7 +90,7 @@ object FountainFixtures {
         parentId = 2004,
     ).copy(lastSeen = Instant.parse("2026-11-15T05:53:00Z"))
 
-    /** A CTW3 low on water, filter and battery, its pump at rest, in smart mode. */
+    /** A CTW3 low on water, filter and battery, its pump at rest, in smart mode, do not disturb on. */
     val ctw3 = Household.device(
         3003,
         "ctw3",
@@ -109,24 +119,57 @@ object FountainFixtures {
         item(35, 3001, at(0, 50), TimelineCategory.Drinking, duration = 30),
     )
 
+    /**
+     * Today's drinks as petkit-local sends them until Gamso/petkit-local#97: counted, recognised,
+     * and every `duration_sec` null.
+     */
+    val untimedItems: List<TimelineItem> = todayItems.map {
+        if (it.deviceId ==
+            3001L
+        ) {
+            it.copy(durationSec = null)
+        } else {
+            it
+        }
+    }
+
     val yesterdayItems: List<TimelineItem> = listOf(
         item(30, 3001, at(21, 0).minusSeconds(DAY), TimelineCategory.Drinking, pet = 1, duration = 20),
         item(29, 3001, at(15, 0).minusSeconds(DAY), TimelineCategory.Drinking, pet = 1, duration = 35),
         item(28, 3001, at(7, 0).minusSeconds(DAY), TimelineCategory.Drinking, pet = 2, duration = 30),
     )
 
-    fun page(device: Device = w7h, today: List<TimelineItem> = todayItems, relay: Device? = null): FountainPage =
-        FountainRules.page(device, Household.pets, today, yesterdayItems, Household.zone, relay)
+    fun page(
+        device: Device = w7h,
+        today: List<TimelineItem> = todayItems,
+        relay: Device? = null,
+        yesterday: List<TimelineItem> = yesterdayItems,
+    ): FountainPage = FountainRules.page(device, Household.pets, today, yesterday, Household.zone, relay)
 
-    val content = FountainUiState(page = page(), loaded = true, zone = Household.zone)
+    /** The page's clock: the household's "now", 10:00 in Paris. */
+    val now: Instant = Household.clock.instant()
 
-    val bluetooth = FountainUiState(page = page(w5, relay = relay), loaded = true, zone = Household.zone)
+    val content = FountainUiState(page = page(), loaded = true, zone = Household.zone, now = now)
 
-    /** The CTW3 in trouble, the server out of reach, and a refused filter reset. */
-    val trouble = FountainUiState(
-        page = page(ctw3, relay = Household.feeder),
+    val bluetooth = FountainUiState(page = page(w5, relay = relay), loaded = true, zone = Household.zone, now = now)
+
+    /** The W7H whose drinks all came without a duration, today and yesterday. */
+    val untimed = FountainUiState(
+        page = page(today = untimedItems, yesterday = yesterdayItems.map { it.copy(durationSec = null) }),
         loaded = true,
         zone = Household.zone,
+        now = now,
+    )
+
+    /** The relay of [trouble]: the Fresh Element Solo, offline, so its fountain is too. */
+    val offlineRelay = Household.feeder.copy(online = false)
+
+    /** The CTW3 in trouble, its relay offline, the server out of reach, and a refused filter reset. */
+    val trouble = FountainUiState(
+        page = page(ctw3.copy(online = false), relay = offlineRelay),
+        loaded = true,
+        zone = Household.zone,
+        now = now,
         refreshError = DomainError.Network("timeout"),
         commands = CommandState(
             feedback = CommandFeedback(

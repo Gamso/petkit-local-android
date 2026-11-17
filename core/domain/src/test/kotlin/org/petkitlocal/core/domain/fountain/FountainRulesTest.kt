@@ -126,26 +126,90 @@ class FountainRulesTest {
     }
 
     @Test
-    fun `mode chips come from the smart mode, do not disturb and lock, when reported`() {
-        val modes = FountainRules.modes(w5)
-        assertEquals(
-            listOf(FountainModeKind.Smart, FountainModeKind.DoNotDisturb, FountainModeKind.ChildLock),
-            modes.map { it.kind },
-        )
-        assertEquals(listOf(true, false, true), modes.map { it.on })
-        assertEquals(EntityValue.Text("smart") to EntityValue.Text("normal"), modes[0].onValue to modes[0].offValue)
-        assertEquals(EntityValue.Bool(true) to EntityValue.Bool(false), modes[1].onValue to modes[1].offValue)
-        assertEquals(listOf("w5_mode", "w5_dnd", "w5_child_lock"), modes.map { it.key })
+    fun `a settable mode select is the bottom bar, with the server's options and what the device reported`() {
+        val bar = FountainRules.modeBar(w5)!!
+        assertEquals(FountainModeBar("w5_mode", listOf("normal", "smart"), "smart"), bar)
 
-        // A W7H has a lock and no smart mode; nothing reported is no chip, not "off".
-        assertEquals(listOf("child_lock"), FountainRules.modes(w7h).map { it.key })
-        val unreported = w5.copy(
+        // The W7H's flow mode first, read from its raw value when the server sends no display.
+        val flow = Entity(
+            "flow_mode",
+            "Flow Mode",
+            EntityComponent.Select,
+            EntityValue.Text("intermittent"),
+            options = listOf("do_not_flow", "continuous", "intermittent", "motion_activated"),
+            settable = true,
+        )
+        val withFlow = w7h.copy(entities = w7h.entities + flow)
+        assertEquals(
+            FountainModeBar("flow_mode", flow.options, "intermittent"),
+            FountainRules.page(withFlow, pets, emptyList(), emptyList(), paris).modeBar,
+        )
+
+        // Not reported yet: the bar still offers every option, none selected.
+        assertNull(FountainRules.modeBar(w5.copy(entities = listOf(mode("w5_mode", null))))?.selected)
+        // Not settable, or no mode at all: no bar.
+        val readOnly = w5.copy(entities = listOf(mode("w5_mode", "smart").copy(settable = false)))
+        assertNull(FountainRules.modeBar(readOnly))
+        assertNull(FountainRules.modeBar(w7h))
+    }
+
+    @Test
+    fun `status chips are only the features that are on, and smart mode only without the bar`() {
+        // The W5's mode is on the bar; its lock is on, its do not disturb off: one chip.
+        val modes = FountainRules.modes(w5)
+        assertEquals(listOf(FountainMode("w5_child_lock", FountainModeKind.ChildLock)), modes)
+
+        // Its mode read-only: smart mode is a chip again, since nothing else shows it.
+        val readOnly = w5.copy(
+            entities = w5.entities.map { if (it.key == "w5_mode") it.copy(settable = false) else it },
+        )
+        assertEquals(
+            listOf(FountainModeKind.Smart, FountainModeKind.ChildLock),
+            FountainRules.modes(readOnly).map { it.kind },
+        )
+        // A W7H's lock is off: no chip. Nothing reported is no chip either, never "off".
+        assertTrue(FountainRules.modes(w7h).isEmpty())
+        val unreported = readOnly.copy(
             entities = listOf(
-                mode("w5_mode", null),
+                mode("w5_mode", null).copy(settable = false),
                 Entity("w5_dnd", "Do Not Disturb", EntityComponent.Switch, EntityValue.None, settable = true),
             ),
         )
         assertTrue(FountainRules.modes(unreported).isEmpty())
+    }
+
+    @Test
+    fun `drinks without a duration are counted, and say their durations are unknown`() {
+        val untimed = listOf(
+            item(30, 3001, at(9, 30), TimelineCategory.Drinking, pet = 2),
+            item(28, 3001, at(7, 15), TimelineCategory.Drinking, pet = 1),
+        )
+        val untimedYesterday = listOf(item(20, 3001, at(22, 0, yesterday), TimelineCategory.Drinking, pet = 1))
+        val page = FountainRules.page(w7h, pets, untimed, untimedYesterday, paris)
+
+        assertEquals(DrinkStats(2, null), page.today)
+        assertEquals(DrinkStats(1, null), page.yesterday)
+        assertFalse(page.durationsKnown)
+        assertEquals(listOf(null, null), page.drinks.map { it.durationSec })
+
+        // One drink with a duration is enough to average; no drink at all says nothing either way.
+        assertTrue(FountainRules.page(w7h, pets, untimed, yesterdayItems, paris).durationsKnown)
+        assertTrue(FountainRules.page(w7h, pets, emptyList(), emptyList(), paris).durationsKnown)
+    }
+
+    @Test
+    fun `a cordless fountain's battery is its battery pill`() {
+        val ctw3 = device(
+            3003,
+            DeviceFamily.Fountain,
+            sensor("ctw3_battery", 76.0, unit = "%"),
+            binary("ctw3_low_battery", false),
+            type = "ctw3",
+        )
+        val battery = FountainRules.page(ctw3, pets, emptyList(), emptyList(), paris).battery
+        assertEquals(PartReading.Percent(76), battery?.reading)
+        assertFalse(battery!!.attention)
+        assertNull(FountainRules.page(w5, pets, emptyList(), emptyList(), paris).battery)
     }
 
     @Test

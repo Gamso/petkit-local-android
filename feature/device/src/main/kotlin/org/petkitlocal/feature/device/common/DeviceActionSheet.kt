@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.defaultMinSize
@@ -24,6 +25,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
@@ -55,6 +57,7 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -79,6 +82,10 @@ import org.petkitlocal.feature.device.R
  * A page whose device has no everyday action, and offers each of its other actions on a part's
  * pill ([onParts], the keys the pills offer), has no sheet at all ([DeviceActionOrder.needsSheet]):
  * collapsed, it would show nothing but "More".
+ *
+ * A page with a [row] of its own (a fountain's mode) shows it in place of the quick actions: every
+ * action is then behind More, which only shows when some action is offered nowhere else, and the
+ * row is not the user's to edit.
  */
 @Composable
 fun DeviceActionScaffold(
@@ -87,6 +94,7 @@ fun DeviceActionScaffold(
     modifier: Modifier = Modifier,
     initiallyExpanded: Boolean = false,
     onParts: Set<String> = emptySet(),
+    row: (@Composable RowScope.() -> Unit)? = null,
     banner: @Composable () -> Unit = {},
     content: @Composable (bottomPadding: Dp) -> Unit,
 ) {
@@ -94,7 +102,11 @@ fun DeviceActionScaffold(
     var bottomPadding by remember { mutableStateOf(0.dp) }
     val density = LocalDensity.current
     val quick = LocalQuickActions.current
-    val layout = remember(actions, quick.pinned) { DeviceActionOrder.layout(actions, quick.pinned) }
+    val needsSheet = DeviceActionOrder.needsSheet(actions, onParts)
+    val ownRow = row != null
+    val layout = remember(actions, quick.pinned, ownRow, needsSheet) {
+        sheetLayout(actions, quick.pinned, ownRow, needsSheet)
+    }
     BackHandler(enabled = expanded) { expanded = false }
     Box(modifier.fillMaxSize()) {
         content(bottomPadding)
@@ -122,7 +134,7 @@ fun DeviceActionScaffold(
                 },
         ) {
             banner()
-            if (!quick.ready || !DeviceActionOrder.needsSheet(actions, onParts)) {
+            if (!ownRow && (!quick.ready || !needsSheet)) {
                 Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
             } else {
                 DeviceActionSheet(
@@ -133,12 +145,13 @@ fun DeviceActionScaffold(
                         expanded = false
                         onAction(action)
                     },
-                    onEditQuickActions = quick.onEdit?.let { edit ->
+                    onEditQuickActions = quick.onEdit?.takeUnless { ownRow }?.let { edit ->
                         {
                             expanded = false
                             edit()
                         }
                     },
+                    row = row,
                 )
             }
         }
@@ -148,11 +161,27 @@ fun DeviceActionScaffold(
 private val SCRIM = Color.Black.copy(alpha = 0.32f)
 
 /**
+ * The quick actions in view, the rest behind More; with a page's own row, every action behind
+ * More, and none when they are all offered elsewhere ([needsSheet] false).
+ */
+private fun sheetLayout(
+    actions: List<DeviceAction>,
+    pinned: List<String>?,
+    ownRow: Boolean,
+    needsSheet: Boolean,
+): ActionLayout = when {
+    !ownRow -> DeviceActionOrder.layout(actions, pinned)
+    needsSheet -> DeviceActionOrder.layout(actions, visible = 0)
+    else -> ActionLayout(main = emptyList(), more = emptyList())
+}
+
+/**
  * The sheet itself, stateless. Collapsed, one row: the [DeviceActionOrder.VISIBLE] everyday
  * actions (or the user's own, [LocalQuickActions]) and, when there are others, "More". Expanded,
  * the others follow as a list (full width, so long names wrap between words), maintenance and
  * destructive ones last, then [onEditQuickActions] when the row can be edited: More shows then
- * even when every action is in view, so the editor can always be reached.
+ * even when every action is in view, so the editor can always be reached. A page's own [row]
+ * comes first in the collapsed row, More after it.
  */
 @Composable
 fun DeviceActionSheet(
@@ -162,6 +191,7 @@ fun DeviceActionSheet(
     onAction: (DeviceAction) -> Unit,
     modifier: Modifier = Modifier,
     onEditQuickActions: (() -> Unit)? = null,
+    row: (@Composable RowScope.() -> Unit)? = null,
 ) {
     val labels = rememberServerLabels()
     val hasMore = layout.more.isNotEmpty() || onEditQuickActions != null
@@ -183,6 +213,7 @@ fun DeviceActionSheet(
                 Spacer(Modifier.padding(top = PkTheme.spacing.s))
             }
             Row(Modifier.fillMaxWidth()) {
+                row?.invoke(this)
                 layout.main.forEach { action ->
                     ActionTile(
                         label = labels.action(action.key, action.name),
@@ -288,11 +319,38 @@ private fun ActionTile(
         destructive -> colors.warningContainer to colors.onWarningContainer
         else -> colors.surfaceMuted to colors.onSurface
     }
+    SheetTile(label = label, background = background, onClick = onClick, modifier = modifier) {
+        Icon(icon, contentDescription = null, tint = tint)
+    }
+}
+
+/**
+ * The shape every tile of the sheet's row shares: [symbol] on a [background] tile, the name under
+ * it. A button by default; with [selected], one option of a group (a radio button), its name in
+ * bold when selected and its [state] said to TalkBack when given.
+ */
+@Composable
+internal fun SheetTile(
+    label: String,
+    background: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    selected: Boolean? = null,
+    state: String? = null,
+    symbol: @Composable () -> Unit,
+) {
+    // Inside the tile's clip, so the ripple has the tile's shape.
+    val interaction = if (selected == null) {
+        Modifier.clickable(onClick = onClick, role = Role.Button)
+    } else {
+        Modifier.selectable(selected = selected, onClick = onClick, role = Role.RadioButton)
+    }
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
             .clip(PkTheme.shapes.tile)
-            .clickable(onClick = onClick, role = Role.Button)
+            .then(interaction)
+            .then(if (state != null) Modifier.semantics { stateDescription = state } else Modifier)
             .padding(PkTheme.spacing.xxs),
     ) {
         Box(
@@ -302,10 +360,10 @@ private fun ActionTile(
                 .clip(PkTheme.shapes.tile)
                 .background(background),
         ) {
-            Icon(icon, contentDescription = null, tint = tint)
+            symbol()
         }
         Spacer(Modifier.padding(top = PkTheme.spacing.xs))
-        WholeWordLabel(label)
+        WholeWordLabel(label, emphasised = selected == true)
     }
 }
 
@@ -316,8 +374,8 @@ private val TILE_SIZE = 56.dp
  * wider than the tile (a long French word at 130 %), the text is made smaller until it fits.
  */
 @Composable
-private fun WholeWordLabel(text: String) {
-    val base = PkTheme.typography.labelMedium
+private fun WholeWordLabel(text: String, emphasised: Boolean) {
+    val base = PkTheme.typography.labelMedium.let { if (emphasised) it.copy(fontWeight = FontWeight.Bold) else it }
     val measurer = rememberTextMeasurer()
     BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
         val width = constraints.maxWidth

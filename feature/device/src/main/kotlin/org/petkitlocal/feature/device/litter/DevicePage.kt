@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -42,7 +43,8 @@ data class PageCommandCallbacks(
  * A litter box, feeder or fountain page in the frame every device screen shares: the action sheet
  * pinned at the bottom (collapsed to one row, the rest behind More; none when [hotspots] offer
  * every action and none is for every day), the command feedback banner above it, the
- * confirmation of a destructive action, and pull to refresh over [content].
+ * confirmation of a destructive action, and pull to refresh over [content]. A page's own
+ * [sheetRow] takes the place of the quick actions in the collapsed sheet.
  */
 @OptIn(ExperimentalMaterial3Api::class) // PullToRefreshBox
 @Composable
@@ -55,6 +57,7 @@ internal fun DevicePageScaffold(
     modifier: Modifier = Modifier,
     hotspots: List<Hotspot> = emptyList(),
     initiallyExpanded: Boolean = false,
+    sheetRow: (@Composable RowScope.() -> Unit)? = null,
     content: LazyListScope.() -> Unit,
 ) {
     DeviceActionScaffold(
@@ -62,6 +65,7 @@ internal fun DevicePageScaffold(
         onAction = callbacks.onAction,
         initiallyExpanded = initiallyExpanded,
         onParts = hotspots.flatMapTo(HashSet()) { hotspot -> hotspot.actions.map { it.key } },
+        row = sheetRow,
         banner = {
             commands.feedback?.let { feedback ->
                 CommandFeedbackBanner(

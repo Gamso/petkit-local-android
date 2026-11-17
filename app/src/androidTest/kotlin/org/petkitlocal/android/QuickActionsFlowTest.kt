@@ -33,12 +33,14 @@ import org.petkitlocal.feature.settings.SettingsTestTags
 
 /**
  * The quick actions end to end (issue #40), on a device, against the mock server (core:e2e):
- * the EverSweet Ultra AI's Drain is pinned from the expanded sheet, shows in the collapsed row
- * and in the device's settings, still asks before draining, and is still there after signing
- * out and back in to the same server: the phone keeps its choices across sessions on one server.
- * The test resets the row at the end, so the next test finds the app's own.
+ * on the Pura Max, Level Litter is taken out of the row and Dump Litter pinned in its place from
+ * the expanded sheet; Dump Litter shows in the collapsed row and in the device's settings, still
+ * asks before dumping, and is still there after signing out and back in to the same server: the
+ * phone keeps its choices across sessions on one server. The test resets the row at the end, so
+ * the next test finds the app's own. (A fountain whose mode can be set shows its mode there
+ * instead, FountainFlowTest.)
  */
-@MockOnly("the mock's EverSweet Ultra AI and its actions")
+@MockOnly("the mock's Pura Max and its actions")
 @OptIn(ExperimentalTestApi::class) // waitUntil...Exists
 @RunWith(AndroidJUnit4::class)
 class QuickActionsFlowTest {
@@ -48,39 +50,43 @@ class QuickActionsFlowTest {
     @get:Rule(order = 1)
     val compose = createAndroidComposeRule<MainActivity>()
 
-    private val drainInSheet = hasText("Drain") and hasAnyAncestor(hasTestTag(DeviceTestTags.ACTION_SHEET))
+    private val dumpInSheet = hasText("Dump Litter") and hasAnyAncestor(hasTestTag(DeviceTestTags.ACTION_SHEET))
 
     @Test
     fun aPinnedActionShowsInTheCollapsedRowAndOutlivesTheSession() {
         signIn()
-        openFountain()
-        // The app's row: Refill and Drain & Flush; Drain cannot be undone, so it is under More.
-        compose.onNode(drainInSheet).assertDoesNotExist()
+        openLitterBox()
+        // The app's row: Scoop, Deodorize and Level Litter; Dump Litter cannot be undone, so it
+        // is under More.
+        compose.onNode(dumpInSheet).assertDoesNotExist()
 
         compose.onNodeWithTag(DeviceTestTags.SHEET_MORE).performClick()
         compose.onNodeWithTag(QuickActionsTestTags.EDIT_ENTRY).performClick()
         waitFor(hasTestTag(QuickActionsTestTags.EDITOR))
-        compose.onNodeWithTag(QuickActionsTestTags.other(DRAIN)).performScrollTo().performClick()
-        waitFor(hasTestTag(QuickActionsTestTags.inView(DRAIN)))
+        // The row is full: one out first, then Dump Litter in.
+        compose.onNode(hasContentDescription("Remove Level Litter from quick actions")).performScrollTo().performClick()
+        waitFor(hasTestTag(QuickActionsTestTags.other(LEVEL)))
+        compose.onNodeWithTag(QuickActionsTestTags.other(DUMP)).performScrollTo().performClick()
+        waitFor(hasTestTag(QuickActionsTestTags.inView(DUMP)))
         compose.onNodeWithTag(QuickActionsTestTags.DONE).performScrollTo().performClick()
         compose.waitUntilDoesNotExist(hasTestTag(QuickActionsTestTags.EDITOR), TIMEOUT_MS)
 
         // In the collapsed row now (the sheet folded itself away for the editor).
-        waitFor(drainInSheet)
+        waitFor(dumpInSheet)
         compose.onNodeWithTag(QuickActionsTestTags.EDIT_ENTRY).assertDoesNotExist()
         // Pinned, it still asks first.
-        compose.onNode(drainInSheet).performClick()
-        waitFor(hasText("Drain?"))
+        compose.onNode(dumpInSheet).performClick()
+        waitFor(hasText("Dump Litter?"))
         compose.onNode(hasText("Cancel") and hasClickAction()).performClick()
-        compose.waitUntilDoesNotExist(hasText("Drain?"), TIMEOUT_MS)
+        compose.waitUntilDoesNotExist(hasText("Dump Litter?"), TIMEOUT_MS)
 
         // The device's settings say so too.
         compose.onNode(hasContentDescription("Settings") and hasClickAction()).performClick()
         waitFor(hasTestTag(DeviceTestTags.SETTINGS_SCREEN))
         val row = hasTestTag(QuickActionsTestTags.SETTINGS_ROW)
         compose.onNodeWithTag(DeviceTestTags.SETTINGS_LIST).performScrollToNode(row)
-        // The row's summary names the actions in view, in order: Drain was added last.
-        compose.onNode(row and hasText("Refill, Drain & Flush, Drain", substring = true)).assertExists()
+        // The row's summary names the actions in view, in order: Dump Litter was added last.
+        compose.onNode(row and hasText("Scoop, Deodorize, Dump Litter", substring = true)).assertExists()
         back()
         back()
 
@@ -89,18 +95,18 @@ class QuickActionsFlowTest {
         compose.onNodeWithTag(HomeTestTags.LIST).performScrollToIndex(0)
         signOut()
         signIn()
-        openFountain()
-        waitFor(drainInSheet)
+        openLitterBox()
+        waitFor(dumpInSheet)
 
-        // Reset to default gives the app's row back, Drain under More again.
+        // Reset to default gives the app's row back, Dump Litter under More again.
         compose.onNodeWithTag(DeviceTestTags.SHEET_MORE).performClick()
         compose.onNodeWithTag(QuickActionsTestTags.EDIT_ENTRY).performClick()
         waitFor(hasTestTag(QuickActionsTestTags.EDITOR))
         compose.onNodeWithTag(QuickActionsTestTags.RESET).performScrollTo().performClick()
-        waitFor(hasTestTag(QuickActionsTestTags.other(DRAIN)))
+        waitFor(hasTestTag(QuickActionsTestTags.other(DUMP)))
         compose.onNodeWithTag(QuickActionsTestTags.DONE).performScrollTo().performClick()
         compose.waitUntilDoesNotExist(hasTestTag(QuickActionsTestTags.EDITOR), TIMEOUT_MS)
-        compose.onNode(drainInSheet).assertDoesNotExist()
+        compose.onNode(dumpInSheet).assertDoesNotExist()
 
         back()
         waitFor(hasTestTag(HomeTestTags.LIST))
@@ -108,14 +114,14 @@ class QuickActionsFlowTest {
         signOut()
     }
 
-    private fun openFountain() {
-        // The grid is lazy: the first card shows the cache is read, then the fountain is scrolled to.
+    private fun openLitterBox() {
+        // The grid is lazy: the first card shows the cache is read, then the Pura Max is scrolled to.
         waitFor(hasTestTag(HomeTestTags.device(FIRST_CARD)))
-        val card = hasTestTag(HomeTestTags.device(FOUNTAIN))
+        val card = hasTestTag(HomeTestTags.device(PURA_MAX))
         compose.onNodeWithTag(HomeTestTags.LIST).performScrollToNode(card)
         compose.onNode(card).performClick()
-        waitFor(hasText("Idle") and hasAnyAncestor(hasTestTag(DeviceTestTags.STATUS)))
-        compose.onNodeWithText("EverSweet Ultra AI").assertExists()
+        waitFor(hasTestTag(DeviceTestTags.STATUS))
+        compose.onNodeWithText("Pura Max").assertExists()
         waitFor(hasTestTag(DeviceTestTags.SHEET_MORE))
     }
 
@@ -148,9 +154,10 @@ class QuickActionsFlowTest {
     }
 
     private companion object {
-        const val FOUNTAIN = 3001L
+        const val PURA_MAX = 1002L
         const val FIRST_CARD = 1001L
-        const val DRAIN = "fountain_drain"
+        const val DUMP = "dump_litter"
+        const val LEVEL = "level_litter"
         const val TIMEOUT_MS = 30_000L
     }
 }

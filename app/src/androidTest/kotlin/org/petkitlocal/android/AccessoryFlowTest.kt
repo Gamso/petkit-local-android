@@ -2,6 +2,7 @@ package org.petkitlocal.android
 
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
@@ -9,6 +10,7 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.isEnabled
+import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithTag
@@ -29,6 +31,7 @@ import org.petkitlocal.core.e2e.TestServer
 import org.petkitlocal.core.e2e.TestServerRule
 import org.petkitlocal.feature.auth.SignInTestTags
 import org.petkitlocal.feature.device.common.DeviceTestTags
+import org.petkitlocal.feature.device.fountain.FountainTestTags
 import org.petkitlocal.feature.home.HomeTestTags
 import org.petkitlocal.feature.settings.SettingsTestTags
 
@@ -36,8 +39,9 @@ import org.petkitlocal.feature.settings.SettingsTestTags
  * Bluetooth accessories end to end, against the mock server: the Pura Max's page shows the N60
  * level of the Pura Air in its K3 slot and follows it over `/ws`, its pill leads to the Pura
  * Air's own screen, which leads back to the box relaying it; and a fountain whose relay polls
- * HTTP refuses a button with the parent's name (409 `accessory_unreachable`). Each test signs
- * out at the end, so it starts and ends signed out like the others.
+ * HTTP refuses a button and a mode with the parent's name (409 `accessory_unreachable`), its mode
+ * staying the one it reported. Each test signs out at the end, so it starts and ends signed out
+ * like the others.
  */
 @MockOnly("the mock's Pura Max, its Pura Air and a Bluetooth fountain, changed through the control API")
 @OptIn(ExperimentalTestApi::class) // waitUntil...Exists
@@ -77,11 +81,20 @@ class AccessoryFlowTest {
     fun aFountainRelayedOverHttpCannotBeReachedAndSaysWhy() {
         signIn()
         open(EVERSWEET_MAX)
-        waitFor(hasText("Reports through Fresh Element Solo"))
+        waitFor(hasTestTag(DeviceTestTags.RELAY) and hasText("via Fresh Element Solo", substring = true))
 
-        // Its one button, the filter reset, is on the filter's pill (no action sheet): it is
+        // Its mode, smart, cannot reach it either: refused, and still smart.
+        waitFor(hasTestTag(FountainTestTags.mode("smart")) and isSelected())
+        compose.onNodeWithTag(FountainTestTags.mode("normal")).performClick()
+        waitFor(
+            hasTestTag(DeviceTestTags.FEEDBACK) and
+                hasText("The Fresh Element Solo must be online (MQTT) to reach this accessory."),
+        )
+        compose.onNodeWithTag(FountainTestTags.mode("smart")).assertIsSelected()
+
+        // Its one button, the filter reset, is on the filter's pill (no More in the sheet): it is
         // destructive, so confirmed, then refused by the server.
-        compose.onNodeWithTag(DeviceTestTags.ACTION_SHEET).assertDoesNotExist()
+        compose.onNodeWithTag(DeviceTestTags.SHEET_MORE).assertDoesNotExist()
         val filter = hasContentDescription("Filter, ", substring = true)
         waitFor(filter)
         compose.onNode(filter).performClick()

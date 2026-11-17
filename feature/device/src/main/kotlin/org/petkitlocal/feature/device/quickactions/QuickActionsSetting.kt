@@ -24,6 +24,7 @@ import org.petkitlocal.core.designsystem.component.PkCard
 import org.petkitlocal.core.designsystem.icon.PkIcons
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.device.DeviceActionOrder
+import org.petkitlocal.core.domain.fountain.FountainRules
 import org.petkitlocal.core.domain.model.Device
 import org.petkitlocal.core.ui.rememberServerLabels
 import org.petkitlocal.feature.device.R
@@ -33,11 +34,12 @@ import org.petkitlocal.feature.device.common.QuickActionsTestTags
 
 /**
  * The settings screen's way to the quick actions editor: a setting of this phone, not of the
- * device, so under its own title. Only for a device with actions, where the editor can open.
+ * device, so under its own title. Only for a device with actions, where the editor can open, and
+ * not for a fountain whose sheet shows its mode instead of quick actions.
  */
 internal fun LazyListScope.quickActionsSetting(device: Device, quick: QuickActions) {
     val onEdit = quick.onEdit ?: return
-    if (device.actions.isEmpty()) return
+    if (device.actions.isEmpty() || FountainRules.modeBar(device) != null) return
     item(key = "quick-actions-title") { DeviceSectionTitle(stringResource(R.string.quick_actions_settings_section)) }
     item(key = "quick-actions") { QuickActionsSettingCard(device, quick.pinned, onEdit) }
 }

@@ -1,6 +1,7 @@
 package org.petkitlocal.feature.device.common
 
 import androidx.annotation.PluralsRes
+import androidx.annotation.StringRes
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -27,6 +28,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -51,11 +54,18 @@ data class DayDot(
 )
 
 /**
+ * How a chart words events that came without a duration: [count] for TalkBack ("2 with no known
+ * duration, on the axis"), [noScale] in place of the duration scale when none of them has one.
+ */
+data class UntimedWords(@param:PluralsRes val count: Int, @param:StringRes val noScale: Int)
+
+/**
  * The 24-hour chart card (docs/DESIGN.md, DayStemChart): one stem per visit or drink, standing
  * from the axis at its time to its duration and capped with a dot, in its pet's colour (an
  * unrecognised pet's in neutral), with a single-select filter on [pets] (those with an event).
  * TalkBack reads the count, worded by [description]; the page says the same in words elsewhere,
- * so nothing rests on colour.
+ * so nothing rests on colour. With [untimed], an event with no duration is a hollow mark on the
+ * axis, with no stem, and TalkBack says how many there are; without it, it stands on the axis.
  *
  * @param colorIndexOf a pet's place in the household's order, which picks its colour.
  * @param minScaleMinutes the least the duration axis goes up to: five minutes for a visit, one
@@ -74,6 +84,7 @@ internal fun DayChartCard(
     chartTag: String,
     modifier: Modifier = Modifier,
     minScaleMinutes: Int = MIN_SCALE_MINUTES,
+    untimed: UntimedWords? = null,
 ) {
     PkCard(modifier.fillMaxWidth()) {
         Text(title, style = PkTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
@@ -112,6 +123,7 @@ internal fun DayChartCard(
             description,
             chartTag,
             minScaleMinutes,
+            untimed,
             Modifier.padding(top = PkTheme.spacing.s),
         )
     }
@@ -126,16 +138,24 @@ private fun DayStemChart(
     @PluralsRes description: Int,
     chartTag: String,
     minScaleMinutes: Int,
+    untimed: UntimedWords?,
     modifier: Modifier = Modifier,
 ) {
     val colors = PkTheme.colors
     val shown = dots.filter { petFilter == null || it.petId == petFilter }
-    val spoken = pluralStringResource(description, shown.size, shown.size)
+    val unknown = if (untimed == null) 0 else shown.count { it.durationSec == null }
+    val spoken = listOfNotNull(
+        pluralStringResource(description, shown.size, shown.size),
+        untimed?.takeIf { unknown > 0 }?.let { pluralStringResource(it.count, unknown, unknown) },
+    ).joinToString(". ")
     val topMinutes = DayChartLayout.topMinutes(dots, minScaleMinutes)
+    // No dot with a duration: a scale of minutes would measure nothing.
+    val noScale = untimed?.takeIf { dots.isNotEmpty() && dots.all { it.durationSec == null } }
     Column(modifier.semantics(mergeDescendants = true) { contentDescription = spoken }) {
         Row {
             Text(
-                "$topMinutes ${stringResource(R.string.litter_chart_minutes)}",
+                noScale?.let { stringResource(it.noScale) }
+                    ?: "$topMinutes ${stringResource(R.string.litter_chart_minutes)}",
                 style = PkTheme.typography.labelSmall,
                 color = colors.onSurfaceMuted,
             )
@@ -160,23 +180,13 @@ private fun DayStemChart(
                 drawLine(colors.outline, Offset(0f, y), Offset(size.width, y), 1.dp.toPx(), pathEffect = dash)
             }
             drawLine(colors.outline, Offset(0f, frame.bottom), Offset(size.width, frame.bottom), 1.dp.toPx())
-            val stems = DayChartLayout.stems(shown, topMinutes, frame)
-            val colorOf = { stem: Stem -> colorIndexOf(stem.petId)?.let(colors::pet) ?: colors.onSurfaceMuted }
-            // Every stem first, then every dot, each ringed in the surface colour: a dot stays
-            // whole over a neighbour's stem, and two dots that touch stay two. The ring's cut in
-            // the dot's own stem is drawn again, so stem and dot stay one mark.
-            val ring = radius + DOT_RING.toPx()
-            stems.forEach { stem ->
-                drawLine(colorOf(stem), Offset(stem.x, frame.bottom), Offset(stem.x, stem.top), STEM_WIDTH.toPx())
-            }
-            stems.forEach { stem ->
-                val color = colorOf(stem)
-                val centre = Offset(stem.x, stem.top)
-                drawCircle(colors.surface, ring, centre)
-                val joint = minOf(stem.top + ring + 1.dp.toPx(), frame.bottom)
-                drawLine(color, centre, Offset(stem.x, joint), STEM_WIDTH.toPx())
-                drawCircle(color, radius, centre)
-            }
+            drawStems(
+                stems = DayChartLayout.stems(shown, topMinutes, frame),
+                frame = frame,
+                surface = colors.surface,
+                colorOf = { stem -> colorIndexOf(stem.petId)?.let(colors::pet) ?: colors.onSurfaceMuted },
+                hollowUntimed = untimed != null,
+            )
         }
         Row(Modifier.fillMaxWidth().padding(top = 2.dp), horizontalArrangement = Arrangement.SpaceBetween) {
             AXIS_HOURS.forEach { hour ->
@@ -186,6 +196,40 @@ private fun DayStemChart(
                     color = colors.onSurfaceMuted,
                 )
             }
+        }
+    }
+}
+
+/**
+ * Every stem first, then every dot, each ringed in [surface]: a dot stays whole over a
+ * neighbour's stem, and two dots that touch stay two. The ring's cut in the dot's own stem is
+ * drawn again, so stem and dot stay one mark. With [hollowUntimed], an event with no known
+ * duration is a hollow mark on the axis, with no stem.
+ */
+private fun DrawScope.drawStems(
+    stems: List<Stem>,
+    frame: StemFrame,
+    surface: Color,
+    colorOf: (Stem) -> Color,
+    hollowUntimed: Boolean,
+) {
+    val radius = DOT_RADIUS.toPx()
+    val ring = radius + DOT_RING.toPx()
+    val hollow = { stem: Stem -> hollowUntimed && !stem.timed }
+    stems.filterNot(hollow).forEach { stem ->
+        drawLine(colorOf(stem), Offset(stem.x, frame.bottom), Offset(stem.x, stem.top), STEM_WIDTH.toPx())
+    }
+    stems.forEach { stem ->
+        val color = colorOf(stem)
+        val centre = Offset(stem.x, stem.top)
+        drawCircle(surface, ring, centre)
+        if (hollow(stem)) {
+            val width = HOLLOW_WIDTH.toPx()
+            drawCircle(color, radius - width / 2, centre, style = Stroke(width))
+        } else {
+            val joint = minOf(stem.top + ring + 1.dp.toPx(), frame.bottom)
+            drawLine(color, centre, Offset(stem.x, joint), STEM_WIDTH.toPx())
+            drawCircle(color, radius, centre)
         }
     }
 }
@@ -230,6 +274,7 @@ private val CHART_HEIGHT = 120.dp
 private val DOT_RADIUS = 5.dp
 private val DOT_RING = 1.5.dp
 private val STEM_WIDTH = 3.dp
+private val HOLLOW_WIDTH = 2.dp
 
 /** Two stems closer than this are spread apart: their own width and as much again between them. */
 private val MIN_GAP = 6.dp

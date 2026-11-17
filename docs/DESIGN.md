@@ -127,10 +127,10 @@ arrow mirrored in right-to-left languages.
 | `PetChip` | Home, Pets | Avatar (photo or initial on pet colour), name, weight, visits today |
 | `DeviceHero` | Litter, Feeder, Fountain | Illustration plus positioned `HotspotPill`s; positions defined per family in a small layout table |
 | `HotspotPill` | Device pages | Label and value, a dot on the illustrated part, colour by state, tappable |
-| `ModeChip` | Device header | Shows an on/off mode from a switch entity |
+| `ModeChip` | Device header | Shows an on/off mode from a switch entity; on a fountain, only the features that are on, after its battery |
 | `StatCompareTile` | Device, Pet | Big figure and the change since yesterday: a neutral arrow (Material Symbol, never a good/bad colour) and the amount, read in words by TalkBack ("2 more than yesterday") |
-| `DayStemChart` | Litter, Fountain (W7H) | 24 h × duration: a stem from the axis per visit or drink, capped with a dot in its pet's colour (unknown pet neutral); events close in time are spread a few dp apart; pet filter |
-| `ActionSheet` | Device pages | Pull handle, 4 actions per row, primary action filled; none when the device has no everyday action and every other one is on a part's pill |
+| `DayStemChart` | Litter, Fountain (W7H) | 24 h × duration: a stem from the axis per visit or drink, capped with a dot in its pet's colour (unknown pet neutral); events close in time are spread a few dp apart; a drink with no duration a hollow mark on the axis; pet filter |
+| `ActionSheet` | Device pages | Pull handle, 4 actions per row, primary action filled; none when the device has no everyday action and every other one is on a part's pill; on a fountain whose mode can be set, the row is its mode (the reported one filled and bold, a tapped one with a spinner until reported), actions behind More |
 | `ConfirmDialog` | Destructive actions | Explains the effect, danger-coloured confirm |
 | `TimelineRow` | History, device activity | Time rail, icon or pet avatar, title, details, media thumbnails; on a device page, one row per visit, drink or meal (photo, else initial on the pet's colour, else a paw) with the steps that followed indented under a dotted connector, a failed one in `danger` with its reason; on the feeder's day, a meal's portions per hopper in the hopper's colour and the event's clip as a thumbnail at the end, nothing when it has none |
 | `DayStrip` | History | 7 days, selected one filled |

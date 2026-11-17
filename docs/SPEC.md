@@ -162,17 +162,25 @@ screen).
   model, citing petkit-local): water level, filter and pump on the W5, W4 and CTW2, plus the
   battery on the CTW3; drinking tray, clean and waste water tanks and pump on the W7H. A value the
   fountain does not report draws no pill; "missing" or "low" only when it says so.
-- Mode chips from what the model has and reports: smart mode, do not disturb, child lock.
+- Under the header, one status area: the battery's level when the fountain reports it; a chip
+  for each feature the model has and reports ON (smart mode, do not disturb, child lock), nothing
+  for one that is off or unreported; and for a Bluetooth fountain, when it last reported and
+  through which device, online or not ("Seen 2 min ago · via YumShare Dual-Hopper (online)"),
+  which opens that device. A write to it needs that device on MQTT.
 - **Today**: on the W7H (camera, on-device recognition), drinks and their average duration
   against yesterday, each pet's drinks, and the 24-hour chart of the drinks with a pet filter. A
   Bluetooth fountain reports no drinks: its pump's running time today, as the fountain counts it
-  (no yesterday to compare with), and a line saying it reports no drinks.
-- A Bluetooth fountain says when it last reported and through which device ("Reports through
-  ..."), which opens that device; a write to it needs that device on MQTT.
+  (no yesterday to compare with), and a line saying it reports no drinks. A drink the server sends
+  without a duration is counted; when no drink has one, there is no average tile, and the chart
+  draws such a drink as a hollow mark on its axis, saying so to TalkBack.
 - Bottom action sheet from `DeviceDetail.actions` (refill, drain and flush, filter reset...);
   destructive ones (drain, deep clean, filter reset) are confirmed. A device page shows no sheet
   when its device has no everyday action and its pills offer every other one (a Bluetooth
   fountain's filter reset is on its filter's pill).
+- **Mode**: when the server exposes the fountain's mode as a settable select, the sheet's
+  collapsed row is the mode selector, one tile per option the server lists, in place of the
+  quick actions: the selected tile is the mode the fountain reported, a tapped one shows as
+  pending until its report says so, and every action is behind More. That row is not editable.
 
 ## 6. Cross-cutting behaviour
 
