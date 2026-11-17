@@ -148,6 +148,25 @@ class HistoryDaoTest {
     }
 
     @Test
+    fun `a device's cards with media are read newest first across days, bounded`() = runTest {
+        dao.replaceDay(
+            day,
+            listOf(item(1, ts = 10.0, media = true), item(2, ts = 20.0), item(3, ts = 30.0, media = true)),
+        )
+        dao.replaceDay("2026-11-14", listOf(item(4, ts = 5.0, media = true, day = "2026-11-14")))
+        dao.upsertLive(item(5, ts = 40.0, media = true, device = 2), replaces = emptyList())
+
+        dao.observeNewestWithMedia(deviceId = 1, limit = 5).test {
+            assertEquals(listOf(3L, 1L, 4L), awaitItem().map { it.id })
+            // A newer card with a picture, from a live update, comes first.
+            dao.upsertLive(item(6, ts = 50.0, media = true), replaces = emptyList())
+            assertEquals(listOf(6L, 3L, 1L, 4L), awaitItem().map { it.id })
+        }
+        assertEquals(listOf(6L), dao.observeNewestWithMedia(deviceId = 1, limit = 1).first().map { it.id })
+        assertEquals(listOf(5L), dao.observeNewestWithMedia(deviceId = 2, limit = 5).first().map { it.id })
+    }
+
+    @Test
     fun `a device's newest cards replace its cached ones over the range they cover, whatever the day`() = runTest {
         // Cached: 6..1 of device 1 over two days, and a card of device 2. The server dropped 5 and 2.
         dao.replaceDay(day, (4L..6L).map { item(it, ts = it * 10.0) } + item(9, ts = 55.0, device = 2))
@@ -186,6 +205,7 @@ class HistoryDaoTest {
         pet: Long? = null,
         day: String = this.day,
         clip: Boolean = false,
+        media: Boolean = clip,
     ) = TimelineItemRow(
         id = id,
         day = day,
@@ -203,6 +223,7 @@ class HistoryDaoTest {
         durationSec = null,
         weightG = null,
         factsJson = "[]",
+        mediaJson = if (media) "{}" else null,
         hasClip = clip,
     )
 }

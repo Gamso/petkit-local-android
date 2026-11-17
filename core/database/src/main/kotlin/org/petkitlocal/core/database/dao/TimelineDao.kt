@@ -64,6 +64,20 @@ abstract class TimelineDao {
     abstract fun observeRecentClips(deviceId: Long, limit: Int): Flow<List<TimelineItemRow>>
 
     /**
+     * [deviceId]'s cards holding a photo or a video, newest first, whatever day they are filed
+     * under: where a camera's latest still is read.
+     */
+    @Query(
+        """
+        SELECT * FROM timeline_items
+        WHERE device_id = :deviceId AND media_json IS NOT NULL
+        ORDER BY ts DESC, id DESC
+        LIMIT :limit
+        """,
+    )
+    abstract fun observeNewestWithMedia(deviceId: Long, limit: Int): Flow<List<TimelineItemRow>>
+
+    /**
      * [deviceId]'s newest cards, every day together, as `GET /timeline?device=` sent them from
      * the top: [items] are written, and the device's cached cards in the range they cover, but
      * absent from them, are dropped. The range runs from the newest card down to [items]' last

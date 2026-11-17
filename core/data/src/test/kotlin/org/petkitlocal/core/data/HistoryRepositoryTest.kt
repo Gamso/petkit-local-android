@@ -144,6 +144,10 @@ class HistoryRepositoryTest {
         // Filed under their own local day, where Home and History read them.
         assertEquals(listOf(5L, 4L), timeline.observeDay(day).first().map { it.id })
         assertEquals(listOf(3L, 2L, 1L), timeline.observeDay(day.minusDays(1)).first().map { it.id })
+        // Every card with a picture, the photo-only one too, for the camera's latest still.
+        val withMedia = timeline.observeNewestWithMedia(1003, limit = 5).first()
+        assertEquals(listOf(5L, 3L, 2L, 1L), withMedia.map { it.id })
+        assertEquals("${server.base}media/thumb/a/snap.jpg", withMedia.first().media?.files?.first()?.thumbnailUrl)
     }
 
     @Test
