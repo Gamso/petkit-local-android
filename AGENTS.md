@@ -87,11 +87,15 @@ verification. Do not iterate screen by screen with a full verification after eac
 ## Running things locally
 
 - The mock server (`mock-server/`, password `demo`) runs on port 8097 by default; the emulator
-  reaches the host as `10.0.2.2`. `MockServerRule` resets the mock it points at, so run your own
+  reaches the host as `10.0.2.2`. `TestServerRule` resets the server it points at, so run your own
   mock on another port (`./gradlew run --args="--port=<port>"`) and pass
-  `-Pandroid.testInstrumentationRunnerArguments.petkitMockUrl=http://10.0.2.2:<port>` when someone
+  `-Pandroid.testInstrumentationRunnerArguments.petkitServerUrl=http://10.0.2.2:<port>` when someone
   else is using 8097.
+- The real server for the nightly run: `scripts/real-server.sh up` (petkit-local's `dev` image on
+  8297, seeded, password set; it prints the instrumentation arguments), `down` when done. A test
+  that needs the mock's control API or its seeded household is `@MockOnly` (core:e2e) and is
+  skipped there; any other test must pass against both, reading what the server has.
 - On Android 17, reaching a private address needs `ACCESS_LOCAL_NETWORK`: tests grant it
-  (`MockServerRule`), the app asks for it at sign-in.
-- Stop what you start (emulators, mock servers). Never `./gradlew --stop` on a shared machine: it
+  (`TestServerRule`), the app asks for it at sign-in.
+- Stop what you start (emulators, mock servers, the real server). Never `./gradlew --stop` on a shared machine: it
   stops every build using the shared Gradle home.
