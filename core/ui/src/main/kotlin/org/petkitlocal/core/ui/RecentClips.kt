@@ -76,8 +76,12 @@ data class RecentClipsState(
 /** Test tags of the recent clips, for the Compose UI and end-to-end tests. */
 object RecentClipsTestTags {
     const val SECTION = "recent_clips"
+    private const val CLIP = "recent_clip_"
 
-    fun clip(itemId: Long) = "recent_clip_$itemId"
+    fun clip(itemId: Long) = "$CLIP$itemId"
+
+    /** [tag] is one clip's, whichever. */
+    fun isClip(tag: String) = tag.startsWith(CLIP)
 }
 
 /**
