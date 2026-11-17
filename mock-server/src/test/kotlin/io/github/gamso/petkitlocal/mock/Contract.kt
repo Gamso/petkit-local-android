@@ -131,6 +131,10 @@ object Contract {
     /** One `/ws` message against `UpdateMessage`. */
     fun checkMessage(text: String): List<String> = validate("ws", doc.at("/components/schemas/UpdateMessage"), text)
 
+    /** One `/notifications/ws` message against `NotificationSocketMessage`. */
+    fun checkNotificationMessage(text: String): List<String> =
+        validate("notifications/ws", doc.at("/components/schemas/NotificationSocketMessage"), text)
+
     fun validate(
         where: String,
         schemaNode: JsonNode,

@@ -67,9 +67,9 @@ Every option can be set as a flag, `--name=value`, or as an environment variable
 
 ## What it implements
 
-Every operation in `api/openapi.yaml` but the notification socket and UnifiedPush (`/push`,
-`/notifications/ws`, issue #23: every session says `push: null`), with petkit-local's own rules. These were read from its
-`app_api/` at the commit recorded in `api/SOURCE`.
+Every operation in `api/openapi.yaml` but UnifiedPush (`/push`, which the app does not use: every
+session says `push: null`), with petkit-local's own rules. These were read from its `app_api/` at
+the commit recorded in `api/SOURCE`.
 
 - **Access**
   - No password set: 401 `password_not_set` on everything, unknown paths included.
@@ -83,7 +83,23 @@ Every operation in `api/openapi.yaml` but the notification socket and UnifiedPus
 - **Notification kinds:** `GET`/`PUT /notifications` keep each session's `kinds` (`null` for
   every kind, `[]` for none), in the server's order without unknown kinds, as `Session.kinds`
   too. `server_kinds` lists the seven kinds, all switched on unless the control API turned some
-  off; `connected` is always false and `last_id` 0, since no notification socket is served yet.
+  off; `connected` says whether the session holds the notification socket, `last_id` is the
+  newest id logged.
+- **Notification socket** (`/notifications/ws`, `app_api/notify/channel.py`):
+  - `hello` first (`last_id`, `replayed`, `gap`), then what the session missed after `?after=`,
+    oldest first with `replay: true`, then each notification live. A bad `after` is a 400
+    `bad_parameter` before any upgrade.
+  - One log shared by every phone, ids monotonic, at most 500 entries of at most 3 days. A
+    notification is logged when a session that has opened the socket once (connected or not)
+    wants its kind, and is sent live to the connected ones that do. A kind switched off with the
+    control API reaches no phone. A replay never holds anything older than the session.
+  - An `after` above `last_id` comes from a log that is gone: everything held is replayed, with
+    `gap: true` (`DELETE /mock/notifications/log` loses the log on purpose).
+  - One socket per session: a second one closes the first with 4409. 4401 when the session ends,
+    1001 on shutdown; `{"type":"ping"}` gets a `pong`.
+  - Notifications are sent by the control API: `POST /mock/notifications`, and the `visit`, `meal`,
+    `error` and `offline` triggers, which send the `toilet`, `feed_served`, `error` (code
+    `errorMsg`) and `offline` notification petkit-local would. The scenario engine sends none.
 - **Login throttle:** wrong passwords lock the client's address out for 1 s, 2 s, 4 s and so on,
   capped. Answers are 401 `invalid_password`, then 429 `too_many_attempts`, both with `Retry-After`.
 - **Devices and entities**
@@ -202,7 +218,7 @@ Under `/mock`, no authentication, JSON in and out. It is meant for the app's end
 
 | Route | Body | Effect |
 |---|---|---|
-| `GET /mock` | | Routes, clock offset, scenario state, open sockets (`/ws`, live video, HLS views). |
+| `GET /mock` | | Routes, clock offset, scenario state, open sockets (`/ws`, notifications, live video, HLS views). |
 | `POST /mock/reset` | | Back to the seed: devices, pets, history, password. Sessions are dropped. |
 | `POST /mock/devices/{id}/visit` | `pet_id?`, `weight_g?`, `duration_sec?`, `auto_clean?`, `health_alert?` | A live visit on a litter box. |
 | `POST /mock/devices/{id}/meal` | `amount?`, `amount1?`, `amount2?` | A feeder serves a meal. |
@@ -216,6 +232,9 @@ Under `/mock`, no authentication, JSON in and out. It is meant for the app's end
 | `GET /mock/sessions` | | Live sessions, with the notification `kinds` each chose. |
 | `DELETE /mock/sessions/{id}`, `DELETE /mock/sessions` | | Revokes one or all; their sockets close with 4401. |
 | `PUT /mock/notifications` | `disabled`: list of kinds | Switches those kinds off as the panel's per-kind switches do (`server_kinds[].enabled`); `[]` turns them all back on, as does a reset. |
+| `POST /mock/notifications` | `kind`, `device_id?`, `pet_id?`, `code?`, `ts?` | Sends one notification, through the panel's switches and each session's kinds. Answers its `id`, or `null` when no phone using the socket wanted it. |
+| `POST /mock/notifications/close` | `code?` (default 1001), `reason?` | Closes every notification socket with that code (1001, 1013, 4401...). |
+| `DELETE /mock/notifications/log` | | Loses the catch-up log: ids start again from 1, and the next `hello` with a higher `after` says `gap`. |
 | `PUT /mock/password` | `password`: string or `null` | Sets it as the panel does and drops every session. `null` means no password. |
 | `POST /mock/fail` | `method`, `path`, `status`, `error?`, `message?`, `retry_after?`, `times?` | The next `times` (default 1) requests to that route get this error. `path` is a spec template (`/devices/{id}`) or a concrete path. |
 | `DELETE /mock/fail` | | Clears forced failures. |
@@ -241,7 +260,8 @@ against `api/openapi.yaml`:
   dialect;
 - every key sent must be named by the schema.
 
-Every `/ws` message is checked against `UpdateMessage`. One test fails if any operation of the spec
+Every `/ws` message is checked against `UpdateMessage`, every notification-socket message against
+`NotificationSocketMessage`. One test fails if any operation of the spec
 went uncalled, so a route added to petkit-local fails this suite until the mock serves it.
 
 The other tests cover:

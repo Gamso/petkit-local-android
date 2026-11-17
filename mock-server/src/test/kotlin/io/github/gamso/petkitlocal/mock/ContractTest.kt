@@ -6,6 +6,7 @@ import io.ktor.client.request.header
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
+import io.ktor.websocket.Frame
 import io.ktor.websocket.readText
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
@@ -295,15 +296,29 @@ class ContractTest {
             assertEquals(401, api.put("/notifications", body = """{"kinds":null}""", token = null).status)
         }
 
+    @Test
+    @Order(11)
+    fun `notifications ws - upgrade, plain GET and no session`() =
+        mockTest { _, api ->
+            assertEquals(401, api.get("/notifications/ws").status)
+            val token = api.login()
+            assertEquals(400, api.get("/notifications/ws").status)
+            api.client.webSocket("/app/v1/notifications/ws", request = { header(HttpHeaders.Authorization, "Bearer $token") }) {
+                val hello = (incoming.receive() as Frame.Text).readText()
+                assertEquals(emptyList<String>(), Contract.checkNotificationMessage(hello))
+            }
+            Coverage.record("GET", "/notifications/ws", 101)
+        }
+
     /**
-     * The notification socket and UnifiedPush (issue #23): in the spec, not served yet. Every
-     * session the mock hands out says `push: null`, which is true.
+     * UnifiedPush: in the spec, not served, as the app does not use it (ADR 0007). Every session
+     * the mock hands out says `push: null`, which is true. The notification socket is covered by
+     * NotifySocketTest.
      */
     private val pending =
         setOf(
             "PUT" to "/push",
             "DELETE" to "/push",
-            "GET" to "/notifications/ws",
         )
 
     @AfterAll

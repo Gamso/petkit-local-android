@@ -7,6 +7,7 @@ import io.github.gamso.petkitlocal.mock.api.MockJson
 import io.github.gamso.petkitlocal.mock.api.NotificationSettings
 import io.github.gamso.petkitlocal.mock.api.PetDetail
 import io.github.gamso.petkitlocal.mock.api.PetStats
+import io.github.gamso.petkitlocal.mock.api.PushMessage
 import io.github.gamso.petkitlocal.mock.api.ServerKind
 import io.github.gamso.petkitlocal.mock.api.TimelineItemDto
 import io.github.gamso.petkitlocal.mock.api.TimelinePage
@@ -66,10 +67,14 @@ class World(
 
     /** Live video: the test pattern's sockets and HLS views. */
     val live = LiveHub()
+
+    /** The notification socket and its catch-up log. */
+    val notify = NotifyChannel(clock, config.heartbeatSec)
     val auth =
         Auth(clock, config.lockoutBaseSec, config.lockoutMaxSec) { ended ->
             hub.end(Subscriber.CLOSE_SESSION_ENDED, "session ended") { it.session === ended }
             live.endSessions { it.id == ended.id }
+            notify.endSession(ended)
         }
     val devices = TreeMap<Int, MockDevice>()
     val pets = TreeMap<Int, Pet>()
@@ -104,25 +109,38 @@ class World(
             failures.clear()
             disabledKinds.clear()
             live.reset()
+            notify.reset()
             random = Random(config.seed + 1)
             Seed(this, Random(config.seed)).build()
             log.info("world reset: {} devices, {} pets, {} timeline cards", devices.size, pets.size, timeline.cards.size)
         }
 
-    /** `NotificationSettings` for [session]: no notification socket here, so never connected. */
+    /** `NotificationSettings` for [session]. */
     fun notificationSettings(session: AppSession) =
         synchronized(lock) {
             NotificationSettings(
                 kinds = session.kinds,
                 serverKinds = AppSession.NOTIFICATION_KINDS.map { ServerKind(it, it !in disabledKinds) },
-                connected = false,
-                lastId = 0,
+                connected = notify.connected(session),
+                lastId = notify.lastId,
             )
+        }
+
+    /**
+     * One notification, as petkit-local's notifier sends it once it passed its gates: a kind
+     * switched off in the panel reaches no phone. Returns its id, or null when no phone using the
+     * notification socket wanted it.
+     */
+    fun sendNotification(message: PushMessage): Long? =
+        synchronized(lock) {
+            if (message.kind in disabledKinds) return@synchronized null
+            notify.deliver(message, auth.sessions())
         }
 
     fun shutdown() {
         hub.end(Subscriber.CLOSE_GOING_AWAY, "server shutting down")
         live.end(LiveViewer.CLOSE_GOING_AWAY, "server shutting down")
+        synchronized(lock) { notify.end(Subscriber.CLOSE_GOING_AWAY, "server shutting down") }
         scope.cancel()
     }
 

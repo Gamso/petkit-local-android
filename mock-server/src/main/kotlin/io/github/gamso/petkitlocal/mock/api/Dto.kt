@@ -382,3 +382,37 @@ data class UpdateTimeline(
     val item: TimelineItemDto,
     val replaces: List<Int>,
 )
+
+// --- /notifications/ws messages -----------------------------------------------------------------
+
+/** `PushMessage`: stable keys only, the same body a UnifiedPush endpoint would be sent. */
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+data class PushMessage(
+    @EncodeDefault val v: Int = 1,
+    val kind: String,
+    @SerialName("device_id") val deviceId: Int?,
+    @SerialName("pet_id") val petId: Int?,
+    val code: String?,
+    val ts: Long,
+)
+
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+data class NotificationHello(
+    @EncodeDefault val type: String = "hello",
+    @SerialName("server_time") val serverTime: Double,
+    @SerialName("heartbeat_sec") val heartbeatSec: Double,
+    @SerialName("last_id") val lastId: Long,
+    val replayed: Int,
+    val gap: Boolean,
+)
+
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+data class NotificationDelivery(
+    @EncodeDefault val type: String = "notification",
+    val id: Long,
+    val replay: Boolean,
+    val message: PushMessage,
+)

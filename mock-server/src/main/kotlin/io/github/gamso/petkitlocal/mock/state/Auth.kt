@@ -21,6 +21,11 @@ class AppSession(
     /** The notification kinds this phone chose, in the server's order; null for every kind. */
     var kinds: List<String>? = null
 
+    /** When this session first opened the notification socket; from then on it is owed catch-up. */
+    var notifyWs: Double? = null
+
+    fun allows(kind: String): Boolean = kinds?.contains(kind) ?: true
+
     fun dto() = SessionDto(id, name, created, lastUsed, expires, kinds)
 
     companion object {
