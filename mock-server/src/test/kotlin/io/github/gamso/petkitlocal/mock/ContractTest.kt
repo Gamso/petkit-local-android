@@ -280,16 +280,29 @@ class ContractTest {
             Coverage.record("GET", "/ws", 101)
         }
 
+    @Test
+    @Order(10)
+    fun `notifications - this session's kinds`() =
+        mockTest { _, api ->
+            assertEquals(401, api.get("/notifications").status)
+            api.login()
+            assertEquals(200, api.get("/notifications").status)
+            assertEquals(200, api.put("/notifications", body = """{"kinds":["toilet"]}""").status)
+            assertEquals(200, api.put("/notifications", body = """{"kinds":null}""").status)
+            assertEquals(400, api.put("/notifications", body = """{"kinds":"toilet"}""").status)
+            assertEquals(400, api.put("/notifications", body = "{").status)
+            assertEquals(415, api.call(HttpMethod.Put, "/notifications", body = "x", contentType = ContentType.Text.Plain).status)
+            assertEquals(401, api.put("/notifications", body = """{"kinds":null}""", token = null).status)
+        }
+
     /**
-     * Notifications over the app's own connection and UnifiedPush (issue #23): in the spec, not
-     * served yet. Every session the mock hands out says `kinds: null, push: null`, which is true.
+     * The notification socket and UnifiedPush (issue #23): in the spec, not served yet. Every
+     * session the mock hands out says `push: null`, which is true.
      */
     private val pending =
         setOf(
             "PUT" to "/push",
             "DELETE" to "/push",
-            "GET" to "/notifications",
-            "PUT" to "/notifications",
             "GET" to "/notifications/ws",
         )
 

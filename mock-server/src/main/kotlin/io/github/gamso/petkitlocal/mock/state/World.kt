@@ -4,8 +4,10 @@ import io.github.gamso.petkitlocal.mock.MockClock
 import io.github.gamso.petkitlocal.mock.MockConfig
 import io.github.gamso.petkitlocal.mock.api.ApiException
 import io.github.gamso.petkitlocal.mock.api.MockJson
+import io.github.gamso.petkitlocal.mock.api.NotificationSettings
 import io.github.gamso.petkitlocal.mock.api.PetDetail
 import io.github.gamso.petkitlocal.mock.api.PetStats
+import io.github.gamso.petkitlocal.mock.api.ServerKind
 import io.github.gamso.petkitlocal.mock.api.TimelineItemDto
 import io.github.gamso.petkitlocal.mock.api.TimelinePage
 import io.github.gamso.petkitlocal.mock.api.UpdateDevice
@@ -75,6 +77,9 @@ class World(
     val media = HashMap<String, MediaEntry>()
     val failures = mutableListOf<ForcedFailure>()
 
+    /** Notification kinds switched off in the "panel" (control API): sent to no phone. */
+    val disabledKinds = mutableSetOf<String>()
+
     /** The scenario engine's dice; history has its own, so both replay the same for one seed. */
     var random = Random(config.seed + 1)
         private set
@@ -97,10 +102,22 @@ class World(
             timeline.clear()
             media.clear()
             failures.clear()
+            disabledKinds.clear()
             live.reset()
             random = Random(config.seed + 1)
             Seed(this, Random(config.seed)).build()
             log.info("world reset: {} devices, {} pets, {} timeline cards", devices.size, pets.size, timeline.cards.size)
+        }
+
+    /** `NotificationSettings` for [session]: no notification socket here, so never connected. */
+    fun notificationSettings(session: AppSession) =
+        synchronized(lock) {
+            NotificationSettings(
+                kinds = session.kinds,
+                serverKinds = AppSession.NOTIFICATION_KINDS.map { ServerKind(it, it !in disabledKinds) },
+                connected = false,
+                lastId = 0,
+            )
         }
 
     fun shutdown() {

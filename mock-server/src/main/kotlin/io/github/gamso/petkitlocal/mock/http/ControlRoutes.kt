@@ -92,6 +92,7 @@ private val CONTROL_ROUTES =
         "DELETE /mock/sessions/{id}                   revoke one (its sockets close 4401)",
         "DELETE /mock/sessions                        revoke all",
         "PUT    /mock/password                        {password: string | null}  null = no password set",
+        "PUT    /mock/notifications                   {disabled: [kind, ...]}  the panel's per-kind switches off",
         "POST   /mock/fail                            {method, path, status, error?, message?, retry_after?, times?}",
         "DELETE /mock/fail                            clear forced failures",
         "POST   /mock/ws/close                        {code?, reason?}  close every /ws socket (1001, 1013, 4401...)",
@@ -227,6 +228,7 @@ private fun Route.sessionControl(world: World) {
                                 put("created", it.created)
                                 put("last_used", it.lastUsed)
                                 put("expires", it.expires)
+                                put("kinds", it.kinds?.let { k -> JsonArray(k.map(::JsonPrimitive)) } ?: JsonNull)
                             }
                         },
                     ),
@@ -242,6 +244,19 @@ private fun Route.sessionControl(world: World) {
     delete("/sessions") {
         val revoked = synchronized(world.lock) { world.auth.revokeAll() }
         call.ok(buildJsonObject { put("revoked", revoked) })
+    }
+    put("/notifications") {
+        val list = call.jsonBody()["disabled"] as? JsonArray ?: throw ApiException(400, "bad_request", "send {\"disabled\": [kind, ...]}")
+        val disabled =
+            list.map {
+                (it as? JsonPrimitive)?.takeIf { p -> p.isString }?.content
+                    ?: throw ApiException(400, "bad_request", "kinds are strings")
+            }
+        synchronized(world.lock) {
+            world.disabledKinds.clear()
+            world.disabledKinds += disabled
+        }
+        call.ok()
     }
     put("/password") {
         val body = call.jsonBody()

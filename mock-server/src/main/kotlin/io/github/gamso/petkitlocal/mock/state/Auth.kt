@@ -18,7 +18,10 @@ class AppSession(
 ) {
     val expires: Double get() = lastUsed + SESSION_IDLE_LIFETIME
 
-    fun dto() = SessionDto(id, name, created, lastUsed, expires)
+    /** The notification kinds this phone chose, in the server's order; null for every kind. */
+    var kinds: List<String>? = null
+
+    fun dto() = SessionDto(id, name, created, lastUsed, expires, kinds)
 
     companion object {
         /** 90 days without use. */
@@ -30,6 +33,12 @@ class AppSession(
         const val MAX_DEVICE_NAME = 64
         const val MIN_PASSWORD_LENGTH = 8
         const val MAX_PASSWORD_LENGTH = 1024
+
+        /** `NotificationKind`, in petkit-local's order (`notify/settings.py::KINDS`). */
+        val NOTIFICATION_KINDS = listOf("toilet", "feed_served", "feed_failed", "error", "food_low", "consumable", "offline")
+
+        /** Entries accepted in `kinds` (`push.py::MAX_KINDS`). */
+        const val MAX_KINDS = 32
     }
 }
 
