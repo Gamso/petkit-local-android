@@ -41,6 +41,8 @@ import org.petkitlocal.feature.pets.navigateToPet
 import org.petkitlocal.feature.pets.navigateToPets
 import org.petkitlocal.feature.pets.petsScreens
 import org.petkitlocal.feature.settings.SettingsNavigation
+import org.petkitlocal.feature.settings.licences.licencesScreen
+import org.petkitlocal.feature.settings.licences.navigateToLicences
 import org.petkitlocal.feature.settings.navigateToSettings
 import org.petkitlocal.feature.settings.settingsScreen
 
@@ -126,9 +128,11 @@ fun PetkitNavHost(
             SettingsNavigation(
                 onBack = back,
                 onChangePassword = { navController.navigateToChangePassword() },
+                onOpenLicences = { navController.navigateToLicences() },
             ),
         )
         changePasswordScreen(onBack = back)
+        licencesScreen(onBack = back)
     }
     LaunchedEffect(signedIn) { navController.followSession(signedIn) }
 }

@@ -41,9 +41,12 @@ class SettingsScreenTest {
         onRetry = { calls += "retry" },
         onKindToggle = { kind, on -> calls += "$kind=$on" },
         onChangePassword = { calls += "password" },
+        onOpenLicences = { calls += "licences" },
+        onAppLicenceClick = { calls += "app licence" },
         onSignOutClick = { calls += "sign out" },
         onSignOutConfirm = { calls += "confirm" },
         onSignOutDismiss = { calls += "dismiss" },
+        onAppLicenceDismiss = { calls += "app licence dismissed" },
     )
 
     private fun show(state: SettingsUiState) = compose.setContent {
@@ -59,8 +62,12 @@ class SettingsScreenTest {
         compose.onNodeWithTag(SettingsTestTags.kind(NotificationKinds.TOILET)).performScrollTo().performClick()
         compose.onNodeWithTag(SettingsTestTags.CHANGE_PASSWORD).performScrollTo().performClick()
         compose.onNodeWithTag(SettingsTestTags.SIGN_OUT).performScrollTo().performClick()
+        compose.onNodeWithTag(SettingsTestTags.APP_LICENCE).performScrollTo().performClick()
+        compose.onNodeWithTag(SettingsTestTags.LICENCES).performScrollTo().performClick()
 
-        assertEquals(listOf("back", "feed_served=true", "toilet=false", "password", "sign out"), calls)
+        val expected =
+            listOf("back", "feed_served=true", "toilet=false", "password", "sign out", "app licence", "licences")
+        assertEquals(expected, calls)
     }
 
     @Test
@@ -95,6 +102,15 @@ class SettingsScreenTest {
 
         compose.onNodeWithTag(SettingsTestTags.NOTIFICATIONS_ERROR).performScrollTo()
         compose.onNodeWithText("notification choices cannot be shown", substring = true).assertExists()
+    }
+
+    @Test
+    fun `the app's licence shows its name, and its text in a dialog`() {
+        show(SettingsPreviewData.loaded.copy(showingAppLicence = true))
+
+        compose.onNodeWithText("Copyright (c) 2026 Gamso", substring = true).assertExists()
+        compose.onNodeWithText("Close").performClick()
+        assertEquals(listOf("app licence dismissed"), calls)
     }
 
     @Test

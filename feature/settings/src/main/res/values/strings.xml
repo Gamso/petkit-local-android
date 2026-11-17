@@ -49,4 +49,21 @@
     <string name="settings_app_version">Petkit Local version</string>
     <string name="settings_app_version_help">New versions are published on the project\'s GitHub releases page.</string>
     <string name="settings_not_affiliated">Petkit Local is an independent project. It is not affiliated with, endorsed by or connected to PetKit.</string>
+
+    <string name="settings_licences">Open-source licences</string>
+    <string name="settings_licences_help">The open-source libraries, fonts and icons the app ships, and their licences.</string>
+    <string name="settings_licences_title">Open-source licences</string>
+    <string name="settings_licences_intro">The open-source libraries Petkit Local is built on, by project, and the fonts and icons it ships. Tap one to read its licence.</string>
+    <string name="settings_licences_androidx">AndroidX and Jetpack Compose</string>
+    <plurals name="settings_licences_components">
+        <item quantity="one">%d component</item>
+        <item quantity="other">%d components</item>
+    </plurals>
+    <string name="settings_licences_expanded">Unfolded</string>
+    <string name="settings_licences_collapsed">Folded</string>
+    <string name="settings_licence_close">Close</string>
+    <string name="settings_licence_text_missing">The full text of this licence is not bundled.</string>
+    <string name="settings_app_licence">Petkit Local licence</string>
+    <string name="settings_app_licence_help">%1$s: what you may do with the app and its source code.</string>
+    <string name="settings_app_licence_title">Petkit Local</string>
 </resources>

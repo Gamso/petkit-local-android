@@ -26,6 +26,7 @@ import org.petkitlocal.core.designsystem.component.PkConfirmDialog
 import org.petkitlocal.core.designsystem.component.PkPreviewSurface
 import org.petkitlocal.core.designsystem.component.PkPreviews
 import org.petkitlocal.core.designsystem.theme.PkTheme
+import org.petkitlocal.feature.settings.licences.LicenceDialog
 
 /** The callbacks of [SettingsScreen], one per user intent. */
 internal class SettingsActions(
@@ -33,6 +34,9 @@ internal class SettingsActions(
     val onRetry: () -> Unit = {},
     val onKindToggle: (kind: String, on: Boolean) -> Unit = { _, _ -> },
     val onChangePassword: () -> Unit = {},
+    val onOpenLicences: () -> Unit = {},
+    val onAppLicenceClick: () -> Unit = {},
+    val onAppLicenceDismiss: () -> Unit = {},
     val onSignOutClick: () -> Unit = {},
     val onSignOutConfirm: () -> Unit = {},
     val onSignOutDismiss: () -> Unit = {},
@@ -48,6 +52,9 @@ internal fun SettingsRoute(navigation: SettingsNavigation, viewModel: SettingsVi
             onRetry = viewModel::onRetry,
             onKindToggle = viewModel::onKindToggle,
             onChangePassword = navigation.onChangePassword,
+            onOpenLicences = navigation.onOpenLicences,
+            onAppLicenceClick = viewModel::onAppLicenceClick,
+            onAppLicenceDismiss = viewModel::onAppLicenceDismiss,
             onSignOutClick = viewModel::onSignOutClick,
             onSignOutConfirm = viewModel::onSignOutConfirm,
             onSignOutDismiss = viewModel::onSignOutDismiss,
@@ -83,7 +90,15 @@ internal fun SettingsScreen(uiState: SettingsUiState, actions: SettingsActions, 
         NotificationsSection(uiState, actions)
         PhoneSection(uiState)
         AccountSection(uiState, actions)
-        AboutSection(uiState)
+        AboutSection(uiState, actions)
+    }
+    val appLicence = uiState.appLicence
+    if (uiState.showingAppLicence && appLicence != null) {
+        LicenceDialog(
+            stringResource(R.string.settings_app_licence_title),
+            listOf(appLicence),
+            actions.onAppLicenceDismiss,
+        )
     }
     if (uiState.confirmingSignOut) {
         PkConfirmDialog(
@@ -121,6 +136,8 @@ object SettingsTestTags {
     const val CHANGE_PASSWORD = "settings_change_password"
     const val SIGN_OUT = "settings_sign_out"
     const val APP_VERSION = "settings_app_version"
+    const val LICENCES = "settings_licences"
+    const val APP_LICENCE = "settings_app_licence"
 
     fun kind(kind: String) = "settings_kind_$kind"
 }

@@ -19,8 +19,12 @@ import org.petkitlocal.core.domain.auth.GetServerInfoUseCase
 import org.petkitlocal.core.domain.auth.ObserveAuthStateUseCase
 import org.petkitlocal.core.domain.auth.SignOutUseCase
 import org.petkitlocal.core.domain.settings.AppVersionProvider
+import org.petkitlocal.core.domain.settings.GetAppLicenceUseCase
 import org.petkitlocal.core.domain.settings.GetNotificationSettingsUseCase
 import org.petkitlocal.core.domain.settings.NotificationKinds
+import org.petkitlocal.core.domain.settings.OpenSourceComponent
+import org.petkitlocal.core.domain.settings.OpenSourceLicence
+import org.petkitlocal.core.domain.settings.OpenSourceLicencesRepository
 import org.petkitlocal.core.domain.settings.SetNotificationKindUseCase
 import org.petkitlocal.core.testing.FakeAuthRepository
 import org.petkitlocal.core.testing.FakeNotificationSettingsRepository
@@ -34,6 +38,11 @@ class SettingsViewModelTest {
 
     private val auth = FakeAuthRepository(AuthState.SignedIn("https://pets.example.com"))
     private val notifications = FakeNotificationSettingsRepository()
+    private val licences = object : OpenSourceLicencesRepository {
+        override suspend fun components() = emptyList<OpenSourceComponent>()
+
+        override suspend fun appLicence() = MIT
+    }
 
     private fun TestScope.viewModel() = SettingsViewModel(
         signOut = SignOutUseCase(auth),
@@ -42,21 +51,21 @@ class SettingsViewModelTest {
         notificationSettings = GetNotificationSettingsUseCase(notifications),
         setNotificationKind = SetNotificationKindUseCase(notifications),
         appVersion = AppVersionProvider { "0.1.0" },
+        appLicence = GetAppLicenceUseCase(licences),
     ).also { viewModel ->
         backgroundScope.launch { viewModel.uiState.collect {} }
         runCurrent()
     }
 
     @Test
-    fun `shows the server, its version, this phone's name and the app's version`() =
-        runTest(main.dispatcher) {
-            val state = viewModel().uiState.value
+    fun `shows the server, its version, this phone's name and the app's version`() = runTest(main.dispatcher) {
+        val state = viewModel().uiState.value
 
-            assertEquals("https://pets.example.com", state.server)
-            assertEquals(Loaded.Ready(ServerDetails("1.4.0", "Pixel 8")), state.details)
-            assertEquals("0.1.0", state.appVersion)
-            assertEquals(Loaded.Ready(FakeNotificationSettingsRepository.DEFAULT), state.notifications)
-        }
+        assertEquals("https://pets.example.com", state.server)
+        assertEquals(Loaded.Ready(ServerDetails("1.4.0", "Pixel 8")), state.details)
+        assertEquals("0.1.0", state.appVersion)
+        assertEquals(Loaded.Ready(FakeNotificationSettingsRepository.DEFAULT), state.notifications)
+    }
 
     @Test
     fun `what could not be read is said, and a retry reads only that again`() = runTest(main.dispatcher) {
@@ -111,6 +120,17 @@ class SettingsViewModelTest {
     }
 
     @Test
+    fun `the app's own licence is read, and opens in a dialog`() = runTest(main.dispatcher) {
+        val viewModel = viewModel()
+        assertEquals(MIT, viewModel.uiState.value.appLicence)
+
+        viewModel.onAppLicenceClick()
+        assertTrue(viewModel.uiState.value.showingAppLicence)
+        viewModel.onAppLicenceDismiss()
+        assertFalse(viewModel.uiState.value.showingAppLicence)
+    }
+
+    @Test
     fun `signing out asks first, and a dismissal changes nothing`() = runTest(main.dispatcher) {
         val viewModel = viewModel()
 
@@ -140,5 +160,9 @@ class SettingsViewModelTest {
         assertFalse(viewModel.uiState.value.signingOut)
         assertEquals(AuthState.SignedOut(null), auth.authState.value)
         assertNull(viewModel.uiState.value.server)
+    }
+
+    private companion object {
+        val MIT = OpenSourceLicence("MIT License", "MIT License text")
     }
 }

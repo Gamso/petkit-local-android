@@ -120,9 +120,12 @@ internal fun AccountSection(uiState: SettingsUiState, actions: SettingsActions) 
     }
 }
 
-/** The app's version and that it is not PetKit's. No PetKit name in a logo, no PetKit image. */
+/**
+ * The app's version, that it is not PetKit's (no PetKit logo or image anywhere), its own licence,
+ * and the open-source components it ships with theirs.
+ */
 @Composable
-internal fun AboutSection(uiState: SettingsUiState) {
+internal fun AboutSection(uiState: SettingsUiState, actions: SettingsActions) {
     SettingsSection(stringResource(R.string.settings_section_about)) {
         InfoRow(
             name = stringResource(R.string.settings_app_version),
@@ -131,6 +134,18 @@ internal fun AboutSection(uiState: SettingsUiState) {
             modifier = Modifier.testTag(SettingsTestTags.APP_VERSION),
         )
         SectionNote(stringResource(R.string.settings_not_affiliated))
+        LinkRow(
+            name = stringResource(R.string.settings_app_licence),
+            help = uiState.appLicence?.let { stringResource(R.string.settings_app_licence_help, it.name) },
+            onClick = actions.onAppLicenceClick,
+            modifier = Modifier.testTag(SettingsTestTags.APP_LICENCE),
+        )
+        LinkRow(
+            name = stringResource(R.string.settings_licences),
+            help = stringResource(R.string.settings_licences_help),
+            onClick = actions.onOpenLicences,
+            modifier = Modifier.testTag(SettingsTestTags.LICENCES),
+        )
     }
 }
 

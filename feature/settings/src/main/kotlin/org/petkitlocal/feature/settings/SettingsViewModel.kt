@@ -17,8 +17,10 @@ import org.petkitlocal.core.domain.auth.GetServerInfoUseCase
 import org.petkitlocal.core.domain.auth.ObserveAuthStateUseCase
 import org.petkitlocal.core.domain.auth.SignOutUseCase
 import org.petkitlocal.core.domain.settings.AppVersionProvider
+import org.petkitlocal.core.domain.settings.GetAppLicenceUseCase
 import org.petkitlocal.core.domain.settings.GetNotificationSettingsUseCase
 import org.petkitlocal.core.domain.settings.NotificationSettings
+import org.petkitlocal.core.domain.settings.OpenSourceLicence
 import org.petkitlocal.core.domain.settings.SetNotificationKindUseCase
 
 /** Something read from the server: not yet, read, or not readable now. */
@@ -48,6 +50,10 @@ data class SettingsUiState(
     val kindNotSaved: Boolean = false,
     /** This build's version, for About. */
     val appVersion: String = "",
+    /** The app's own licence, read from the APK; null for the few milliseconds that takes. */
+    val appLicence: OpenSourceLicence? = null,
+    /** The app's licence text is open in a dialog. */
+    val showingAppLicence: Boolean = false,
     val confirmingSignOut: Boolean = false,
     val signingOut: Boolean = false,
 )
@@ -61,6 +67,7 @@ class SettingsViewModel @Inject constructor(
     private val notificationSettings: GetNotificationSettingsUseCase,
     private val setNotificationKind: SetNotificationKindUseCase,
     appVersion: AppVersionProvider,
+    appLicence: GetAppLicenceUseCase,
 ) : ViewModel() {
     private val local = MutableStateFlow(SettingsUiState(appVersion = appVersion.versionName()))
 
@@ -71,6 +78,10 @@ class SettingsViewModel @Inject constructor(
 
     init {
         load()
+        viewModelScope.launch {
+            val licence = appLicence()
+            local.update { it.copy(appLicence = licence) }
+        }
     }
 
     /** Reads again what could not be read: the server's details and the notification kinds. */
@@ -95,6 +106,10 @@ class SettingsViewModel @Inject constructor(
             }
         }
     }
+
+    fun onAppLicenceClick() = local.update { it.copy(showingAppLicence = it.appLicence != null) }
+
+    fun onAppLicenceDismiss() = local.update { it.copy(showingAppLicence = false) }
 
     fun onSignOutClick() = local.update { it.copy(confirmingSignOut = true) }
 

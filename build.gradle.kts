@@ -1,6 +1,7 @@
 // Every plugin is declared here once, unapplied, so the convention plugins in build-logic and
 // every module load the same version from the same classloader.
 plugins {
+    alias(libs.plugins.aboutlibraries.android) apply false
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.android.library) apply false
     alias(libs.plugins.compose.compiler) apply false

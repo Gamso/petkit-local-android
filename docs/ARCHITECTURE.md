@@ -20,6 +20,7 @@ per feature. Decisions that are hard to undo are recorded as ADRs in `docs/adr/`
 | Charts | Compose `Canvas` | Few, simple charts; no charting dependency |
 | Notifications | A foreground service holding the server's notification WebSocket (OkHttp) | No other app, server or Google service required |
 | Navigation | Navigation Compose with type-safe routes | Standard, testable |
+| Open-source licences | AboutLibraries Gradle plugin and core (no UI library): the list is generated into the APK, restricted to the release build's direct dependencies (build-logic `directExternalDependencies`); our own screens group it by project | Apache 2.0 wants the licence to travel with the APK; no Google Play services (so not Google's oss-licenses plugin) |
 | Static analysis | ktlint, detekt, Android lint | CI gate |
 | Tests | JUnit 5, MockK, Turbine, kotlinx-coroutines-test, Robolectric, Compose UI tests, screenshot tests | One layer each, below |
 

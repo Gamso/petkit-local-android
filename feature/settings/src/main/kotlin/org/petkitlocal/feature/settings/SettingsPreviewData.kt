@@ -2,6 +2,7 @@ package org.petkitlocal.feature.settings
 
 import org.petkitlocal.core.domain.settings.NotificationKinds
 import org.petkitlocal.core.domain.settings.NotificationSettings
+import org.petkitlocal.core.domain.settings.OpenSourceLicence
 import org.petkitlocal.core.domain.settings.ServerNotificationKind
 
 /** States of the settings screen for previews and screenshot tests. */
@@ -21,6 +22,7 @@ internal object SettingsPreviewData {
         details = Loaded.Ready(ServerDetails(version = "1.4.0", phoneName = "Google Pixel 8")),
         notifications = Loaded.Ready(notifications),
         appVersion = "0.1.0",
+        appLicence = OpenSourceLicence("MIT License", "MIT License\n\nCopyright (c) 2026 Gamso"),
     )
 
     /** The server out of reach: nothing read, a switch flip that did not get through. */
