@@ -142,15 +142,21 @@ ntfy app would to an ntfy server. The server side is petkit-local issue 89.
     replays what was missed.
   - Close code `4401` stops the service and ends the session (sign-in, with the reason).
 - **Battery**: the app asks once, with an explanation, to be exempted from battery optimisation
-  (`REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`); without it, Doze delays alerts. Settings shows the
-  state and the shortcut to fix it.
+  (`REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`) when notifications are turned on; without it, Doze
+  delays alerts. Settings shows the state and the shortcut to fix it, next to the notifications
+  switch, as it does for Android 13's notification permission.
 - **Kinds**: the kinds chosen in Settings are sent to the server, which filters per phone; the
   app does not drop what the server sent.
 - **Delivery**:
   - Messages are small JSON documents: kind, device id, pet id, event code, timestamp, id.
   - The service maps them through the same keyed translations as the UI and posts a notification
-    on the channel for its kind, in the phone's language.
-  - Tapping it opens the device or the History entry by deep link.
+    on the channel for its kind, in the phone's language. Channel importance follows
+    petkit-local's own priorities: low for visits and meals, high for faults, failed meals and
+    offline devices. A notification's Android id is the server's id, so one delivered twice
+    replaces itself; a batch replayed on reconnection makes one sound.
+  - Tapping it opens the device (a condition: food low, a consumable, offline) or the device's
+    History on the day it happened (an event), through a link in an explicit intent to the app's
+    own activity, which has no intent filter for it.
   - The connection's own ongoing notification sits on a separate, minimum-importance channel.
 
 ## 6. Testing

@@ -126,8 +126,10 @@ screen).
 
 ### 8 · Settings
 - Server: address, server version.
-- Notifications: on/off, connection state (connected, reconnecting, battery optimisation still
-  on, notification permission refused, each with the action that fixes it) and the kinds to show.
+- Notifications: on/off for this phone; while on, what Android must still allow (the notification
+  permission from Android 13, the battery-optimisation exemption), each with the action that
+  fixes it; and the kinds to show. Whether the connection is up is said by its own ongoing
+  notification, not here.
 - App: this phone's name. No language or theme setting: the app follows the phone's language
   and its light or dark theme.
 - Change password (needs the current one; signs out every other phone), sign out.
