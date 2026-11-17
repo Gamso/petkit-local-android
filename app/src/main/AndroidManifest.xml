@@ -22,11 +22,13 @@
         tools:targetApi="33">
         <!-- Turning the phone (the live video's full screen is landscape) or resizing the window
              recomposes the screens instead of recreating the activity, so a playing video keeps
-             its player and its socket. -->
+             its player and its socket. singleTop: a tapped notification reaches the running
+             activity (onNewIntent) rather than stacking a second one. -->
         <activity
             android:name=".MainActivity"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
-            android:exported="true">
+            android:exported="true"
+            android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

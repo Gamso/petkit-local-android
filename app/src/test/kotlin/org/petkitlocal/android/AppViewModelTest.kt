@@ -1,5 +1,6 @@
 package org.petkitlocal.android
 
+import java.time.LocalDate
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runCurrent
@@ -12,6 +13,7 @@ import org.petkitlocal.core.domain.auth.AuthState
 import org.petkitlocal.core.domain.auth.ObserveAuthStateUseCase
 import org.petkitlocal.core.domain.auth.ValidateSessionUseCase
 import org.petkitlocal.core.domain.device.ObserveLiveUpdatesUseCase
+import org.petkitlocal.core.domain.notifications.NotificationTarget
 import org.petkitlocal.core.testing.FakeAuthRepository
 import org.petkitlocal.core.testing.FakeLiveUpdatesRepository
 import org.petkitlocal.core.testing.MainDispatcherExtension
@@ -50,6 +52,17 @@ class AppViewModelTest {
         job.cancel()
         runCurrent()
         assertEquals(0, live.collectors.value)
+    }
+
+    @Test
+    fun `a tapped notification's page waits for the navigation, which opens it once`() {
+        val target = NotificationTarget.History(1002, LocalDate.of(2026, 11, 16))
+
+        viewModel.onNotificationOpened(target)
+        assertEquals(target, viewModel.openTarget.value)
+
+        viewModel.onTargetHandled()
+        assertEquals(null, viewModel.openTarget.value)
     }
 
     @Test

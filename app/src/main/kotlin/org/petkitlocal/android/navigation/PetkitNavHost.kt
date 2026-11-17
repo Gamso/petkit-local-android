@@ -17,6 +17,7 @@ import androidx.navigation.compose.rememberNavController
 import org.petkitlocal.android.AppViewModel
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.auth.AuthState
+import org.petkitlocal.core.domain.notifications.NotificationTarget
 import org.petkitlocal.core.domain.repository.LiveUpdatesStatus
 import org.petkitlocal.feature.auth.SignInDestination
 import org.petkitlocal.feature.auth.password.changePasswordScreen
@@ -60,7 +61,8 @@ fun PetkitApp(viewModel: AppViewModel) {
     } else {
         val signedIn = authState is AuthState.SignedIn
         if (signedIn) LiveUpdates(viewModel)
-        PetkitNavHost(signedIn = signedIn)
+        val target by viewModel.openTarget.collectAsStateWithLifecycle()
+        PetkitNavHost(signedIn = signedIn, target = target, onTargetHandled = viewModel::onTargetHandled)
     }
 }
 
@@ -83,6 +85,8 @@ private fun LiveUpdates(viewModel: AppViewModel) {
 fun PetkitNavHost(
     signedIn: Boolean,
     modifier: Modifier = Modifier,
+    target: NotificationTarget? = null,
+    onTargetHandled: () -> Unit = {},
     navController: NavHostController = rememberNavController(),
 ) {
     val back: () -> Unit = { navController.popBackStack() }
@@ -135,6 +139,21 @@ fun PetkitNavHost(
         licencesScreen(onBack = back)
     }
     LaunchedEffect(signedIn) { navController.followSession(signedIn) }
+    // After followSession: a tapped notification opens its page over Home, so back leads there.
+    LaunchedEffect(signedIn, target) {
+        if (target == null) return@LaunchedEffect
+        if (signedIn) navController.open(target)
+        onTargetHandled()
+    }
+}
+
+/** A notification's page: its device, or its device's History on the day it happened. */
+internal fun NavController.open(target: NotificationTarget) {
+    when (target) {
+        NotificationTarget.Home -> Unit
+        is NotificationTarget.Device -> navigateToDevice(target.deviceId)
+        is NotificationTarget.History -> navigateToHistory(deviceId = target.deviceId, day = target.day)
+    }
 }
 
 /**
