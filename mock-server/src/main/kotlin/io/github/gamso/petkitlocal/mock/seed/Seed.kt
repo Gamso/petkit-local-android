@@ -19,7 +19,9 @@ import io.github.gamso.petkitlocal.mock.state.drinkCard
 import io.github.gamso.petkitlocal.mock.state.errorCard
 import io.github.gamso.petkitlocal.mock.state.errorClearedCard
 import io.github.gamso.petkitlocal.mock.state.feedCard
+import io.github.gamso.petkitlocal.mock.state.feederPetCard
 import io.github.gamso.petkitlocal.mock.state.petAppearedCard
+import io.github.gamso.petkitlocal.mock.state.servedPortions
 import io.github.gamso.petkitlocal.mock.state.syncPlan
 import io.github.gamso.petkitlocal.mock.state.visitFinished
 import io.github.gamso.petkitlocal.mock.state.visitStarted
@@ -282,9 +284,37 @@ class Seed(
             plan.groups.filter { deviceDay in it.days }.flatMap { it.meals }.forEach { meal ->
                 val ts = start + meal.t + rng.nextInt(2, 9)
                 val portions = if (plan.dual) (meal.a1 ?: 0) + (meal.a2 ?: 0) else meal.a ?: 0
-                if (ts < horizon && portions > 0) at(ts) { world.feedCard(device, ts, portions, FeedSource.SCHEDULE) }
+                if (ts < horizon && portions > 0) {
+                    at(ts) { world.feedCard(device, ts, FeedSource.SCHEDULE, meal.a, meal.a1, meal.a2) }
+                }
             }
         }
+        if (offset == 0) todayAtTheFeeders(start, horizon)
+    }
+
+    /**
+     * Whatever the hour, today already holds on the feeders a meal served from the app, one that
+     * put nothing out, and a cat at the camera: the feeder page's day has every kind of row to
+     * show. Placed at fixed fractions of the day so far, without the RNG, so the rest of the seed
+     * replays unchanged.
+     */
+    private fun todayAtTheFeeders(
+        start: Double,
+        horizon: Double,
+    ) {
+        val sofar = horizon - start
+        if (sofar < MIN_DAY_SO_FAR) return
+
+        fun t(fraction: Double) = start + sofar * fraction
+        listOf(
+            t(0.30) to { world.feedCard(dev(D4), t(0.30), FeedSource.APP, 1) },
+            t(0.55) to { world.feedCard(dev(D4), t(0.55), FeedSource.SCHEDULE, 1, failure = "nothing dispensed") },
+            t(0.35) to { world.feedCard(dev(D4H), t(0.35), FeedSource.APP, 2) },
+            t(0.60) to { world.feederPetCard(dev(D4H), t(0.60), 2) },
+            t(0.40) to { world.feedCard(dev(D4SH), t(0.40), FeedSource.APP, null, 1, 1) },
+            t(0.50) to { world.feedCard(dev(D4SH), t(0.50), FeedSource.SCHEDULE, null, 1, 1, "nothing dispensed") },
+            t(0.65) to { world.feederPetCard(dev(D4SH), t(0.65), 1) },
+        ).forEach { (ts, play) -> at(ts) { play() } }
     }
 
     /** What the latest history leaves on each device's sensors. */
@@ -309,18 +339,18 @@ class Seed(
                 device["state.totalTime"] = visits.filter { it.ts >= todayStart }.sumOf { it.durationSec ?: 0 }
             }
             if (device.isFeeder) {
-                val meals = mine.filter { it.kind == "feeding" && it.ts >= todayStart }
-                val portions =
-                    meals.sumOf { c ->
-                        world.timeline.rows[c.id]
-                            ?.fields
-                            ?.firstOrNull { it.key == "amount" }
-                            ?.text
-                            ?.toInt() ?: 0
-                    }
+                val served =
+                    mine
+                        .filter { it.kind == "feeding" && it.ts >= todayStart }
+                        .associateWith { world.timeline.rows[it.id]?.servedPortions() ?: 0 }
+                        .filterValues { it > 0 }
+                val meals = served.keys.toList()
+                val portions = served.values.sum()
                 device["state.feedState.times"] = meals.size
                 device["state.feedState.realAmountTotal"] = portions * GRAMS_PER_PORTION
-                mine.firstOrNull { it.kind == "feeding" }?.let { device["state.lastFeed"] = world.iso(it.ts) }
+                mine
+                    .firstOrNull { it.kind == "feeding" && (world.timeline.rows[it.id]?.servedPortions() ?: 0) > 0 }
+                    ?.let { device["state.lastFeed"] = world.iso(it.ts) }
                 if (device.has("amount_eaten")) device["state.feedState.eatAmountTotal"] = (portions * GRAMS_PER_PORTION * 0.8).roundToInt()
                 if (device.isDualHopper) {
                     device["state.feedState.planAmountTotal1"] = meals.size
@@ -353,6 +383,9 @@ class Seed(
     }
 
     companion object {
+        /** Less of today than this, and the feeders' day starts empty: there is no room for it. */
+        private const val MIN_DAY_SO_FAR = 600.0
+
         /** A deodorizing cycle ends this long after the cleaning before it. */
         private const val DEODORIZE_AFTER_SEC = 60.0
         private const val DEODORIZE_FAILS_EVERY = 3
