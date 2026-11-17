@@ -3,8 +3,11 @@ package org.petkitlocal.feature.device.common
 import kotlin.math.ceil
 import kotlin.math.max
 
-/** Where one event stands on the day chart: its stem at [x], from the axis up to its dot at [top]. */
-internal data class Stem(val x: Float, val top: Float, val petId: Long?)
+/**
+ * Where one event stands on the day chart: its stem at [x], from the axis up to its dot at [top].
+ * An event with no duration ([timed] false) stands on the axis.
+ */
+internal data class Stem(val x: Float, val top: Float, val petId: Long?, val timed: Boolean = true)
 
 /**
  * The chart's drawing area, in pixels: [width] across, the dots' centres between [top] (the
@@ -41,7 +44,7 @@ internal object DayChartLayout {
         val height = frame.bottom - frame.top
         return ordered.mapIndexed { index, dot ->
             val fraction = ((dot.durationSec ?: 0) / SECONDS_PER_MINUTE / topMinutes).toFloat().coerceIn(0f, 1f)
-            Stem(xs[index], frame.bottom - height * fraction, dot.petId)
+            Stem(xs[index], frame.bottom - height * fraction, dot.petId, timed = dot.durationSec != null)
         }
     }
 

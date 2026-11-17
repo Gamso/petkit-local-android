@@ -26,6 +26,11 @@ data class FountainPage(
     val recordsDrinks: Boolean,
     val today: DrinkStats,
     val yesterday: DrinkStats,
+    /**
+     * Whether this fountain's drinks say how long they lasted: false when it has drinks today or
+     * yesterday and none of them has a duration (petkit-local sends `duration_sec: null` then).
+     */
+    val durationsKnown: Boolean,
     /** How long the pump has run today, in seconds, by the fountain's count; null when not reported. */
     val pumpTodaySec: Int?,
     /** Today's drinks, oldest first: the dots of the 24-hour chart. */

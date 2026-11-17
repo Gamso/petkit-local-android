@@ -83,4 +83,12 @@
     <string name="fountain_via_offline">via %1$s (hors ligne)</string>
     <string name="fountain_via_online_alone">Via %1$s (en ligne)</string>
     <string name="fountain_via_offline_alone">Via %1$s (hors ligne)</string>
+
+    <!-- Le graphique quand des boissons arrivent sans durée (petkit-local n'en envoie pas pour certaines). -->
+    <string name="fountain_chart_no_durations">Durées non signalées</string>
+    <plurals name="fountain_chart_untimed">
+        <item quantity="one">%1$d sans durée connue, sur l\'axe</item>
+        <item quantity="many">%1$d sans durée connue, sur l\'axe</item>
+        <item quantity="other">%1$d sans durée connue, sur l\'axe</item>
+    </plurals>
 </resources>

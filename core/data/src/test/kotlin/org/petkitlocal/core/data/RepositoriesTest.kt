@@ -201,6 +201,20 @@ class RepositoriesTest {
     }
 
     @Test
+    fun `a drink without a duration, as petkit-local sends it, is cached with none`() = runTest {
+        // Gamso/petkit-local#97: a fountain's drink comes with `duration_sec: null` for now.
+        val day = LocalDate.of(2026, 11, 15)
+        server.on("timeline?day=2026-11-15&limit=100", """{"items":[${untimedDrink(4)}],"next_cursor":null}""")
+
+        assertEquals(Outcome.Success(Unit), timeline.refreshDay(day))
+
+        val drink = timeline.observeDay(day).first().single()
+        assertEquals(setOf(TimelineCategory.Drinking), drink.categories)
+        assertEquals(PetRef(2, "Tigrou"), drink.pet)
+        assertNull(drink.durationSec)
+    }
+
+    @Test
     fun `a page that fails leaves the cached day as it was`() = runTest {
         val day = LocalDate.of(2026, 11, 15)
         server.on("timeline?day=2026-11-15&limit=100", """{"items":[${item(1)}],"next_cursor":null}""")
@@ -260,6 +274,11 @@ class RepositoriesTest {
     ) = """{"key":"$key","name":"$key","component":"$component","value":$value,"display":$display,"unit":null,
         "device_class":$deviceClass,"category":$category,"options":$options,"settable":false,"min":null,
         "max":null,"step":null}"""
+
+    private fun untimedDrink(id: Long) = """{"id":$id,"kind":"event","filters":["drinking"],
+        "device_id":3001,"device_type":"w7h","ts":${1_794_719_959 + id},"display_ts":${1_794_719_959 + id},
+        "event_type":"drink","event_kind":"drink","label":"Drink","pet":{"id":2,"name":"Tigrou"},
+        "duration_sec":null,"weight_g":null,"facts":[],"media":null,"steps":[]}"""
 
     private fun item(id: Long) = """{"id":$id,"kind":"visit","filters":["toileting","health_alert","later_chip"],
         "device_id":1002,"device_type":"t4","ts":${1_794_719_959 + id},"display_ts":1794719773,

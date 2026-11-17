@@ -37,7 +37,8 @@ import org.petkitlocal.feature.device.litter.CardTitle
 /**
  * Today at this fountain: its drinks and their average duration since yesterday, and each pet's
  * drinks, on a fountain that records them (the W7H); the pump's time today on one that counts it
- * (a Bluetooth fountain, which keeps no yesterday to compare with, and reports no drinks).
+ * (a Bluetooth fountain, which keeps no yesterday to compare with, and reports no drinks). When
+ * its drinks come without durations, the average has no tile rather than a wrong or empty one.
  */
 @Composable
 internal fun FountainTodayCard(page: FountainPage, modifier: Modifier = Modifier) {
@@ -57,14 +58,17 @@ internal fun FountainTodayCard(page: FountainPage, modifier: Modifier = Modifier
                     change = changes.count(page.today.drinks, page.yesterday.drinks.takeIf { it > 0 }),
                     modifier = Modifier.weight(1f).fillMaxHeight(),
                 )
-                val average = page.today.averageDurationSec
-                StatCompareTile(
-                    label = stringResource(R.string.fountain_average_drink),
-                    figure = average?.let(::formatDurationMinSec) ?: stringResource(R.string.litter_no_average),
-                    change = average?.let { changes.duration(it, page.yesterday.averageDurationSec) },
-                    spokenFigure = average?.let(changes::spokenDuration) ?: stringResource(R.string.litter_no_average),
-                    modifier = Modifier.weight(1f).fillMaxHeight(),
-                )
+                if (page.durationsKnown) {
+                    val average = page.today.averageDurationSec
+                    StatCompareTile(
+                        label = stringResource(R.string.fountain_average_drink),
+                        figure = average?.let(::formatDurationMinSec) ?: stringResource(R.string.litter_no_average),
+                        change = average?.let { changes.duration(it, page.yesterday.averageDurationSec) },
+                        spokenFigure = average?.let(changes::spokenDuration)
+                            ?: stringResource(R.string.litter_no_average),
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                    )
+                }
             }
             page.pumpTodaySec?.let { seconds ->
                 StatCompareTile(

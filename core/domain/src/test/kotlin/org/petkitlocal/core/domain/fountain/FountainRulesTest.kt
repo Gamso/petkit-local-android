@@ -179,6 +179,25 @@ class FountainRulesTest {
     }
 
     @Test
+    fun `drinks without a duration are counted, and say their durations are unknown`() {
+        val untimed = listOf(
+            item(30, 3001, at(9, 30), TimelineCategory.Drinking, pet = 2),
+            item(28, 3001, at(7, 15), TimelineCategory.Drinking, pet = 1),
+        )
+        val untimedYesterday = listOf(item(20, 3001, at(22, 0, yesterday), TimelineCategory.Drinking, pet = 1))
+        val page = FountainRules.page(w7h, pets, untimed, untimedYesterday, paris)
+
+        assertEquals(DrinkStats(2, null), page.today)
+        assertEquals(DrinkStats(1, null), page.yesterday)
+        assertFalse(page.durationsKnown)
+        assertEquals(listOf(null, null), page.drinks.map { it.durationSec })
+
+        // One drink with a duration is enough to average; no drink at all says nothing either way.
+        assertTrue(FountainRules.page(w7h, pets, untimed, yesterdayItems, paris).durationsKnown)
+        assertTrue(FountainRules.page(w7h, pets, emptyList(), emptyList(), paris).durationsKnown)
+    }
+
+    @Test
     fun `a cordless fountain's battery is its battery pill`() {
         val ctw3 = device(
             3003,

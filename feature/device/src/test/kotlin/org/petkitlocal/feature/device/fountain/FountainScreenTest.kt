@@ -14,6 +14,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -213,6 +214,24 @@ class FountainScreenTest {
         compose.onNodeWithTag(
             DeviceTestTags.RELAY,
         ).assert(hasText("Seen 19 min ago · via Fresh Element Solo (offline)"))
+    }
+
+    @Test
+    fun `drinks without a duration keep their count, lose the average, and lie on the chart's axis`() {
+        show(FountainFixtures.untimed)
+
+        compose.onNodeWithTag(PageTestTags.LIST).performScrollToNode(hasTestTag(FountainTestTags.TODAY))
+        compose.onNodeWithContentDescription("Drinks, 5, 2 more than yesterday").assertExists()
+        compose.onNodeWithText("Average drink", substring = true, useUnmergedTree = true).assertDoesNotExist()
+
+        scrollTo("Drinks over the day")
+        compose.onNodeWithContentDescription(
+            "Chart of 5 drinks today, by time and duration. 5 with no known duration, on the axis",
+        ).assertExists()
+        compose.onNodeWithText("Durations not reported", useUnmergedTree = true).assertExists()
+        // The activity says who drank, with no duration it does not have.
+        scrollTo("See all in History")
+        compose.onAllNodesWithText("Tigrou drank", useUnmergedTree = true).onFirst().assertExists()
     }
 
     @Test

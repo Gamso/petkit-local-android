@@ -331,6 +331,23 @@ class FountainViewModelTest {
     }
 
     @Test
+    fun `drinks without a duration are counted, and their durations said to be unknown`() = runTest(main.dispatcher) {
+        timeline.days.value = mapOf(
+            Household.today to FountainFixtures.untimedItems,
+            Household.today.minusDays(1) to FountainFixtures.yesterdayItems.map { it.copy(durationSec = null) },
+        )
+        val viewModel = viewModel()
+        collect(viewModel)
+        advanceUntilIdle()
+
+        val page = viewModel.uiState.value.page!!
+        assertEquals(5, page.today.drinks)
+        assertNull(page.today.averageDurationSec)
+        assertFalse(page.durationsKnown)
+        assertTrue(page.drinks.all { it.durationSec == null })
+    }
+
+    @Test
     fun `the pet filter is the page's own state, and an unreachable server is said`() = runTest(main.dispatcher) {
         val viewModel = viewModel()
         collect(viewModel)

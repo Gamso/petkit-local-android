@@ -28,8 +28,8 @@ import org.robolectric.annotation.GraphicsMode
  * The fountain page in light/dark x EN/FR, each with its mode selector at the bottom: the W7H on
  * mains with its drinks (the busiest state), a Bluetooth W5 with its relay online, a CTW3 on
  * battery in trouble with its relay offline and the server's refusal (neither has More: their one
- * button is on the filter's pill), all three also at 130 % font scale; and the W5's filter
- * explanation. The golden images are in src/test/screenshots.
+ * button is on the filter's pill), all three also at 130 % font scale; the W7H whose drinks came
+ * without durations, and the W5's filter explanation. The golden images are in src/test/screenshots.
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -45,6 +45,11 @@ class FountainScreenshotTest(private val variant: ScreenshotVariant) {
 
     @Test
     fun trouble() = capture("fountain_trouble") { Screen(FountainFixtures.trouble) }
+
+    @Test
+    fun untimed() {
+        if (variant.fontScale == 1f) capture("fountain_untimed") { Screen(FountainFixtures.untimed) }
+    }
 
     @Test
     fun hotspot() {

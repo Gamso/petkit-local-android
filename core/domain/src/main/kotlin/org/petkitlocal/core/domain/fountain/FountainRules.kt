@@ -58,6 +58,7 @@ object FountainRules {
         val mine = cards.filter { it.isDrink }
         val before = yesterday.filter { it.deviceId == device.id && it.isDrink }
         val recordsDrinks = FountainParts.recordsDrinks(device)
+        val drinksOfBothDays = mine + before
         return FountainPage(
             device = device,
             status = HomeRules.status(device),
@@ -69,6 +70,7 @@ object FountainRules {
             recordsDrinks = recordsDrinks,
             today = drinkStats(mine),
             yesterday = drinkStats(before),
+            durationsKnown = drinksOfBothDays.isEmpty() || drinksOfBothDays.any { it.durationSec != null },
             pumpTodaySec = pumpToday(device),
             drinks = drinks(mine, zone),
             perPet = if (recordsDrinks) perPet(pets, mine, before) else emptyList(),

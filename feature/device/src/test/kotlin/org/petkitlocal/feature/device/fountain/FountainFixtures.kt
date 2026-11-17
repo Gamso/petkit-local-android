@@ -119,6 +119,20 @@ object FountainFixtures {
         item(35, 3001, at(0, 50), TimelineCategory.Drinking, duration = 30),
     )
 
+    /**
+     * Today's drinks as petkit-local sends them until Gamso/petkit-local#97: counted, recognised,
+     * and every `duration_sec` null.
+     */
+    val untimedItems: List<TimelineItem> = todayItems.map {
+        if (it.deviceId ==
+            3001L
+        ) {
+            it.copy(durationSec = null)
+        } else {
+            it
+        }
+    }
+
     val yesterdayItems: List<TimelineItem> = listOf(
         item(30, 3001, at(21, 0).minusSeconds(DAY), TimelineCategory.Drinking, pet = 1, duration = 20),
         item(29, 3001, at(15, 0).minusSeconds(DAY), TimelineCategory.Drinking, pet = 1, duration = 35),
@@ -138,6 +152,14 @@ object FountainFixtures {
     val content = FountainUiState(page = page(), loaded = true, zone = Household.zone, now = now)
 
     val bluetooth = FountainUiState(page = page(w5, relay = relay), loaded = true, zone = Household.zone, now = now)
+
+    /** The W7H whose drinks all came without a duration, today and yesterday. */
+    val untimed = FountainUiState(
+        page = page(today = untimedItems, yesterday = yesterdayItems.map { it.copy(durationSec = null) }),
+        loaded = true,
+        zone = Household.zone,
+        now = now,
+    )
 
     /** The relay of [trouble]: the Fresh Element Solo, offline, so its fountain is too. */
     val offlineRelay = Household.feeder.copy(online = false)

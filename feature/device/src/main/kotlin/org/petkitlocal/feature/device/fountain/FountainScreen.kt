@@ -28,6 +28,7 @@ import org.petkitlocal.feature.device.common.DeviceHeader
 import org.petkitlocal.feature.device.common.DeviceStatusLine
 import org.petkitlocal.feature.device.common.DeviceTestTags
 import org.petkitlocal.feature.device.common.RecentClipsUi
+import org.petkitlocal.feature.device.common.UntimedWords
 import org.petkitlocal.feature.device.common.recentClips
 import org.petkitlocal.feature.device.common.rememberRecentClips
 import org.petkitlocal.feature.device.litter.DeviceHero
@@ -172,6 +173,7 @@ private fun LazyListScope.fountainContent(
                 title = stringResource(R.string.fountain_chart_title),
                 emptyText = stringResource(R.string.fountain_chart_empty),
                 description = R.plurals.fountain_chart_description,
+                untimed = UntimedWords(R.plurals.fountain_chart_untimed, R.string.fountain_chart_no_durations),
                 dots = page.drinks.map { DayDot(it.minuteOfDay, it.durationSec, it.petId) },
                 pets = page.chartPets,
                 colorIndexOf = page::colorIndexOf,
