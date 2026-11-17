@@ -134,6 +134,13 @@ screen).
 - Bottom action sheet: feed, plan, later, history.
 
 ### 7 · Live video (camera models only)
+- Opened from the **live card** at the top of the camera's page (litter box, feeder, fountain or any
+  other device with `is_camera`), under the header and its chips and above the illustration: the
+  latest still the camera produced (the thumbnail of its newest timeline media) with when it was
+  taken, a play button and "Watch live"; a plain dark card with the play button before there is
+  any still. Nothing plays until it is tapped: a stream on every page open would cost battery and
+  data and take one of the server's few viewer slots. The header has no live button: the card is
+  the way in.
 - Full-width player, "live" badge and measured delay, fullscreen, mute, snapshot.
 - Plays the fMP4-over-WebSocket stream (`/devices/{id}/live`); falls back to HLS automatically on
   close code `1013` or repeated failures.
