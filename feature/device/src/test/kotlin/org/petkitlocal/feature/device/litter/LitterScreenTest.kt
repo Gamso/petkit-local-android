@@ -81,11 +81,13 @@ class LitterScreenTest {
         compose.onNodeWithContentDescription("N60 spray", substring = true).assertDoesNotExist()
         compose.onNodeWithContentDescription("Pura Air · N60", substring = true).assertDoesNotExist()
         // Four visits today, two yesterday.
-        scrollTo("Visits")
-        compose.onNodeWithText("+2 vs yesterday", useUnmergedTree = true).assertExists()
+        // Each tile is read as words, never as an arrow.
+        scrollTo("Today")
+        compose.onNodeWithContentDescription("Visits, 4, 2 more than yesterday").assertExists()
         // (95 + 186 + 60 + 40) / 4 = 95 s today; (100 + 140) / 2 = 120 s yesterday.
-        compose.onNodeWithText("1:35", useUnmergedTree = true).assertExists()
-        compose.onNodeWithText("−0:25 vs yesterday", useUnmergedTree = true).assertExists()
+        compose.onNodeWithContentDescription(
+            "Average visit, 1 minute 35 seconds, 25 seconds shorter than yesterday",
+        ).assertExists()
     }
 
     @Test

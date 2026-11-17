@@ -125,8 +125,8 @@ arrow mirrored in right-to-left languages.
 | `DeviceHero` | Litter, Feeder, Fountain | Illustration plus positioned `HotspotPill`s; positions defined per family in a small layout table |
 | `HotspotPill` | Device pages | Label and value, a dot on the illustrated part, colour by state, tappable |
 | `ModeChip` | Device header | Shows an on/off mode from a switch entity |
-| `StatCompareTile` | Device, Pet | Big figure and the difference from yesterday |
-| `DayScatterChart` | Litter, Fountain (W7H) | 24 h × duration dots (visits, drinks), coloured per pet, pet filter |
+| `StatCompareTile` | Device, Pet | Big figure and the change since yesterday: a neutral arrow (Material Symbol, never a good/bad colour) and the amount, read in words by TalkBack ("2 more than yesterday") |
+| `DayStemChart` | Litter, Fountain (W7H) | 24 h × duration: a stem from the axis per visit or drink, capped with a dot in its pet's colour (unknown pet neutral); events close in time are spread a few dp apart; pet filter |
 | `ActionSheet` | Device pages | Pull handle, 4 actions per row, primary action filled; none when the device has no everyday action and every other one is on a part's pill |
 | `ConfirmDialog` | Destructive actions | Explains the effect, danger-coloured confirm |
 | `TimelineRow` | History, device activity | Time rail, icon or pet avatar, title, details, media thumbnails |

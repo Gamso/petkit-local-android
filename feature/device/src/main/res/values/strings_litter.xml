@@ -54,9 +54,6 @@
     <string name="litter_today">Today</string>
     <string name="litter_visits">Visits</string>
     <string name="litter_average_visit">Average visit</string>
-    <string name="litter_vs_yesterday">%1$s vs yesterday</string>
-    <string name="litter_same_as_yesterday">Same as yesterday</string>
-    <string name="litter_no_visit_yesterday">No visit yesterday</string>
     <string name="litter_no_average">–</string>
     <string name="litter_chart_title">Visits over the day</string>
     <string name="litter_chart_all">All</string>

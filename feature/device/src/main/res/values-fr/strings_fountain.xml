@@ -25,7 +25,6 @@
     <string name="fountain_today">Aujourd\'hui</string>
     <string name="fountain_drinks">Boissons</string>
     <string name="fountain_average_drink">Durée moyenne</string>
-    <string name="fountain_no_drink_yesterday">Aucune boisson hier</string>
     <string name="fountain_pump_today">Pompe en marche</string>
     <!-- Sous le temps de la pompe : la fontaine ne garde pas la veille pour comparer. -->
     <string name="fountain_pump_since_midnight">Depuis minuit, selon la fontaine</string>

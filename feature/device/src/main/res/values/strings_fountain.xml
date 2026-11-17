@@ -25,7 +25,6 @@
     <string name="fountain_today">Today</string>
     <string name="fountain_drinks">Drinks</string>
     <string name="fountain_average_drink">Average drink</string>
-    <string name="fountain_no_drink_yesterday">No drink yesterday</string>
     <string name="fountain_pump_today">Pump running</string>
     <!-- Under the pump's time: the fountain keeps no yesterday to compare with. -->
     <string name="fountain_pump_since_midnight">Since midnight, by the fountain\'s count</string>
