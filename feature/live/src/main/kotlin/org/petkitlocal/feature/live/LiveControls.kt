@@ -1,0 +1,126 @@
+package org.petkitlocal.feature.live
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
+import org.petkitlocal.core.designsystem.component.PkButton
+import org.petkitlocal.core.designsystem.component.PkButtonStyle
+import org.petkitlocal.core.designsystem.component.PkIconButton
+import org.petkitlocal.core.designsystem.icon.PkIcons
+import org.petkitlocal.core.designsystem.theme.PkTheme
+/** Under the picture: sound, snapshot, full screen; what the snapshot came to; then "Talk". */
+@Composable
+internal fun LiveControls(uiState: LiveUiState, callbacks: LiveCallbacks) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(PkTheme.spacing.m),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(PkTheme.spacing.gutter),
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(PkTheme.spacing.m)) {
+            MuteButton(uiState.muted, callbacks.onToggleMute)
+            SnapshotButton(uiState.savingSnapshot, callbacks.onSnapshot)
+            PkIconButton(PkIcons.Fullscreen, stringResource(R.string.live_fullscreen), { callbacks.onFullscreen(true) })
+        }
+        SnapshotNotice(uiState.snapshot)
+        TalkUnavailable()
+    }
+}
+
+/** Full screen: the same controls over the picture's bottom corner, and the way out of it. */
+@Composable
+internal fun BoxScope.FullscreenControls(uiState: LiveUiState, callbacks: LiveCallbacks) {
+    Column(
+        horizontalAlignment = Alignment.End,
+        verticalArrangement = Arrangement.spacedBy(PkTheme.spacing.xs),
+        modifier = Modifier
+            .align(Alignment.BottomEnd)
+            .safeDrawingPadding()
+            .padding(PkTheme.spacing.m),
+    ) {
+        SnapshotNotice(
+            uiState.snapshot,
+            Modifier.clip(PkTheme.shapes.chip).background(Picture.copy(alpha = PILL_ALPHA)),
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(PkTheme.spacing.s)) {
+            MuteButton(uiState.muted, callbacks.onToggleMute)
+            SnapshotButton(uiState.savingSnapshot, callbacks.onSnapshot)
+            PkIconButton(PkIcons.FullscreenExit, stringResource(R.string.live_exit_fullscreen), {
+                callbacks.onFullscreen(false)
+            })
+        }
+    }
+}
+
+@Composable
+private fun MuteButton(muted: Boolean, onToggle: () -> Unit) {
+    if (muted) {
+        PkIconButton(PkIcons.VolumeOff, stringResource(R.string.live_unmute), onToggle)
+    } else {
+        PkIconButton(PkIcons.VolumeUp, stringResource(R.string.live_mute), onToggle)
+    }
+}
+
+/** Takes a snapshot; one at a time, while the last one is still being saved. */
+@Composable
+private fun SnapshotButton(saving: Boolean, onSnapshot: () -> Unit) {
+    PkIconButton(PkIcons.PhotoCamera, stringResource(R.string.live_snapshot), { if (!saving) onSnapshot() })
+}
+
+@Composable
+internal fun SnapshotNotice(result: SnapshotResult?, modifier: Modifier = Modifier) {
+    if (result == null) return
+    val text = when (result) {
+        SnapshotResult.Saved -> R.string.live_snapshot_saved
+        SnapshotResult.Failed -> R.string.live_snapshot_failed
+        SnapshotResult.NoPicture -> R.string.live_snapshot_no_picture
+    }
+    Text(
+        stringResource(text),
+        style = PkTheme.typography.bodyMedium,
+        color = OnPicture,
+        textAlign = TextAlign.Center,
+        modifier = modifier
+            .padding(horizontal = PkTheme.spacing.s, vertical = PkTheme.spacing.xxs)
+            .semantics { liveRegion = LiveRegionMode.Polite },
+    )
+}
+
+/** Two-way talk is not in this app (SPEC.md §2): shown, disabled, with the reason under it. */
+@Composable
+private fun TalkUnavailable() {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(PkTheme.spacing.xxs),
+    ) {
+        PkButton(
+            text = stringResource(R.string.live_talk),
+            onClick = {},
+            style = PkButtonStyle.Secondary,
+            enabled = false,
+            icon = PkIcons.MicOff,
+        )
+        Text(
+            stringResource(R.string.live_talk_unavailable),
+            style = PkTheme.typography.bodyMedium,
+            color = PkTheme.colors.onSurfaceMuted,
+            textAlign = TextAlign.Center,
+        )
+    }
+}

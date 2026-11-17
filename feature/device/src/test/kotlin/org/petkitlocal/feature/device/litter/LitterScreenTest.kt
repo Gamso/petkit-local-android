@@ -41,6 +41,7 @@ class LitterScreenTest {
         onOpenSettings = { calls += "settings:$it" },
         onOpenHistory = { calls += "history:$it" },
         onOpenDevice = { calls += "device:$it" },
+        onOpenLive = { calls += "live:$it" },
     )
 
     private val callbacks = LitterCallbacks(
@@ -164,6 +165,22 @@ class LitterScreenTest {
         compose.onNodeWithContentDescription("Settings").performClick()
 
         assertEquals(listOf("settings:1002"), calls)
+    }
+
+    @Test
+    fun `a camera's header leads to its live video`() {
+        show(LitterFixtures.trouble)
+
+        compose.onNodeWithContentDescription("Live video").performClick()
+
+        assertEquals(listOf("live:1004"), calls)
+    }
+
+    @Test
+    fun `a box without a camera has no live video`() {
+        show(LitterFixtures.content)
+
+        compose.onNodeWithContentDescription("Live video").assertDoesNotExist()
     }
 
     @Test

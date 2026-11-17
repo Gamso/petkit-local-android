@@ -13,6 +13,9 @@ dependencies {
     // Media files (photos and clips) for Media3, through the same client and its bearer header.
     api(libs.media3.datasource)
     implementation(libs.media3.datasource.okhttp)
+    // Live video: the fMP4 WebSocket as a Media3 source, and HLS, its fallback (ADR 0005).
+    api(libs.media3.exoplayer)
+    implementation(libs.media3.exoplayer.hls)
 
     testImplementation(libs.kotlin.reflect)
     testImplementation(libs.kotlinx.coroutines.test)

@@ -1,5 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="live_title">Live video</string>
-    <string name="live_device_number">Device #%1$d</string>
+
+    <!-- The badge over the picture: how far behind the camera it is, in seconds ("0.4"). -->
+    <string name="live_badge">Live</string>
+    <string name="live_badge_delay">Live · %1$s s</string>
+    <!-- The fallback transport, named as is: a few seconds behind the camera. -->
+    <string name="live_hls">HLS</string>
+
+    <string name="live_connecting">Connecting…</string>
+    <!-- %1$s says why it stopped, e.g. "The connection to the server broke." -->
+    <string name="live_reconnecting">Reconnecting… %1$s</string>
+    <string name="live_retry">Watch again</string>
+    <string name="live_session_ended">Your session has ended.</string>
+    <string name="live_not_a_camera">This device has no camera.</string>
+    <string name="live_gone">This device is no longer on the server.</string>
+
+    <string name="live_failure_ended">The camera\'s stream ended.</string>
+    <string name="live_failure_too_slow">The phone could not keep up with the stream.</string>
+    <string name="live_failure_replaced">Live video paused: this camera was opened again.</string>
+    <string name="live_failure_camera_busy">The camera is not ready for a new viewer yet.</string>
+    <string name="live_failure_network">The connection to the server broke.</string>
+    <string name="live_failure_playback">This phone cannot play the camera\'s video.</string>
+    <string name="live_failure_no_stream">This camera has no live stream on the server.</string>
+    <string name="live_failure_too_many">Too many people are watching. Try again in a moment.</string>
+    <string name="live_failure_refused">The server refused the live video.</string>
+
+    <string name="live_mute">Mute</string>
+    <string name="live_unmute">Turn sound on</string>
+    <string name="live_snapshot">Save a snapshot</string>
+    <string name="live_fullscreen">Full screen</string>
+    <string name="live_exit_fullscreen">Exit full screen</string>
+    <string name="live_snapshot_saved">Snapshot saved in your pictures.</string>
+    <string name="live_snapshot_failed">The snapshot could not be saved.</string>
+    <string name="live_snapshot_no_picture">No picture to save yet.</string>
+
+    <string name="live_talk">Talk</string>
+    <string name="live_talk_unavailable">Talking through the camera is not supported.</string>
 </resources>

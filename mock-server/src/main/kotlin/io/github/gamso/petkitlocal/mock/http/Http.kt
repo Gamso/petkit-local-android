@@ -228,7 +228,7 @@ fun Application.mockModule(
         }
     }
     monitor.subscribe(ApplicationStopPreparing) {
-        log.info("stopping: closing live-update sockets with 1001")
+        log.info("stopping: closing live-update and live-video sockets with 1001")
         world.shutdown()
         scenario.close()
     }
@@ -247,6 +247,7 @@ fun World.checkSessions() =
         hub.subscribers().filter { !auth.isLive(it.session) }.forEach {
             it.end(io.github.gamso.petkitlocal.mock.state.Subscriber.CLOSE_SESSION_ENDED, "session ended")
         }
+        live.endSessions { !auth.isLive(it) }
     }
 
 /** The next forced failure for this request, if the control API set one. */

@@ -53,12 +53,15 @@ object MockServer {
     }
 
     /**
-     * Calls the control API: [path] is relative to `/mock` (`devices/1002/visit`), [jsonBody] the
-     * request's JSON, if any. Returns the response body; throws [IOException] for a non-2xx answer
-     * or an unreachable server. See mock-server/README.md, "Control API", for the routes.
+     * Calls the control API: [path] is relative to `/mock` (`devices/1002/visit`, or empty for
+     * `GET /mock` itself), [jsonBody] the request's JSON, if any. Returns the response body; throws
+     * [IOException] for a non-2xx answer or an unreachable server. See mock-server/README.md,
+     * "Control API", for the routes.
      */
     fun control(method: String, path: String, jsonBody: String? = null): String {
-        val url = baseUrl.newBuilder().addPathSegment("mock").addPathSegments(path).build()
+        val url = baseUrl.newBuilder().addPathSegment("mock")
+            .apply { if (path.isNotEmpty()) addPathSegments(path) }
+            .build()
         val body = (jsonBody ?: if (method == "GET" || method == "DELETE") null else "{}")
             ?.toRequestBody(JSON)
         val request = Request.Builder().url(url).method(method, body).build()

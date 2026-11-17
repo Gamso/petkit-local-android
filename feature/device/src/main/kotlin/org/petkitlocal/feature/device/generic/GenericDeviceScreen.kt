@@ -65,6 +65,8 @@ import org.petkitlocal.feature.device.deviceFallbackTitle
 data class GenericDeviceActions(
     val onBack: () -> Unit = {},
     val onOpenSettings: () -> Unit = {},
+    /** The live video; offered only for a device with a camera. */
+    val onOpenLive: () -> Unit = {},
     /** Another device's screen: for an accessory, the device relaying it. */
     val onOpenDevice: (deviceId: Long) -> Unit = {},
     val onRefresh: () -> Unit = {},
@@ -82,6 +84,7 @@ internal fun GenericDeviceRoute(navigation: DeviceNavigation, viewModel: Generic
         GenericDeviceActions(
             onBack = navigation.onBack,
             onOpenSettings = { uiState.device?.let { navigation.onOpenSettings(it.id) } },
+            onOpenLive = { uiState.device?.let { navigation.onOpenLive(it.id) } },
             onOpenDevice = navigation.onOpenDevice,
             onRefresh = viewModel::onRefresh,
             onAction = viewModel::onAction,
@@ -168,6 +171,7 @@ private fun DeviceList(uiState: GenericDeviceUiState, actions: GenericDeviceActi
                 onOpenSettings = actions.onOpenSettings.takeIf {
                     (uiState.sections?.settingsCount ?: 0) > 0 || device?.actions.orEmpty().isNotEmpty()
                 },
+                onOpenLive = actions.onOpenLive.takeIf { device?.isCamera == true },
             )
         }
         if (uiState.offline) item(key = "offline") { PkOfflineBanner() }

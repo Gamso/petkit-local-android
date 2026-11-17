@@ -3,6 +3,7 @@
     <string name="device_title">Appareil</string>
     <string name="device_gone">Cet appareil n\'est plus sur le serveur.</string>
     <string name="device_open_settings">Réglages</string>
+    <string name="device_open_live">Vidéo en direct</string>
 
     <string name="device_status_idle">Au repos</string>
     <string name="device_status_offline">Hors ligne</string>
