@@ -169,7 +169,10 @@ internal class NotificationCursor(val after: Long?) {
     }
 }
 
-/** The last id belongs to the session: the next one starts from its own first connection. */
+/**
+ * The last id and Home's banner put away belong to the session: the next one starts from its own
+ * first connection, and shows the banner again.
+ */
 class NotificationCursorCache @Inject constructor(private val store: NotificationStore) : SessionScopedCache {
-    override suspend fun clear() = store.clearLastId()
+    override suspend fun clear() = store.clearSession()
 }

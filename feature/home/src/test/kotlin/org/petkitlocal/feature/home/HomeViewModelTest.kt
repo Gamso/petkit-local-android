@@ -26,7 +26,13 @@ import org.petkitlocal.core.domain.home.Headline
 import org.petkitlocal.core.domain.home.ObserveHomeUseCase
 import org.petkitlocal.core.domain.home.RefreshHomeUseCase
 import org.petkitlocal.core.domain.home.TodayUseCase
+import org.petkitlocal.core.domain.notifications.MarkNotificationPromptUseCase
+import org.petkitlocal.core.domain.notifications.NotificationPrompts
+import org.petkitlocal.core.domain.notifications.ObserveNotificationBannerUseCase
+import org.petkitlocal.core.domain.notifications.ObservePhoneNotificationsUseCase
 import org.petkitlocal.core.testing.FakeDeviceRepository
+import org.petkitlocal.core.testing.FakeNotificationAccess
+import org.petkitlocal.core.testing.FakeNotificationPreferencesRepository
 import org.petkitlocal.core.testing.FakePetRepository
 import org.petkitlocal.core.testing.FakeTimelineRepository
 import org.petkitlocal.core.testing.Household
@@ -41,12 +47,101 @@ class HomeViewModelTest {
     private val devices = FakeDeviceRepository()
     private val pets = FakePetRepository()
     private val timeline = FakeTimelineRepository()
+    private val preferences = FakeNotificationPreferencesRepository()
 
-    private fun viewModel(clock: Clock = Household.clock) = HomeViewModel(
-        ObserveHomeUseCase(devices, pets, timeline, clock),
-        RefreshHomeUseCase(devices, pets, timeline),
-        TodayUseCase(clock),
-    )
+    // Android 13+ and the permission not granted, until a test says otherwise.
+    private val access = FakeNotificationAccess(permissionNeeded = true)
+
+    private fun viewModel(clock: Clock = Household.clock): HomeViewModel {
+        val phone = ObservePhoneNotificationsUseCase(preferences, access)
+        return HomeViewModel(
+            ObserveHomeUseCase(devices, pets, timeline, clock),
+            RefreshHomeUseCase(devices, pets, timeline),
+            TodayUseCase(clock),
+            ObserveNotificationBannerUseCase(phone),
+            phone,
+            MarkNotificationPromptUseCase(preferences),
+        )
+    }
+
+    @Test
+    fun `the banner asks while notifications are on and Android does not let them show`() = runTest(main.dispatcher) {
+        val viewModel = viewModel()
+        collect(viewModel)
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.askNotifications)
+    }
+
+    @Test
+    fun `no banner with notifications off, nor where Android needs no permission`() = runTest(main.dispatcher) {
+        preferences.enabled.value = false
+        val off = viewModel()
+        collect(off)
+        advanceUntilIdle()
+        assertFalse(off.uiState.value.askNotifications)
+
+        // Before Android 13, or once granted: nothing to ask for.
+        preferences.enabled.value = true
+        access.permissionNeeded = false
+        val allowed = viewModel()
+        collect(allowed)
+        advanceUntilIdle()
+        assertFalse(allowed.uiState.value.askNotifications)
+    }
+
+    @Test
+    fun `allowed in Android's settings, the banner is gone when Home comes back`() = runTest(main.dispatcher) {
+        val viewModel = viewModel()
+        collect(viewModel)
+        advanceUntilIdle()
+        assertTrue(viewModel.uiState.value.askNotifications)
+
+        access.permissionNeeded = false
+        viewModel.onResume()
+        advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.askNotifications)
+    }
+
+    @Test
+    fun `allow asks Android, saying whether it was asked before, and its answer is recorded`() =
+        runTest(main.dispatcher) {
+            preferences.asked.value = NotificationPrompts(permission = true)
+            val viewModel = viewModel()
+            collect(viewModel)
+            val requests = mutableListOf<Boolean>()
+            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+                viewModel.permissionRequests.collect { requests += it }
+            }
+            advanceUntilIdle()
+
+            viewModel.onAllowNotificationsClick()
+            advanceUntilIdle()
+            assertEquals(listOf(true), requests)
+
+            access.permissionNeeded = false
+            viewModel.onNotificationPermissionResult(granted = true)
+            advanceUntilIdle()
+            assertFalse(viewModel.uiState.value.askNotifications)
+        }
+
+    @Test
+    fun `not now puts the banner away, and keeps it away`() = runTest(main.dispatcher) {
+        val viewModel = viewModel()
+        collect(viewModel)
+        advanceUntilIdle()
+
+        viewModel.onNotificationsNotNow()
+        advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.askNotifications)
+        assertTrue(preferences.asked.value.homeBanner)
+        val later = viewModel()
+        collect(later)
+        advanceUntilIdle()
+        assertFalse(later.uiState.value.askNotifications)
+    }
 
     /** Keeps [HomeViewModel.uiState] collected, as the screen does, so it stays hot. */
     private fun TestScope.collect(viewModel: HomeViewModel) {

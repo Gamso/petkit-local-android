@@ -99,6 +99,8 @@ class NotificationUseCasesTest {
         override suspend fun markPermissionAsked() = Unit
 
         override suspend fun markBatteryAsked() = Unit
+
+        override suspend fun markHomeBannerDismissed() = Unit
     }
 
     private class StubAuth : AuthRepository {

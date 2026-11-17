@@ -37,6 +37,11 @@ class HomeScreenshotTest(private val variant: ScreenshotVariant) {
         if (variant.fontScale == 1f) capture("home_unreachable", HomeFixtures.unreachableEmpty)
     }
 
+    @Test
+    fun notificationsBlocked() {
+        if (variant.fontScale == 1f) capture("home_notifications_blocked", HomeFixtures.notificationsBlocked)
+    }
+
     private fun capture(name: String, state: HomeUiState) {
         captureRoboImage(
             filePath = "src/test/screenshots/${name}_$variant.png",

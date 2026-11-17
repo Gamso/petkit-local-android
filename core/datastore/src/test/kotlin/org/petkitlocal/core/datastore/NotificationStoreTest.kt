@@ -30,6 +30,21 @@ class NotificationStoreTest {
     }
 
     @Test
+    fun `the end of a session forgets the last id and the banner put away, not the rest`() = runTest {
+        val store = store()
+        store.saveLastId(42)
+        store.markHomeBannerDismissed()
+        store.markBatteryAsked()
+        assertTrue(store.homeBannerDismissed.first())
+
+        store.clearSession()
+
+        assertNull(store.lastId())
+        assertFalse(store.homeBannerDismissed.first())
+        assertTrue(store.batteryAsked.first())
+    }
+
+    @Test
     fun `each value reads back, and clearing the last id keeps the rest`() = runTest {
         val store = store()
 

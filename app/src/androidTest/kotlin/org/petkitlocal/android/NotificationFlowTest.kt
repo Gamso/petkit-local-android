@@ -1,8 +1,6 @@
 package org.petkitlocal.android
 
-import android.Manifest
 import android.app.NotificationManager
-import android.os.Build
 import android.service.notification.StatusBarNotification
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
@@ -52,7 +50,7 @@ class NotificationFlowTest {
 
     @Test
     fun anEventIsNotifiedAndItsNotificationOpensItsPage() {
-        allowNotifications()
+        // MockServerRule granted Android 13's notification permission, as a user would.
         manager.cancelAll()
         signIn()
         waitForSocket()
@@ -79,13 +77,6 @@ class NotificationFlowTest {
         offline.notification.contentIntent.send()
         waitFor(hasTestTag(DeviceTestTags.SCREEN))
         waitFor(hasText("Offline") and hasAnyAncestor(hasTestTag(DeviceTestTags.STATUS)))
-    }
-
-    /** Android 13+ asks; the test grants it, as the user would from Settings. */
-    private fun allowNotifications() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
-        InstrumentationRegistry.getInstrumentation().uiAutomation
-            .grantRuntimePermission(context.packageName, Manifest.permission.POST_NOTIFICATIONS)
     }
 
     private fun alerts(): List<StatusBarNotification> = manager.activeNotifications.filter { it.tag == ALERT_TAG }

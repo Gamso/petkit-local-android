@@ -71,4 +71,7 @@
         <item quantity="other">%1$d visites</item>
     </plurals>
     <string name="home_pet_line">%1$s · %2$s</string>
+    <string name="home_notifications_blocked">Les notifications sont activées sur ce téléphone, mais aucune ne peut s\'afficher tant qu\'Android ne les autorise pas.</string>
+    <string name="home_notifications_allow">Autoriser</string>
+    <string name="home_notifications_not_now">Plus tard</string>
 </resources>

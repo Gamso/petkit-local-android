@@ -84,14 +84,23 @@ interface NotificationPreferencesRepository {
     suspend fun markPermissionAsked()
 
     suspend fun markBatteryAsked()
+
+    /** The user answered "Not now" to Home's banner; it stays hidden until the session ends. */
+    suspend fun markHomeBannerDismissed()
 }
 
 /**
  * @property permission Android's notification permission was asked for (Android 13+): asked
  *   again, a refused one gets no prompt, so the way to it is then Android's own settings.
  * @property battery the battery-optimisation exemption was asked for, which is asked once.
+ * @property homeBanner Home's banner asking for the permission was put away with "Not now"; it is
+ *   kept with the session, so the next sign-in shows it again.
  */
-data class NotificationPrompts(val permission: Boolean = false, val battery: Boolean = false)
+data class NotificationPrompts(
+    val permission: Boolean = false,
+    val battery: Boolean = false,
+    val homeBanner: Boolean = false,
+)
 
 /**
  * What Android lets the notifications do, read again each time it is asked: the user may change

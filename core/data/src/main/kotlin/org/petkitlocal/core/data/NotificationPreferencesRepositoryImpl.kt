@@ -15,11 +15,13 @@ class NotificationPreferencesRepositoryImpl @Inject constructor(private val stor
     override suspend fun setEnabled(enabled: Boolean) = store.setEnabled(enabled)
 
     override val asked: Flow<NotificationPrompts> =
-        combine(store.permissionAsked, store.batteryAsked) { permission, battery ->
-            NotificationPrompts(permission = permission, battery = battery)
+        combine(store.permissionAsked, store.batteryAsked, store.homeBannerDismissed) { permission, battery, banner ->
+            NotificationPrompts(permission = permission, battery = battery, homeBanner = banner)
         }
 
     override suspend fun markPermissionAsked() = store.markPermissionAsked()
 
     override suspend fun markBatteryAsked() = store.markBatteryAsked()
+
+    override suspend fun markHomeBannerDismissed() = store.markHomeBannerDismissed()
 }

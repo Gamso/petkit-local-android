@@ -144,7 +144,9 @@ ntfy app would to an ntfy server. The server side is petkit-local issue 89.
 - **Battery**: the app asks once, with an explanation, to be exempted from battery optimisation
   (`REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`) when notifications are turned on; without it, Doze
   delays alerts. Settings shows the state and the shortcut to fix it, next to the notifications
-  switch, as it does for Android 13's notification permission.
+  switch, as it does for Android 13's notification permission, which Home also asks for once in a
+  banner until the user allows it or answers "Not now". Both screens ask through the same
+  `core:ui` helper.
 - **Kinds**: the kinds chosen in Settings are sent to the server, which filters per phone; the
   app does not drop what the server sent.
 - **Delivery**:

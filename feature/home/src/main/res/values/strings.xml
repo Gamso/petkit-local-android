@@ -72,4 +72,7 @@
         <item quantity="other">%1$d visits</item>
     </plurals>
     <string name="home_pet_line">%1$s · %2$s</string>
+    <string name="home_notifications_blocked">Notifications are on for this phone, but none can show until Android allows them.</string>
+    <string name="home_notifications_allow">Allow</string>
+    <string name="home_notifications_not_now">Not now</string>
 </resources>

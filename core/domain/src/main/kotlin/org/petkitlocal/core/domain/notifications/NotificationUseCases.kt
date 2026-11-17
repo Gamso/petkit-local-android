@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import org.petkitlocal.core.domain.Outcome
 import org.petkitlocal.core.domain.auth.AuthRepository
@@ -65,6 +66,9 @@ enum class NotificationPrompt {
 
     /** The battery-optimisation exemption, asked once. */
     Battery,
+
+    /** Home's banner asking for the permission, put away with "Not now". */
+    HomeBanner,
 }
 
 /** Records that the user was asked for [NotificationPrompt], whatever they answered. */
@@ -72,7 +76,19 @@ class MarkNotificationPromptUseCase @Inject constructor(private val preferences:
     suspend operator fun invoke(prompt: NotificationPrompt) = when (prompt) {
         NotificationPrompt.Permission -> preferences.markPermissionAsked()
         NotificationPrompt.Battery -> preferences.markBatteryAsked()
+        NotificationPrompt.HomeBanner -> preferences.markHomeBannerDismissed()
     }
+}
+
+/**
+ * Whether Home asks for Android's notification permission: notifications are on for this phone,
+ * Android 13+ does not let them show, and the user did not put the banner away. It goes as soon
+ * as the permission is granted (read again each time [recheck] emits).
+ */
+class ObserveNotificationBannerUseCase @Inject constructor(private val phone: ObservePhoneNotificationsUseCase) {
+    operator fun invoke(recheck: Flow<Unit>): Flow<Boolean> = phone(recheck)
+        .map { it.enabled && it.permissionNeeded && !it.asked.homeBanner }
+        .distinctUntilChanged()
 }
 
 /**

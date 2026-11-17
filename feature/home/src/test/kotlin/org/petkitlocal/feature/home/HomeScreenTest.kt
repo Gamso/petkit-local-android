@@ -1,6 +1,7 @@
 package org.petkitlocal.feature.home
 
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasText
@@ -44,6 +45,43 @@ class HomeScreenTest {
 
     private fun scrollTo(text: String) {
         compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText(text, substring = true))
+    }
+
+    @Test
+    fun `the notification banner says why, and each answer reaches its callback`() {
+        val answers = mutableListOf<String>()
+        compose.setContent {
+            PkTheme {
+                HomeScreen(
+                    HomeFixtures.notificationsBlocked,
+                    onRefresh = {},
+                    navigation = navigation,
+                    notificationBanner = NotificationBannerActions(
+                        onAllow = { answers += "allow" },
+                        onNotNow = { answers += "not now" },
+                    ),
+                )
+            }
+        }
+
+        compose.onNodeWithText("none can show until Android allows them", substring = true).assertIsDisplayed()
+        compose.onNodeWithTag(HomeTestTags.NOTIFICATION_ALLOW).assertHasClickAction().performClick()
+        compose.onNodeWithTag(HomeTestTags.NOTIFICATION_NOT_NOW).assertHasClickAction().performClick()
+        assertEquals(listOf("allow", "not now"), answers)
+    }
+
+    @Test
+    fun `no banner when nothing is to be asked`() {
+        show(HomeFixtures.content)
+        compose.onNodeWithTag(HomeTestTags.NOTIFICATION_BANNER).assertDoesNotExist()
+    }
+
+    @Test
+    @Config(qualifiers = "+fr")
+    fun `the notification banner in French`() {
+        show(HomeFixtures.notificationsBlocked)
+        compose.onNodeWithText("Autoriser").assertExists()
+        compose.onNodeWithText("Plus tard").assertExists()
     }
 
     @Test

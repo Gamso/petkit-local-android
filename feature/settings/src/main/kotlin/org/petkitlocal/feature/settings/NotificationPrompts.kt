@@ -1,17 +1,10 @@
 package org.petkitlocal.feature.settings
 
-import android.Manifest
 import android.annotation.SuppressLint
-import android.app.Activity
-import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
 import android.provider.Settings
-import androidx.activity.compose.LocalActivity
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -29,11 +22,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.window.Dialog
-import androidx.core.app.ActivityCompat
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import org.petkitlocal.core.designsystem.component.PkButton
 import org.petkitlocal.core.designsystem.component.PkButtonStyle
 import org.petkitlocal.core.designsystem.theme.PkTheme
+import org.petkitlocal.core.ui.rememberNotificationPermissionRequest
+import org.petkitlocal.core.ui.startFirst
 
 /*
  * What Settings asks Android for on behalf of the notifications (issue #23): the notification
@@ -48,10 +42,7 @@ import org.petkitlocal.core.designsystem.theme.PkTheme
 @Composable
 internal fun NotificationPromptsEffects(viewModel: SettingsViewModel) {
     val context = LocalContext.current
-    val activity = LocalActivity.current
-    val askPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
-        viewModel.onNotificationPermissionResult(it)
-    }
+    val requestPermission = rememberNotificationPermissionRequest(viewModel::onNotificationPermissionResult)
     LifecycleResumeEffect(viewModel) {
         viewModel.onResume()
         onPauseOrDispose {}
@@ -59,32 +50,11 @@ internal fun NotificationPromptsEffects(viewModel: SettingsViewModel) {
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
-                is SettingsEffect.RequestNotificationPermission -> when {
-                    Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU -> openNotificationSettings(context)
-
-                    // Refused for good, Android shows no prompt: its own settings are the way.
-                    effect.askedBefore && !canAskAgain(activity) -> openNotificationSettings(context)
-
-                    else -> askPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
-                }
-
+                is SettingsEffect.RequestNotificationPermission -> requestPermission(effect.askedBefore)
                 SettingsEffect.RequestBatteryExemption -> requestBatteryExemption(context)
             }
         }
     }
-}
-
-private fun canAskAgain(activity: Activity?): Boolean = activity != null &&
-    Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-    ActivityCompat.shouldShowRequestPermissionRationale(activity, Manifest.permission.POST_NOTIFICATIONS)
-
-/** This app's notification settings in Android, where a refused permission can be granted. */
-private fun openNotificationSettings(context: Context) {
-    start(
-        context,
-        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName),
-        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null)),
-    )
 }
 
 /**
@@ -93,7 +63,7 @@ private fun openNotificationSettings(context: Context) {
  */
 @SuppressLint("BatteryLife")
 private fun requestBatteryExemption(context: Context) {
-    start(
+    startFirst(
         context,
         Intent(
             Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
@@ -101,18 +71,6 @@ private fun requestBatteryExemption(context: Context) {
         ),
         Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS),
     )
-}
-
-/** Starts the first of [intents] the phone can open; none, the note next to the switch stays. */
-private fun start(context: Context, vararg intents: Intent) {
-    for (intent in intents) {
-        try {
-            context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-            return
-        } catch (_: ActivityNotFoundException) {
-            // Try the next one.
-        }
-    }
 }
 
 /** The one-time explanation before Android's battery request, over the screen. */

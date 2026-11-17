@@ -67,6 +67,9 @@ screen).
 ### 2 · Home
 - Title (the household; single, not switchable in v1), notification bell, alert banners for
   anything needing attention (consumable, error, offline device).
+- While notifications are on but Android 13+ does not let them show, a banner above the alerts
+  says so, with "Allow" (Android's prompt, or its notification settings for the app once refused
+  for good) and "Not now", which puts it away until the next sign-in; Settings keeps its prompt.
 - **Device grid**, two columns, one card per device:
   - name and small device glyph;
   - the family's headline figure: visits today for a litter box, portions served for a feeder, water level for a fountain;

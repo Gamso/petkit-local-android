@@ -12,7 +12,8 @@ import org.junit.runners.model.Statement
  *
  * - grants the app the local network permission, which Android 17 requires before an app can
  *   reach a private address such as 10.0.2.2 (the app under test must declare it; the debug
- *   build does);
+ *   build does), and Android 13's notification permission, so Home shows no banner asking for it
+ *   and the flows see the screens as a user who allowed it does;
  * - resets the mock ([MockServer.reset]), so every test starts from the seeded household with no
  *   session, whatever the test before it changed.
  *
@@ -27,6 +28,7 @@ class MockServerRule : TestRule {
     override fun apply(base: Statement, description: Description): Statement = object : Statement() {
         override fun evaluate() {
             grantLocalNetworkAccess()
+            grantNotifications()
             try {
                 MockServer.reset()
             } catch (e: IOException) {
@@ -50,9 +52,19 @@ class MockServerRule : TestRule {
         )
     }
 
+    private fun grantNotifications() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        instrumentation.uiAutomation.grantRuntimePermission(
+            instrumentation.targetContext.packageName,
+            POST_NOTIFICATIONS,
+        )
+    }
+
     private companion object {
         /** Android 17, the first release that enforces local network protection. */
         const val LOCAL_NETWORK_PROTECTION_SDK = 37
         const val ACCESS_LOCAL_NETWORK = "android.permission.ACCESS_LOCAL_NETWORK"
+        const val POST_NOTIFICATIONS = "android.permission.POST_NOTIFICATIONS"
     }
 }

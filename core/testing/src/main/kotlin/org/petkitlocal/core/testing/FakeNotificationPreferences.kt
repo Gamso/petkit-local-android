@@ -24,6 +24,10 @@ class FakeNotificationPreferencesRepository(
     override suspend fun markBatteryAsked() {
         asked.value = asked.value.copy(battery = true)
     }
+
+    override suspend fun markHomeBannerDismissed() {
+        asked.value = asked.value.copy(homeBanner = true)
+    }
 }
 
 /** What Android allows, as a test sets it; read at each call, as the real one is. */
