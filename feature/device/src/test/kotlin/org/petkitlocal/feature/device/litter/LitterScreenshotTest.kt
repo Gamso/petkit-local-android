@@ -16,6 +16,7 @@ import org.junit.runner.RunWith
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.devicepage.DevicePart
 import org.petkitlocal.core.testing.ScreenshotVariant
+import org.petkitlocal.core.ui.LiveCardState
 import org.petkitlocal.core.ui.PreviewImages
 import org.petkitlocal.feature.device.DeviceFixtures
 import org.petkitlocal.feature.device.DeviceNavigation
@@ -26,8 +27,8 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * The litter box page in light/dark x EN/FR, the busiest state also at 130 % font scale: a Pura
- * Max with its day, a Purobot Ultra in trouble with its actions unfolded and its recent clips, and a hotspot's
- * explanation. The golden images are in src/test/screenshots.
+ * Max with its day, a Purobot Ultra in trouble with its live card's still, its actions unfolded and
+ * its recent clips, and a hotspot's explanation. The golden images are in src/test/screenshots.
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -39,11 +40,19 @@ class LitterScreenshotTest(private val variant: ScreenshotVariant) {
     @Test
     fun content() = capture("litter_content") { PreviewImages { Screen(LitterFixtures.content) } }
 
+    /** The still and the clips' thumbnails are drawn as placeholders: the capture fetches nothing. */
     @Test
     fun trouble() {
         if (variant.fontScale == 1f) {
             capture("litter_trouble") {
-                Screen(LitterFixtures.trouble, expanded = true, clips = DeviceFixtures.recentClips)
+                PreviewImages {
+                    Screen(
+                        LitterFixtures.trouble,
+                        expanded = true,
+                        clips = DeviceFixtures.recentClips,
+                        live = DeviceFixtures.liveCard,
+                    )
+                }
             }
         }
     }
@@ -79,8 +88,19 @@ class LitterScreenshotTest(private val variant: ScreenshotVariant) {
     }
 
     @Composable
-    private fun Screen(state: LitterUiState, expanded: Boolean = false, clips: RecentClipsUi? = null) =
-        LitterScreen(state, DeviceNavigation(), LitterCallbacks(), initiallyExpanded = expanded, clips = clips)
+    private fun Screen(
+        state: LitterUiState,
+        expanded: Boolean = false,
+        clips: RecentClipsUi? = null,
+        live: LiveCardState = LiveCardState(),
+    ) = LitterScreen(
+        state,
+        DeviceNavigation(),
+        LitterCallbacks(),
+        initiallyExpanded = expanded,
+        clips = clips,
+        live = live,
+    )
 
     private fun capture(name: String, content: @Composable () -> Unit) {
         captureRoboImage(

@@ -27,6 +27,8 @@ import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.core.domain.devicepage.DevicePart
 import org.petkitlocal.core.testing.Household
+import org.petkitlocal.core.ui.LiveCardState
+import org.petkitlocal.core.ui.LiveCardTestTags
 import org.petkitlocal.core.ui.RecentClipsTestTags
 import org.petkitlocal.core.ui.formatTimeOfDay
 import org.petkitlocal.feature.device.DeviceFixtures
@@ -68,8 +70,8 @@ class LitterScreenTest {
         ),
     )
 
-    private fun show(state: LitterUiState, clips: RecentClipsUi? = null) {
-        compose.setContent { PkTheme { LitterScreen(state, navigation, callbacks, clips = clips) } }
+    private fun show(state: LitterUiState, clips: RecentClipsUi? = null, live: LiveCardState = LiveCardState()) {
+        compose.setContent { PkTheme { LitterScreen(state, navigation, callbacks, clips = clips, live = live) } }
     }
 
     /** A time of today as the page writes it, in the test's locale. */
@@ -223,19 +225,36 @@ class LitterScreenTest {
     }
 
     @Test
-    fun `a camera's header leads to its live video`() {
+    fun `a camera's live card shows its latest still and leads to its live video`() {
+        show(LitterFixtures.trouble, live = DeviceFixtures.liveCard)
+
+        compose.onNodeWithTag(LiveCardTestTags.CARD)
+            .assertIsDisplayed()
+            .assertContentDescriptionEquals("Watch Purobot Ultra live. Still from ${time(5, 10)}")
+            .performClick()
+        // The card is the way to the live video: the header keeps only the gear.
+        compose.onNodeWithContentDescription("Live video").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Settings").assertExists()
+
+        assertEquals(listOf("live:1004"), calls)
+    }
+
+    @Test
+    fun `a camera with no still yet still has its live card`() {
         show(LitterFixtures.trouble)
 
-        compose.onNodeWithContentDescription("Live video").performClick()
+        compose.onNodeWithTag(LiveCardTestTags.CARD)
+            .assertContentDescriptionEquals("Watch Purobot Ultra live")
+            .performClick()
 
         assertEquals(listOf("live:1004"), calls)
     }
 
     @Test
     fun `a box without a camera has no live video`() {
-        show(LitterFixtures.content)
+        show(LitterFixtures.content, live = DeviceFixtures.liveCard)
 
-        compose.onNodeWithContentDescription("Live video").assertDoesNotExist()
+        compose.onNodeWithTag(LiveCardTestTags.CARD).assertDoesNotExist()
     }
 
     @Test

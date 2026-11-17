@@ -16,6 +16,8 @@ import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.core.domain.device.EntityWriteProblem
 import org.petkitlocal.core.testing.ScreenshotVariant
+import org.petkitlocal.core.ui.LiveCard
+import org.petkitlocal.core.ui.PreviewImages
 import org.petkitlocal.core.ui.RecentClipsCard
 import org.petkitlocal.feature.device.DeviceFixtures
 import org.petkitlocal.feature.device.generic.GenericDeviceActions
@@ -51,11 +53,14 @@ private fun capture(name: String, variant: ScreenshotVariant, content: @Composab
 class GenericDeviceScreenshotTest(private val variant: ScreenshotVariant) {
     @Test
     fun fountain() = capture("generic_fountain", variant) {
-        GenericDeviceScreen(
-            DeviceFixtures.generic(commands = DeviceFixtures.sent),
-            GenericDeviceActions(),
-            clips = DeviceFixtures.recentClips,
-        )
+        PreviewImages {
+            GenericDeviceScreen(
+                DeviceFixtures.generic(commands = DeviceFixtures.sent),
+                GenericDeviceActions(),
+                clips = DeviceFixtures.recentClips,
+                live = DeviceFixtures.liveCard,
+            )
+        }
     }
 
     /** The sheet expanded over the page: everything behind More, destructive actions last. */
@@ -82,6 +87,34 @@ class GenericDeviceScreenshotTest(private val variant: ScreenshotVariant) {
                 DeviceFixtures.generic(device = DeviceFixtures.purifier, offline = true),
                 GenericDeviceActions(),
             )
+        }
+    }
+
+    companion object {
+        @JvmStatic
+        @ParameterizedRobolectricTestRunner.Parameters(name = "{0}")
+        fun variants(): List<ScreenshotVariant> = ScreenshotVariant.all
+    }
+}
+
+/**
+ * A camera's live card with its latest still (drawn as a placeholder: the capture fetches nothing)
+ * and before it has any; the card in place is on the camera pages.
+ */
+@RunWith(ParameterizedRobolectricTestRunner::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@Config(qualifiers = "w360dp-h900dp-xhdpi", sdk = [36])
+class LiveCardScreenshotTest(private val variant: ScreenshotVariant) {
+    @Test
+    fun states() = capture("live_card_states", variant) {
+        PreviewImages {
+            PkPreviewSurface {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    listOf(DeviceFixtures.liveCard, DeviceFixtures.liveCard.copy(still = null)).forEach { state ->
+                        LiveCard("Purobot Ultra", state, onOpen = {})
+                    }
+                }
+            }
         }
     }
 

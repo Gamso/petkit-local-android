@@ -4,7 +4,6 @@ import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import kotlinx.serialization.Serializable
-import org.petkitlocal.core.domain.model.Device
 import org.petkitlocal.core.domain.model.MediaFile
 import org.petkitlocal.feature.device.quickactions.QuickActionsHost
 import org.petkitlocal.feature.device.settings.DeviceSettingsRoute
@@ -32,15 +31,11 @@ data class DeviceNavigation(
     val onOpenHistory: (deviceId: Long) -> Unit = {},
     /** Another device's screen: a Bluetooth accessory's from its parent, and the other way round. */
     val onOpenDevice: (deviceId: Long) -> Unit = {},
-    /** The live video of a device with a camera, from its header. */
+    /** The live video of a device with a camera, from the live card at the top of its page. */
     val onOpenLive: (deviceId: Long) -> Unit = {},
     /** One of a camera's recent clips, in the clip player. */
     val onOpenClip: (MediaFile) -> Unit = {},
 )
-
-/** The header's way to the live video, for a device the server says has a camera. */
-internal fun DeviceNavigation.liveOf(device: Device): (() -> Unit)? =
-    if (device.isCamera) ({ onOpenLive(device.id) }) else null
 
 fun NavGraphBuilder.deviceScreen(navigation: DeviceNavigation) {
     // Every family's page gets the user's quick actions from the host around it (issue #40).

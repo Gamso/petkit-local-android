@@ -44,11 +44,13 @@ import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.model.Device
 import org.petkitlocal.core.domain.model.DeviceAction
 import org.petkitlocal.core.domain.model.Entity
+import org.petkitlocal.core.ui.LiveCardState
 import org.petkitlocal.core.ui.ServerLabels
 import org.petkitlocal.core.ui.rememberServerLabels
 import org.petkitlocal.feature.device.DeviceNavigation
 import org.petkitlocal.feature.device.R
 import org.petkitlocal.feature.device.common.ActionConfirmation
+import org.petkitlocal.feature.device.common.CameraLiveCard
 import org.petkitlocal.feature.device.common.CommandFeedbackBanner
 import org.petkitlocal.feature.device.common.DeviceActionScaffold
 import org.petkitlocal.feature.device.common.DeviceGoneView
@@ -61,6 +63,7 @@ import org.petkitlocal.feature.device.common.EntityRow
 import org.petkitlocal.feature.device.common.RecentClipsUi
 import org.petkitlocal.feature.device.common.RelayLink
 import org.petkitlocal.feature.device.common.recentClips
+import org.petkitlocal.feature.device.common.rememberLiveCard
 import org.petkitlocal.feature.device.common.rememberRecentClips
 import org.petkitlocal.feature.device.deviceFallbackTitle
 
@@ -68,7 +71,7 @@ import org.petkitlocal.feature.device.deviceFallbackTitle
 data class GenericDeviceActions(
     val onBack: () -> Unit = {},
     val onOpenSettings: () -> Unit = {},
-    /** The live video; offered only for a device with a camera. */
+    /** The live video, from the live card of a device with a camera. */
     val onOpenLive: () -> Unit = {},
     /** Another device's screen: for an accessory, the device relaying it. */
     val onOpenDevice: (deviceId: Long) -> Unit = {},
@@ -86,6 +89,7 @@ internal fun GenericDeviceRoute(navigation: DeviceNavigation, viewModel: Generic
     GenericDeviceScreen(
         uiState,
         clips = clips,
+        live = rememberLiveCard(),
         actions = GenericDeviceActions(
             onBack = navigation.onBack,
             onOpenSettings = { uiState.device?.let { navigation.onOpenSettings(it.id) } },
@@ -117,6 +121,8 @@ internal fun GenericDeviceScreen(
     initiallyExpanded: Boolean = false,
     /** A camera's recent clips; null shows none. */
     clips: RecentClipsUi? = null,
+    /** What a camera's live card shows. */
+    live: LiveCardState = LiveCardState(),
 ) {
     val device = uiState.device
     DeviceActionScaffold(
@@ -145,7 +151,7 @@ internal fun GenericDeviceScreen(
             onRefresh = actions.onRefresh,
             modifier = Modifier.fillMaxSize(),
         ) {
-            DeviceList(uiState, actions, clips, bottomPadding)
+            DeviceList(uiState, actions, clips, live, bottomPadding)
         }
     }
     uiState.commands.confirming?.let { action ->
@@ -158,6 +164,7 @@ private fun DeviceList(
     uiState: GenericDeviceUiState,
     actions: GenericDeviceActions,
     clips: RecentClipsUi?,
+    live: LiveCardState,
     bottomPadding: Dp,
 ) {
     val insets = WindowInsets.safeDrawing.asPaddingValues()
@@ -186,7 +193,6 @@ private fun DeviceList(
                 onOpenSettings = actions.onOpenSettings.takeIf {
                     (uiState.sections?.settingsCount ?: 0) > 0 || device?.actions.orEmpty().isNotEmpty()
                 },
-                onOpenLive = actions.onOpenLive.takeIf { device?.isCamera == true },
             )
         }
         if (uiState.offline) item(key = "offline") { PkOfflineBanner() }
@@ -196,6 +202,9 @@ private fun DeviceList(
             device == null -> item(key = "gone") { DeviceGoneView() }
 
             else -> {
+                if (device.isCamera) {
+                    item(key = "live") { CameraLiveCard(device, live, onOpen = actions.onOpenLive) }
+                }
                 deviceContent(uiState, device, labels, actions)
                 recentClips(device, clips)
             }

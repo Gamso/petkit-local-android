@@ -15,6 +15,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.testing.ScreenshotVariant
+import org.petkitlocal.core.ui.LiveCardState
+import org.petkitlocal.core.ui.PreviewImages
 import org.petkitlocal.feature.device.DeviceFixtures
 import org.petkitlocal.feature.device.DeviceNavigation
 import org.petkitlocal.feature.device.common.RecentClipsUi
@@ -38,7 +40,9 @@ class FeederScreenshotTest(private val variant: ScreenshotVariant) {
     }
 
     @Test
-    fun dualPaused() = capture("feeder_dual_paused") { Screen(FeederFixtures.dualPaused, DeviceFixtures.recentClips) }
+    fun dualPaused() = capture("feeder_dual_paused") {
+        PreviewImages { Screen(FeederFixtures.dualPaused, DeviceFixtures.recentClips, DeviceFixtures.liveCard) }
+    }
 
     @Test
     fun editor() {
@@ -66,8 +70,8 @@ class FeederScreenshotTest(private val variant: ScreenshotVariant) {
     }
 
     @Composable
-    private fun Screen(state: FeederUiState, clips: RecentClipsUi? = null) =
-        FeederScreen(state, DeviceNavigation(), FeederCallbacks(), clips = clips)
+    private fun Screen(state: FeederUiState, clips: RecentClipsUi? = null, live: LiveCardState = LiveCardState()) =
+        FeederScreen(state, DeviceNavigation(), FeederCallbacks(), clips = clips, live = live)
 
     private fun capture(name: String, content: @Composable () -> Unit) {
         captureRoboImage(

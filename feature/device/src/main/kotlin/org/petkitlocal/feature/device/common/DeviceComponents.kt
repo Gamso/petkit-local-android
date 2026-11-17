@@ -84,8 +84,6 @@ fun DeviceHeader(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     onOpenSettings: (() -> Unit)? = null,
-    /** The device's live video; only for a device with a camera (`is_camera`, from the server). */
-    onOpenLive: (() -> Unit)? = null,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = modifier.fillMaxWidth()) {
         PkBackButton(onClick = onBack)
@@ -102,10 +100,6 @@ fun DeviceHeader(
             if (subtitle != null) {
                 Text(subtitle, style = PkTheme.typography.bodyMedium, color = PkTheme.colors.onSurfaceMuted)
             }
-        }
-        if (onOpenLive != null) {
-            Spacer(Modifier.width(PkTheme.spacing.xs))
-            PkIconButton(PkIcons.Videocam, stringResource(R.string.device_open_live), onOpenLive)
         }
         if (onOpenSettings != null) {
             Spacer(Modifier.width(PkTheme.spacing.xs))

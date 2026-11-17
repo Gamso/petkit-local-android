@@ -17,14 +17,17 @@ import org.petkitlocal.core.domain.devicepage.DevicePart
 import org.petkitlocal.core.domain.feeder.FeederDayFilter
 import org.petkitlocal.core.domain.feeder.FeederPage
 import org.petkitlocal.core.domain.model.DeviceAction
+import org.petkitlocal.core.ui.LiveCardState
 import org.petkitlocal.core.ui.rememberServerLabels
 import org.petkitlocal.feature.device.DeviceNavigation
 import org.petkitlocal.feature.device.R
+import org.petkitlocal.feature.device.common.CameraLiveCard
 import org.petkitlocal.feature.device.common.DeviceHeader
 import org.petkitlocal.feature.device.common.DeviceStatusLine
 import org.petkitlocal.feature.device.common.DeviceTestTags
 import org.petkitlocal.feature.device.common.RecentClipsUi
 import org.petkitlocal.feature.device.common.recentClips
+import org.petkitlocal.feature.device.common.rememberLiveCard
 import org.petkitlocal.feature.device.common.rememberRecentClips
 import org.petkitlocal.feature.device.litter.DeviceHero
 import org.petkitlocal.feature.device.litter.DevicePageScaffold
@@ -34,7 +37,6 @@ import org.petkitlocal.feature.device.litter.PageTop
 import org.petkitlocal.feature.device.litter.RefreshBanner
 import org.petkitlocal.feature.device.litter.gutter
 import org.petkitlocal.feature.device.litter.missingPage
-import org.petkitlocal.feature.device.liveOf
 
 /** What the user can do on the feeder page besides its device commands, one callback per intent. */
 data class FeederCallbacks(
@@ -64,6 +66,7 @@ internal fun FeederRoute(navigation: DeviceNavigation, viewModel: FeederViewMode
         uiState = uiState,
         navigation = navigation,
         clips = clips,
+        live = rememberLiveCard(),
         callbacks = FeederCallbacks(
             onRefresh = {
                 viewModel.onRefresh()
@@ -94,8 +97,8 @@ internal fun FeederRoute(navigation: DeviceNavigation, viewModel: FeederViewMode
 }
 
 /**
- * The feeder page (SPEC.md §5.6): header and hero with the food, bowl and desiccant hotspots,
- * the live status line, the next meal with feed now, today's plan with its pause switch and the
+ * The feeder page (SPEC.md §5.6): header, a camera's live card, the hero with the food, bowl and
+ * desiccant hotspots, the live status line, the next meal with feed now, today's plan with its pause switch and the
  * weekly plan's editor, the day's meals and what the camera saw, the one-off feeds, a camera's
  * recent clips, and the action sheet every device screen shares: the feeder's buttons (feed is
  * feed now), then the plan, a one-off feed and History behind More.
@@ -109,6 +112,8 @@ internal fun FeederScreen(
     initiallyExpanded: Boolean = false,
     /** A camera's recent clips; null shows none. */
     clips: RecentClipsUi? = null,
+    /** What a camera's live card shows. */
+    live: LiveCardState = LiveCardState(),
 ) {
     val page = uiState.page
     val tint = PkTheme.colors.heroFeeder
@@ -128,7 +133,7 @@ internal fun FeederScreen(
         if (page == null) {
             missingPage(uiState, tint, navigation.onBack, callbacks.onRefresh)
         } else {
-            feederContent(page, uiState, navigation, callbacks)
+            feederContent(page, uiState, navigation, callbacks, live)
             recentClips(page.device, clips, Modifier.gutter())
         }
     }
@@ -140,6 +145,7 @@ private fun LazyListScope.feederContent(
     uiState: FeederUiState,
     navigation: DeviceNavigation,
     callbacks: FeederCallbacks,
+    live: LiveCardState,
 ) {
     item(key = "top") {
         PageTop(PkTheme.colors.heroFeeder) {
@@ -147,8 +153,8 @@ private fun LazyListScope.feederContent(
                 title = page.device.model,
                 onBack = navigation.onBack,
                 onOpenSettings = { navigation.onOpenSettings(page.device.id) },
-                onOpenLive = navigation.liveOf(page.device),
             )
+            CameraLiveCard(page.device, live, navigation, Modifier.padding(top = PkTheme.spacing.xs))
             DeviceHero(
                 hotspots = page.hotspots,
                 anchors = ::feederAnchor,

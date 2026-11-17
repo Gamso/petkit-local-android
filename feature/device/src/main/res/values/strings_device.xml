@@ -4,8 +4,6 @@
     <string name="device_title">Device</string>
     <string name="device_gone">This device is no longer on the server.</string>
     <string name="device_open_settings">Settings</string>
-    <!-- The header button of a device with a camera: its live video. -->
-    <string name="device_open_live">Live video</string>
 
     <string name="device_status_idle">Idle</string>
     <string name="device_status_offline">Offline</string>
