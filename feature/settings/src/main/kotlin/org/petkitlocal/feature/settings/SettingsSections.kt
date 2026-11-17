@@ -1,5 +1,7 @@
 package org.petkitlocal.feature.settings
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -7,6 +9,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import org.petkitlocal.core.designsystem.component.PkButton
 import org.petkitlocal.core.designsystem.component.PkButtonStyle
+import org.petkitlocal.core.designsystem.theme.PkTheme
+import org.petkitlocal.core.domain.notifications.PhoneNotifications
 import org.petkitlocal.core.domain.settings.NotificationKinds
 
 /** The server: where it is, and what it runs. */
@@ -34,9 +38,11 @@ internal fun ServerSection(uiState: SettingsUiState, onRetry: () -> Unit) {
 }
 
 /**
- * The kinds of notification this phone gets. The server keeps the choice with this phone's
- * session and sends only those; a kind switched off in the panel reaches no phone, which its
- * line then says. Showing them is the notification service's job (issue #23).
+ * Notifications on this phone, then the kinds it gets. The switch is the phone's own: while it is
+ * on, the app keeps its connection to the server for them, and what Android must allow for that
+ * is said under it, with the way to allow it. The kinds are the server's: it keeps the choice
+ * with this phone's session and sends only those; a kind switched off in the panel reaches no
+ * phone, which its line then says.
  */
 @Composable
 internal fun NotificationsSection(uiState: SettingsUiState, actions: SettingsActions) {
@@ -44,6 +50,7 @@ internal fun NotificationsSection(uiState: SettingsUiState, actions: SettingsAct
         stringResource(R.string.settings_section_notifications),
         Modifier.testTag(SettingsTestTags.NOTIFICATIONS),
     ) {
+        uiState.phone?.let { PhoneNotificationRows(it, actions) }
         SectionNote(stringResource(R.string.settings_notifications_intro))
         when (val notifications = uiState.notifications) {
             Loaded.Loading -> SectionNote(stringResource(R.string.settings_loading))
@@ -75,6 +82,45 @@ internal fun NotificationsSection(uiState: SettingsUiState, actions: SettingsAct
                 if (uiState.kindNotSaved) SectionNote(stringResource(R.string.settings_kind_not_saved), error = true)
             }
         }
+    }
+}
+
+/** The switch for this phone, and what Android must allow while it is on, each with its button. */
+@Composable
+private fun PhoneNotificationRows(phone: PhoneNotifications, actions: SettingsActions) {
+    SwitchRow(
+        name = stringResource(R.string.settings_notifications_on),
+        help = stringResource(R.string.settings_notifications_on_help),
+        checked = phone.enabled,
+        enabled = true,
+        saving = false,
+        onToggle = actions.onNotificationsToggle,
+        modifier = Modifier.testTag(SettingsTestTags.NOTIFICATIONS_SWITCH),
+    )
+    if (phone.enabled && phone.permissionNeeded) {
+        ActionNote(
+            stringResource(R.string.settings_notifications_permission_needed),
+            stringResource(R.string.settings_notifications_allow),
+            actions.onAllowNotifications,
+            Modifier.testTag(SettingsTestTags.ALLOW_NOTIFICATIONS),
+        )
+    }
+    if (phone.enabled && phone.batteryOptimised) {
+        ActionNote(
+            stringResource(R.string.settings_notifications_battery),
+            stringResource(R.string.settings_notifications_allow_background),
+            actions.onAllowBackground,
+            Modifier.testTag(SettingsTestTags.ALLOW_BACKGROUND),
+        )
+    }
+}
+
+/** What stands in the way of a setting, and the button that fixes it. */
+@Composable
+private fun ActionNote(text: String, action: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Column(verticalArrangement = Arrangement.spacedBy(PkTheme.spacing.xs)) {
+        SectionNote(text)
+        PkButton(action, onClick = onClick, style = PkButtonStyle.Secondary, modifier = modifier.fillMaxWidth())
     }
 }
 

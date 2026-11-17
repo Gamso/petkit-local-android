@@ -13,6 +13,16 @@
     <string name="settings_server_unreachable">Le serveur est injoignable : sa version et le nom de ce téléphone chez lui sont inconnus.</string>
 
     <string name="settings_section_notifications">Notifications</string>
+    <string name="settings_notifications_on">Notifications sur ce téléphone</string>
+    <string name="settings_notifications_on_help">Petkit Local garde une connexion à votre serveur pour que les alertes arrivent même application fermée. Android affiche une notification silencieuse tant qu\'elles sont activées.</string>
+    <string name="settings_notifications_permission_needed">Android n\'autorise pas encore Petkit Local à afficher des notifications.</string>
+    <string name="settings_notifications_allow">Autoriser les notifications</string>
+    <string name="settings_notifications_battery">L\'optimisation de la batterie peut retarder les alertes quand le téléphone est en veille.</string>
+    <string name="settings_notifications_allow_background">Autoriser en arrière-plan</string>
+    <string name="settings_battery_title">Recevoir les alertes à temps</string>
+    <string name="settings_battery_message">Pour économiser la batterie, Android coupe le réseau des applications quand le téléphone est en veille, et les alertes arrivent alors en retard. La connexion de Petkit Local est un seul lien discret avec votre serveur, comme celui d\'une messagerie. Android va demander s\'il peut fonctionner en arrière-plan.</string>
+    <string name="settings_battery_continue">Continuer</string>
+    <string name="settings_battery_not_now">Plus tard</string>
     <string name="settings_notifications_intro">Ce dont ce téléphone est prévenu. Le serveur garde ce choix pour ce téléphone et n\'envoie rien d\'autre.</string>
     <string name="settings_notifications_unreachable">Le serveur est injoignable : les choix de notifications de ce téléphone ne peuvent pas être affichés.</string>
     <string name="settings_kind_not_saved">Le changement n\'est pas parvenu au serveur. Les interrupteurs montrent ce qu\'il garde encore.</string>

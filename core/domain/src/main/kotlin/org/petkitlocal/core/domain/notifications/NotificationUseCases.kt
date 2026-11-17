@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.onStart
 import org.petkitlocal.core.domain.Outcome
 import org.petkitlocal.core.domain.auth.AuthRepository
 import org.petkitlocal.core.domain.auth.AuthState
@@ -26,6 +27,52 @@ class ObserveNotificationsEnabledUseCase @Inject constructor(
 /** Turns notifications on or off for this phone; the service follows. */
 class SetNotificationsEnabledUseCase @Inject constructor(private val preferences: NotificationPreferencesRepository) {
     suspend operator fun invoke(enabled: Boolean) = preferences.setEnabled(enabled)
+}
+
+/**
+ * This phone's side of its notifications, as Settings shows it.
+ *
+ * @property enabled notifications on for this phone.
+ * @property permissionNeeded Android 13+ does not let the app post them yet.
+ * @property batteryOptimised Doze may hold the alerts back while the phone sleeps.
+ * @property asked what the user was already asked for.
+ */
+data class PhoneNotifications(
+    val enabled: Boolean,
+    val permissionNeeded: Boolean,
+    val batteryOptimised: Boolean,
+    val asked: NotificationPrompts,
+)
+
+/**
+ * [PhoneNotifications], read again each time [recheck] emits: what Android allows changes in its
+ * own settings, outside the app, so the screen reads it again when it comes back to the front.
+ */
+class ObservePhoneNotificationsUseCase @Inject constructor(
+    private val preferences: NotificationPreferencesRepository,
+    private val access: NotificationAccess,
+) {
+    operator fun invoke(recheck: Flow<Unit>): Flow<PhoneNotifications> =
+        combine(preferences.enabled, preferences.asked, recheck.onStart { emit(Unit) }) { enabled, asked, _ ->
+            PhoneNotifications(enabled, access.permissionNeeded(), access.batteryOptimised(), asked)
+        }.distinctUntilChanged()
+}
+
+/** What the user can be asked for on behalf of the notifications. */
+enum class NotificationPrompt {
+    /** Android 13+'s notification permission. */
+    Permission,
+
+    /** The battery-optimisation exemption, asked once. */
+    Battery,
+}
+
+/** Records that the user was asked for [NotificationPrompt], whatever they answered. */
+class MarkNotificationPromptUseCase @Inject constructor(private val preferences: NotificationPreferencesRepository) {
+    suspend operator fun invoke(prompt: NotificationPrompt) = when (prompt) {
+        NotificationPrompt.Permission -> preferences.markPermissionAsked()
+        NotificationPrompt.Battery -> preferences.markBatteryAsked()
+    }
 }
 
 /**

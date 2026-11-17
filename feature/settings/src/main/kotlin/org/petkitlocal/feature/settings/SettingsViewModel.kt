@@ -4,10 +4,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -16,6 +21,11 @@ import org.petkitlocal.core.domain.auth.AuthState
 import org.petkitlocal.core.domain.auth.GetServerInfoUseCase
 import org.petkitlocal.core.domain.auth.ObserveAuthStateUseCase
 import org.petkitlocal.core.domain.auth.SignOutUseCase
+import org.petkitlocal.core.domain.notifications.MarkNotificationPromptUseCase
+import org.petkitlocal.core.domain.notifications.NotificationPrompt
+import org.petkitlocal.core.domain.notifications.ObservePhoneNotificationsUseCase
+import org.petkitlocal.core.domain.notifications.PhoneNotifications
+import org.petkitlocal.core.domain.notifications.SetNotificationsEnabledUseCase
 import org.petkitlocal.core.domain.settings.AppVersionProvider
 import org.petkitlocal.core.domain.settings.GetAppLicenceUseCase
 import org.petkitlocal.core.domain.settings.GetNotificationSettingsUseCase
@@ -44,6 +54,10 @@ data class SettingsUiState(
     val server: String? = null,
     val details: Loaded<ServerDetails> = Loaded.Loading,
     val notifications: Loaded<NotificationSettings> = Loaded.Loading,
+    /** Notifications on this phone, and what Android lets them do; null while it is read. */
+    val phone: PhoneNotifications? = null,
+    /** The one-time explanation before Android's battery-optimisation request. */
+    val explainingBattery: Boolean = false,
     /** The kind whose switch was just flipped, while the server has not answered. */
     val savingKind: String? = null,
     /** The last switch flip was refused or could not reach the server; nothing changed. */
@@ -58,7 +72,19 @@ data class SettingsUiState(
     val signingOut: Boolean = false,
 )
 
-@Suppress("LongParameterList") // One use case per thing the screen shows or does.
+/** What the screen asks Android for, once each time. */
+sealed interface SettingsEffect {
+    /**
+     * Android 13+'s notification permission. [askedBefore]: Android shows no prompt once it was
+     * refused for good, so the screen then opens the app's notification settings instead.
+     */
+    data class RequestNotificationPermission(val askedBefore: Boolean) : SettingsEffect
+
+    /** Android's own dialog exempting the app from battery optimisation. */
+    data object RequestBatteryExemption : SettingsEffect
+}
+
+@Suppress("LongParameterList", "TooManyFunctions") // One use case per thing the screen shows or does.
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val signOut: SignOutUseCase,
@@ -66,14 +92,24 @@ class SettingsViewModel @Inject constructor(
     private val serverInfo: GetServerInfoUseCase,
     private val notificationSettings: GetNotificationSettingsUseCase,
     private val setNotificationKind: SetNotificationKindUseCase,
+    observePhoneNotifications: ObservePhoneNotificationsUseCase,
+    private val setNotificationsEnabled: SetNotificationsEnabledUseCase,
+    private val markPrompt: MarkNotificationPromptUseCase,
     appVersion: AppVersionProvider,
     appLicence: GetAppLicenceUseCase,
 ) : ViewModel() {
     private val local = MutableStateFlow(SettingsUiState(appVersion = appVersion.versionName()))
 
+    /** Emits when the screen comes back to the front: Android's settings may have changed. */
+    private val recheck = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    private val phone: Flow<PhoneNotifications> = observePhoneNotifications(recheck)
+
+    private val effectChannel = Channel<SettingsEffect>(Channel.BUFFERED)
+    val effects: Flow<SettingsEffect> = effectChannel.receiveAsFlow()
+
     val uiState: StateFlow<SettingsUiState> =
-        combine(local, observeAuthState()) { local, auth ->
-            local.copy(server = (auth as? AuthState.SignedIn)?.serverBaseUrl)
+        combine(local, observeAuthState(), phone) { local, auth, phone ->
+            local.copy(server = (auth as? AuthState.SignedIn)?.serverBaseUrl, phone = phone)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), local.value)
 
     init {
@@ -105,6 +141,65 @@ class SettingsViewModel @Inject constructor(
                 }
             }
         }
+    }
+
+    /** Back in front: the user may have changed the permission or the battery setting meanwhile. */
+    fun onResume() {
+        recheck.tryEmit(Unit)
+    }
+
+    /**
+     * Turns notifications on or off for this phone; the service follows. Turned on, what they need
+     * from Android is asked for at once, with its reason: the permission, then, once, the battery.
+     */
+    fun onNotificationsToggle(on: Boolean) {
+        viewModelScope.launch {
+            setNotificationsEnabled(on)
+            if (!on) return@launch
+            val phone = phone.first()
+            when {
+                phone.permissionNeeded -> effectChannel.trySend(
+                    SettingsEffect.RequestNotificationPermission(askedBefore = phone.asked.permission),
+                )
+
+                phone.batteryOptimised && !phone.asked.battery -> local.update { it.copy(explainingBattery = true) }
+            }
+        }
+    }
+
+    /** "Allow notifications", next to the switch while Android does not let them show. */
+    fun onAllowNotificationsClick() {
+        viewModelScope.launch {
+            val asked = phone.first().asked.permission
+            effectChannel.trySend(SettingsEffect.RequestNotificationPermission(askedBefore = asked))
+        }
+    }
+
+    /** Android answered the permission request; the battery comes next, if never asked. */
+    fun onNotificationPermissionResult(granted: Boolean) {
+        viewModelScope.launch {
+            markPrompt(NotificationPrompt.Permission)
+            recheck.tryEmit(Unit)
+            val phone = phone.first()
+            if (granted && phone.batteryOptimised && !phone.asked.battery) {
+                local.update { it.copy(explainingBattery = true) }
+            }
+        }
+    }
+
+    /** "Allow in the background", next to the switch while battery optimisation applies. */
+    fun onAllowBackgroundClick() = local.update { it.copy(explainingBattery = true) }
+
+    fun onBatteryExplanationConfirm() {
+        local.update { it.copy(explainingBattery = false) }
+        viewModelScope.launch { markPrompt(NotificationPrompt.Battery) }
+        effectChannel.trySend(SettingsEffect.RequestBatteryExemption)
+    }
+
+    /** Not now: it is not asked again by itself; the button next to the switch stays. */
+    fun onBatteryExplanationDismiss() {
+        local.update { it.copy(explainingBattery = false) }
+        viewModelScope.launch { markPrompt(NotificationPrompt.Battery) }
     }
 
     fun onAppLicenceClick() = local.update { it.copy(showingAppLicence = it.appLicence != null) }

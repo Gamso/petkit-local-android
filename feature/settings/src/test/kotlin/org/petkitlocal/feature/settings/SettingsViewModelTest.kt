@@ -18,6 +18,10 @@ import org.petkitlocal.core.domain.auth.AuthState
 import org.petkitlocal.core.domain.auth.GetServerInfoUseCase
 import org.petkitlocal.core.domain.auth.ObserveAuthStateUseCase
 import org.petkitlocal.core.domain.auth.SignOutUseCase
+import org.petkitlocal.core.domain.notifications.MarkNotificationPromptUseCase
+import org.petkitlocal.core.domain.notifications.NotificationPrompts
+import org.petkitlocal.core.domain.notifications.ObservePhoneNotificationsUseCase
+import org.petkitlocal.core.domain.notifications.SetNotificationsEnabledUseCase
 import org.petkitlocal.core.domain.settings.AppVersionProvider
 import org.petkitlocal.core.domain.settings.GetAppLicenceUseCase
 import org.petkitlocal.core.domain.settings.GetNotificationSettingsUseCase
@@ -27,6 +31,8 @@ import org.petkitlocal.core.domain.settings.OpenSourceLicence
 import org.petkitlocal.core.domain.settings.OpenSourceLicencesRepository
 import org.petkitlocal.core.domain.settings.SetNotificationKindUseCase
 import org.petkitlocal.core.testing.FakeAuthRepository
+import org.petkitlocal.core.testing.FakeNotificationAccess
+import org.petkitlocal.core.testing.FakeNotificationPreferencesRepository
 import org.petkitlocal.core.testing.FakeNotificationSettingsRepository
 import org.petkitlocal.core.testing.MainDispatcherExtension
 
@@ -38,6 +44,8 @@ class SettingsViewModelTest {
 
     private val auth = FakeAuthRepository(AuthState.SignedIn("https://pets.example.com"))
     private val notifications = FakeNotificationSettingsRepository()
+    private val preferences = FakeNotificationPreferencesRepository()
+    private val access = FakeNotificationAccess()
     private val licences = object : OpenSourceLicencesRepository {
         override suspend fun components() = emptyList<OpenSourceComponent>()
 
@@ -50,6 +58,9 @@ class SettingsViewModelTest {
         serverInfo = GetServerInfoUseCase(auth),
         notificationSettings = GetNotificationSettingsUseCase(notifications),
         setNotificationKind = SetNotificationKindUseCase(notifications),
+        observePhoneNotifications = ObservePhoneNotificationsUseCase(preferences, access),
+        setNotificationsEnabled = SetNotificationsEnabledUseCase(preferences),
+        markPrompt = MarkNotificationPromptUseCase(preferences),
         appVersion = AppVersionProvider { "0.1.0" },
         appLicence = GetAppLicenceUseCase(licences),
     ).also { viewModel ->
@@ -65,6 +76,108 @@ class SettingsViewModelTest {
         assertEquals(Loaded.Ready(ServerDetails("1.4.0", "Pixel 8")), state.details)
         assertEquals("0.1.0", state.appVersion)
         assertEquals(Loaded.Ready(FakeNotificationSettingsRepository.DEFAULT), state.notifications)
+    }
+
+    @Test
+    fun `this phone's notifications are on, with what Android allows`() = runTest(main.dispatcher) {
+        access.batteryOptimised = true
+        val phone = viewModel().uiState.value.phone!!
+
+        assertTrue(phone.enabled)
+        assertFalse(phone.permissionNeeded)
+        assertTrue(phone.batteryOptimised)
+    }
+
+    @Test
+    fun `Android's settings are read again when the screen comes back`() = runTest(main.dispatcher) {
+        access.permissionNeeded = true
+        val viewModel = viewModel()
+        assertTrue(viewModel.uiState.value.phone!!.permissionNeeded)
+
+        access.permissionNeeded = false
+        viewModel.onResume()
+        runCurrent()
+
+        assertFalse(viewModel.uiState.value.phone!!.permissionNeeded)
+    }
+
+    @Test
+    fun `turned on, the permission is asked for, then the battery is explained once`() = runTest(main.dispatcher) {
+        preferences.enabled.value = false
+        access.permissionNeeded = true
+        access.batteryOptimised = true
+        val viewModel = viewModel()
+        val effects = mutableListOf<SettingsEffect>()
+        backgroundScope.launch { viewModel.effects.collect { effects += it } }
+
+        viewModel.onNotificationsToggle(on = true)
+        runCurrent()
+        assertTrue(preferences.enabled.value)
+        assertEquals(listOf(SettingsEffect.RequestNotificationPermission(askedBefore = false)), effects)
+
+        access.permissionNeeded = false
+        viewModel.onNotificationPermissionResult(granted = true)
+        runCurrent()
+        assertTrue(preferences.asked.value.permission)
+        assertTrue(viewModel.uiState.value.explainingBattery)
+
+        viewModel.onBatteryExplanationConfirm()
+        runCurrent()
+        assertFalse(viewModel.uiState.value.explainingBattery)
+        assertEquals(SettingsEffect.RequestBatteryExemption, effects.last())
+        assertTrue(preferences.asked.value.battery)
+
+        // Asked once: turned off and on again, the battery is not explained again by itself.
+        viewModel.onNotificationsToggle(on = false)
+        viewModel.onNotificationsToggle(on = true)
+        runCurrent()
+        assertFalse(viewModel.uiState.value.explainingBattery)
+    }
+
+    @Test
+    fun `not now is an answer too, and the button next to the switch still explains it`() = runTest(main.dispatcher) {
+        access.batteryOptimised = true
+        val viewModel = viewModel()
+
+        viewModel.onNotificationsToggle(on = true)
+        runCurrent()
+        assertTrue(viewModel.uiState.value.explainingBattery)
+        viewModel.onBatteryExplanationDismiss()
+        runCurrent()
+        assertEquals(NotificationPrompts(battery = true), preferences.asked.value)
+
+        viewModel.onAllowBackgroundClick()
+        assertTrue(viewModel.uiState.value.explainingBattery)
+    }
+
+    @Test
+    fun `allowing notifications again says it was asked before`() = runTest(main.dispatcher) {
+        preferences.asked.value = NotificationPrompts(permission = true)
+        access.permissionNeeded = true
+        val viewModel = viewModel()
+        val effects = mutableListOf<SettingsEffect>()
+        backgroundScope.launch { viewModel.effects.collect { effects += it } }
+
+        viewModel.onAllowNotificationsClick()
+        runCurrent()
+
+        assertEquals(listOf(SettingsEffect.RequestNotificationPermission(askedBefore = true)), effects)
+    }
+
+    @Test
+    fun `turned off, nothing is asked`() = runTest(main.dispatcher) {
+        access.permissionNeeded = true
+        access.batteryOptimised = true
+        val viewModel = viewModel()
+        val effects = mutableListOf<SettingsEffect>()
+        backgroundScope.launch { viewModel.effects.collect { effects += it } }
+
+        viewModel.onNotificationsToggle(on = false)
+        runCurrent()
+
+        assertFalse(preferences.enabled.value)
+        assertTrue(effects.isEmpty())
+        assertFalse(viewModel.uiState.value.explainingBattery)
     }
 
     @Test
