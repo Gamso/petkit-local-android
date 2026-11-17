@@ -20,8 +20,9 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.petkitlocal.core.e2e.MockServer
-import org.petkitlocal.core.e2e.MockServerRule
+import org.petkitlocal.core.e2e.MockOnly
+import org.petkitlocal.core.e2e.TestServer
+import org.petkitlocal.core.e2e.TestServerRule
 import org.petkitlocal.feature.auth.SignInTestTags
 import org.petkitlocal.feature.history.HistoryTestTags
 import org.petkitlocal.feature.home.HomeTestTags
@@ -32,6 +33,7 @@ import org.petkitlocal.feature.pets.PetsTestTags
  * read from `GET /pets/{id}` with its weighed visits from the timeline; the switcher moves to the
  * other pet; a recent visit opens History narrowed to that pet; Home's "See all" opens the list.
  */
+@MockOnly("the mock's pets and their visits")
 @OptIn(ExperimentalTestApi::class) // waitUntil...Exists
 @RunWith(AndroidJUnit4::class)
 class PetsFlowTest {
@@ -40,14 +42,14 @@ class PetsFlowTest {
     val zone = DevicePagesFlowTest.TimeZoneRule(MOCK_ZONE)
 
     @get:Rule(order = 1)
-    val mock = MockServerRule()
+    val server = TestServerRule()
 
     @get:Rule(order = 2)
     val compose = createAndroidComposeRule<MainActivity>()
 
     @Test
     fun aPetChipOpensItsPageTheSwitcherMovesAndAVisitOpensItsHistory() {
-        val tigrouVisit = runBlocking { MockServer.signedInApi().getPet(TIGROU).pet.recentVisits.first() }
+        val tigrouVisit = runBlocking { TestServer.signedInApi().getPet(TIGROU).pet.recentVisits.first() }
 
         signIn()
         waitFor(hasTestTag(HomeTestTags.device(FIRST_CARD)))
@@ -93,8 +95,8 @@ class PetsFlowTest {
     private fun signIn() {
         waitFor(hasTestTag(SignInTestTags.SCREEN))
         compose.onNodeWithTag(SignInTestTags.ADDRESS).performTextClearance()
-        compose.onNodeWithTag(SignInTestTags.ADDRESS).performTextInput(MockServer.baseUrl.toString().removeSuffix("/"))
-        compose.onNodeWithTag(SignInTestTags.PASSWORD).performTextInput(MockServer.PASSWORD)
+        compose.onNodeWithTag(SignInTestTags.ADDRESS).performTextInput(TestServer.address)
+        compose.onNodeWithTag(SignInTestTags.PASSWORD).performTextInput(TestServer.password)
         waitFor(hasTestTag(SignInTestTags.SUBMIT) and isEnabled())
         compose.onNodeWithTag(SignInTestTags.SUBMIT).performScrollTo().performClick()
         compose.waitUntilDoesNotExist(hasTestTag(SignInTestTags.SCREEN), TIMEOUT_MS)

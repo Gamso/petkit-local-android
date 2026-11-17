@@ -23,8 +23,9 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.petkitlocal.core.e2e.MockServer
-import org.petkitlocal.core.e2e.MockServerRule
+import org.petkitlocal.core.e2e.MockOnly
+import org.petkitlocal.core.e2e.TestServer
+import org.petkitlocal.core.e2e.TestServerRule
 import org.petkitlocal.core.network.dto.TimelineItemDto
 import org.petkitlocal.feature.auth.SignInTestTags
 import org.petkitlocal.feature.device.common.DeviceTestTags
@@ -38,6 +39,7 @@ import org.petkitlocal.feature.home.HomeTestTags
  * the server until its last card, a card opens its detail sheet with the event's decoded fields,
  * and its photo and clip open full screen, the clip read through the app's authenticated client.
  */
+@MockOnly("the mock's week of history, cut in its time zone")
 @OptIn(ExperimentalTestApi::class) // waitUntil...Exists
 @RunWith(AndroidJUnit4::class)
 class HistoryFlowTest {
@@ -46,7 +48,7 @@ class HistoryFlowTest {
     val zone = DevicePagesFlowTest.TimeZoneRule(MOCK_ZONE)
 
     @get:Rule(order = 1)
-    val mock = MockServerRule()
+    val server = TestServerRule()
 
     @get:Rule(order = 2)
     val compose = createAndroidComposeRule<MainActivity>()
@@ -115,7 +117,7 @@ class HistoryFlowTest {
 
     /** Every card of [day], the way Home reads a day: every page. */
     private suspend fun allCards(day: LocalDate): List<TimelineItemDto> {
-        val api = MockServer.signedInApi()
+        val api = TestServer.signedInApi()
         val cards = mutableListOf<TimelineItemDto>()
         var cursor: String? = null
         do {
@@ -129,8 +131,8 @@ class HistoryFlowTest {
     private fun signIn() {
         waitFor(hasTestTag(SignInTestTags.SCREEN))
         compose.onNodeWithTag(SignInTestTags.ADDRESS).performTextClearance()
-        compose.onNodeWithTag(SignInTestTags.ADDRESS).performTextInput(MockServer.baseUrl.toString().removeSuffix("/"))
-        compose.onNodeWithTag(SignInTestTags.PASSWORD).performTextInput(MockServer.PASSWORD)
+        compose.onNodeWithTag(SignInTestTags.ADDRESS).performTextInput(TestServer.address)
+        compose.onNodeWithTag(SignInTestTags.PASSWORD).performTextInput(TestServer.password)
         waitFor(hasTestTag(SignInTestTags.SUBMIT) and isEnabled())
         compose.onNodeWithTag(SignInTestTags.SUBMIT).performScrollTo().performClick()
         compose.waitUntilDoesNotExist(hasTestTag(SignInTestTags.SCREEN), TIMEOUT_MS)

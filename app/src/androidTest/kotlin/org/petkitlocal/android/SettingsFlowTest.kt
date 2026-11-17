@@ -19,51 +19,58 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlinx.coroutines.runBlocking
+import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.petkitlocal.core.e2e.MockServer
-import org.petkitlocal.core.e2e.MockServerRule
+import org.petkitlocal.core.e2e.TestServer
+import org.petkitlocal.core.e2e.TestServerRule
 import org.petkitlocal.feature.auth.SignInTestTags
 import org.petkitlocal.feature.auth.password.ChangePasswordTestTags
 import org.petkitlocal.feature.settings.SettingsTestTags
 import org.petkitlocal.feature.settings.licences.LicencesTestTags
 
 /**
- * Settings end to end (issue #24), on a device, against the mock server (core:e2e): the server's
- * version read from it, a notification kind turned off and held by the server for this session,
- * the password changed after a wrong current one, the app's licence and the open-source licences
- * read from the APK, then a confirmed sign-out back to sign-in. The mock is reset before each
- * test, which also puts the password back.
+ * Settings end to end (issue #24), on a device, against the mock server or the real one
+ * (core:e2e): the server's version read from it, a notification kind turned off and held by the
+ * server for this session, the password changed after a wrong current one, the app's licence and
+ * the open-source licences read from the APK, then a confirmed sign-out back to sign-in. The
+ * server is reset before each test, which also puts the password back.
  */
 @OptIn(ExperimentalTestApi::class) // waitUntil...Exists
 @RunWith(AndroidJUnit4::class)
 class SettingsFlowTest {
     @get:Rule(order = 0)
-    val mock = MockServerRule()
+    val server = TestServerRule()
 
     @get:Rule(order = 1)
     val compose = createAndroidComposeRule<MainActivity>()
 
     @Test
     fun settingsReadTheServerChangeItsChoicesAndSignOut() {
+        // The version the server gives a signed-in client, read by a session closed again at once.
+        val version = runBlocking {
+            val api = TestServer.signedInApi()
+            api.getInfo().serverVersion.also { api.logout() }
+        }
         signIn()
         openSettings()
 
         // The server's version from GET /info. Each row is one merged node.
-        waitFor(hasTestTag(SettingsTestTags.SERVER_VERSION) and hasText("mock-0.1.0"))
+        waitFor(hasTestTag(SettingsTestTags.SERVER_VERSION) and hasText(checkNotNull(version)))
 
         // A kind turned off moves once the server holds it, and the server holds it for this phone.
         val offline = hasTestTag(SettingsTestTags.kind(OFFLINE))
         waitFor(offline and isOn())
         compose.onNode(offline).performScrollTo().performClick()
         waitFor(offline and isOff() and isEnabled())
-        val sessions = MockServer.control("GET", "sessions")
-        assertTrue(sessions, sessions.contains("\"kinds\":[\"toilet\""))
-        assertFalse(sessions, sessions.contains("\"offline\""))
+        val kinds = phone().getJSONArray("kinds").let { kinds -> List(kinds.length()) { kinds.getString(it) } }
+        assertTrue(kinds.toString(), TOILET in kinds)
+        assertFalse(kinds.toString(), OFFLINE in kinds)
 
         changePassword()
         readLicences()
@@ -72,7 +79,7 @@ class SettingsFlowTest {
         compose.onNodeWithTag(SettingsTestTags.SIGN_OUT).performScrollTo().performClick()
         compose.onAllNodes(hasText("Sign out") and hasClickAction()).onLast().performClick()
         waitFor(hasTestTag(SignInTestTags.SCREEN))
-        assertEquals("""{"ok":true,"sessions":[]}""", MockServer.control("GET", "sessions"))
+        assertEquals(0, TestServer.sessions().size)
     }
 
     /** A wrong current password is said in place; the right one changes it and this phone stays in. */
@@ -85,14 +92,14 @@ class SettingsFlowTest {
         submitAndConfirm()
         waitFor(hasText("Wrong password."))
 
-        type(ChangePasswordTestTags.CURRENT, MockServer.PASSWORD)
+        type(ChangePasswordTestTags.CURRENT, TestServer.password)
         // The server's lockout after a wrong password (1 s at first) holds the button meanwhile.
         submitAndConfirm()
         waitFor(hasTestTag(ChangePasswordTestTags.DONE_CARD))
         compose.onNodeWithTag(ChangePasswordTestTags.DONE).performScrollTo().performClick()
         waitFor(hasTestTag(SettingsTestTags.SCREEN))
         // Still signed in: the new password is the server's now.
-        assertTrue(MockServer.control("GET", "sessions").contains("\"id\""))
+        phone()
     }
 
     /**
@@ -125,6 +132,9 @@ class SettingsFlowTest {
         waitFor(hasTestTag(SettingsTestTags.SCREEN))
     }
 
+    /** The server's one session: this phone's. */
+    private fun phone(): JSONObject = TestServer.sessions().single()
+
     private fun submitAndConfirm() {
         waitFor(hasTestTag(ChangePasswordTestTags.SUBMIT) and isEnabled())
         compose.onNodeWithTag(ChangePasswordTestTags.SUBMIT).performScrollTo().performClick()
@@ -139,8 +149,8 @@ class SettingsFlowTest {
 
     private fun signIn() {
         waitFor(hasTestTag(SignInTestTags.SCREEN))
-        type(SignInTestTags.ADDRESS, MockServer.baseUrl.toString().removeSuffix("/"))
-        type(SignInTestTags.PASSWORD, MockServer.PASSWORD)
+        type(SignInTestTags.ADDRESS, TestServer.address)
+        type(SignInTestTags.PASSWORD, TestServer.password)
         waitFor(hasTestTag(SignInTestTags.SUBMIT) and isEnabled())
         compose.onNodeWithTag(SignInTestTags.SUBMIT).performScrollTo().performClick()
         compose.waitUntilDoesNotExist(hasTestTag(SignInTestTags.SCREEN), TIMEOUT_MS)
@@ -166,6 +176,7 @@ class SettingsFlowTest {
 
     private companion object {
         const val OFFLINE = "offline"
+        const val TOILET = "toilet"
         const val ANDROIDX = "AndroidX and Jetpack Compose"
         const val ROOM = "androidx.room:room-runtime"
         const val OKHTTP = "okhttp"

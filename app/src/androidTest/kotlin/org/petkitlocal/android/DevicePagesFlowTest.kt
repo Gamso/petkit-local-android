@@ -26,8 +26,9 @@ import org.junit.Test
 import org.junit.rules.ExternalResource
 import org.junit.runner.RunWith
 import org.petkitlocal.core.designsystem.component.PkConfirmTestTags
-import org.petkitlocal.core.e2e.MockServer
-import org.petkitlocal.core.e2e.MockServerRule
+import org.petkitlocal.core.e2e.MockOnly
+import org.petkitlocal.core.e2e.TestServer
+import org.petkitlocal.core.e2e.TestServerRule
 import org.petkitlocal.feature.auth.SignInTestTags
 import org.petkitlocal.feature.device.common.DeviceTestTags
 import org.petkitlocal.feature.device.feeder.FeederTestTags
@@ -40,6 +41,7 @@ import org.petkitlocal.feature.home.HomeTestTags
  * for the HTTP box, and the box reports the cycle over `/ws`; feed now is queued and the feeder
  * reports feeding; a one-off feed is added and cancelled on the server.
  */
+@MockOnly("the mock's Pura Max and feeder, and the commands they answer")
 @OptIn(ExperimentalTestApi::class) // waitUntil...Exists
 @RunWith(AndroidJUnit4::class)
 class DevicePagesFlowTest {
@@ -48,7 +50,7 @@ class DevicePagesFlowTest {
     val zone = TimeZoneRule(MOCK_ZONE)
 
     @get:Rule(order = 1)
-    val mock = MockServerRule()
+    val server = TestServerRule()
 
     @get:Rule(order = 2)
     val compose = createAndroidComposeRule<MainActivity>()
@@ -112,8 +114,8 @@ class DevicePagesFlowTest {
     private fun signIn() {
         waitFor(hasTestTag(SignInTestTags.SCREEN))
         compose.onNodeWithTag(SignInTestTags.ADDRESS).performTextClearance()
-        compose.onNodeWithTag(SignInTestTags.ADDRESS).performTextInput(MockServer.baseUrl.toString().removeSuffix("/"))
-        compose.onNodeWithTag(SignInTestTags.PASSWORD).performTextInput(MockServer.PASSWORD)
+        compose.onNodeWithTag(SignInTestTags.ADDRESS).performTextInput(TestServer.address)
+        compose.onNodeWithTag(SignInTestTags.PASSWORD).performTextInput(TestServer.password)
         waitFor(hasTestTag(SignInTestTags.SUBMIT) and isEnabled())
         compose.onNodeWithTag(SignInTestTags.SUBMIT).performScrollTo().performClick()
         compose.waitUntilDoesNotExist(hasTestTag(SignInTestTags.SCREEN), TIMEOUT_MS)

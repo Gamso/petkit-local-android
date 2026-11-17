@@ -4,7 +4,7 @@
 #   ./gradlew :app:pixel6Api37DebugAndroidTest               # in another terminal
 #
 # The emulator reaches the host's port 8097 as http://10.0.2.2:8097, which is where the tests look
-# (core:e2e MockServer). Dependabot (docker-compose, /e2e) raises the pinned images below.
+# (core:e2e TestServer). The real server is the second service, started only with its profile.
 name: petkit-e2e
 
 services:
@@ -29,13 +29,46 @@ services:
       retries: 30
       start_period: 5s
 
-  # M5: the nightly run also tests against the real server, the released petkit-local image
-  # started without Home Assistant and seeded with fake devices by its own smoke-test script.
-  # Pinned here so Dependabot raises it in a reviewed, tested PR (docs/ARCHITECTURE.md §7).
+  # The real server, for the nightly run against it (.github/workflows/e2e-real-server.yml): the
+  # published petkit-local image, started without Home Assistant. Only with its profile, so
+  # `up` above starts the mock alone. scripts/real-server.sh starts it, seeds it with the fake
+  # device of the server's own smoke test and sets the app password:
   #
-  # petkit-local:
-  #   image: ghcr.io/gamso/petkit-local:<version>
-  #   command: ["--no-ha"]
-  #   ports:
-  #     - "8097:8097"
-  #   profiles: ["server"]
+  #   scripts/real-server.sh up       # then run the tests with the arguments it prints
+  #   scripts/real-server.sh down
+  #
+  # The floating `dev` tag, never a pin: the nightly is there to catch drift between the app,
+  # the mock and the server as the server is now, and `dev` is petkit-local's latest published
+  # main. Pulled afresh on every `up`, since a moving tag is cached by digest. To keep a red run
+  # diagnosable, scripts/real-server.sh prints the digest it got and the commit it was built from.
+  petkit-local:
+    image: ghcr.io/gamso/petkit-local:dev
+    pull_policy: always
+    profiles: ["server"]
+    # The server's own smoke test (addon/tests/smoke/run.sh) starts it this way, and its
+    # smoke.py, run in this container's network, expects these ports.
+    command:
+      - python3
+      - -m
+      - petkit_local.main
+      - --data-dir=/data
+      - --api-url=http://127.0.0.1:8080
+      - --port=8080
+      - --mqtt-tls
+      - --mqtt-tls-port=443
+      - --no-ha
+    environment:
+      TZ: UTC
+    ports:
+      # The app API. Another port than the mock's, so both can run at once.
+      - "${PETKIT_SERVER_PORT:-8297}:8097"
+      # The panel, on the host's loopback only: it has no authentication. The tests use it as
+      # the panel's user would, to reset the app password and revoke sessions; the emulator
+      # reaches the host's loopback as 10.0.2.2.
+      - "127.0.0.1:${PETKIT_PANEL_PORT:-8299}:8099"
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8099/api/info', timeout=2)"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+      start_period: 5s

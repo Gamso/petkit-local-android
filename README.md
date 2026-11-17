@@ -53,12 +53,13 @@ weekly from the latest release and opens a pull request.
 
 These run on an Android emulator, against the [mock server](mock-server/README.md) (a fake
 petkit-local) started with Docker on your machine. The emulator reaches your machine as
-`10.0.2.2`. CI runs both in `.github/workflows/e2e.yml`.
+`10.0.2.2`. CI runs both in `.github/workflows/e2e.yml`, and the end-to-end tests again every
+night against the real petkit-local (`.github/workflows/e2e-real-server.yml`, below).
 
 Plain HTTP is accepted for a private LAN address only, a rule the app applies itself before any
 request (`ServerAddresses`, core:domain); off the LAN it is HTTPS. On Android 17 and later,
 reaching a private address also needs the `ACCESS_LOCAL_NETWORK` permission: the tests grant it
-(`MockServerRule`), and the app asks for it at sign-in when the server is on the LAN.
+(`TestServerRule`), and the app asks for it at sign-in when the server is on the LAN.
 
 **End to end** (`app/src/androidTest`): the instrumented tests, run by Gradle on a managed
 emulator that it downloads, creates and boots by itself (hardware acceleration needed: KVM on
@@ -73,10 +74,29 @@ docker compose -f e2e/docker-compose.yml up --build   # the mock on port 8097; l
 
 Reports: `app/build/reports/androidTests/`. The tests look for the mock at
 `http://10.0.2.2:8097`; point them elsewhere with
-`-Pandroid.testInstrumentationRunnerArguments.petkitMockUrl=http://10.0.2.2:<port>`. Shared
-helpers for these tests (the mock's address and control API, a signed-in API client, a rule that
-resets the mock before each test) are in `core/e2e`; a module uses them with
-`androidTestImplementation(projects.core.e2e)`.
+`-Pandroid.testInstrumentationRunnerArguments.petkitServerUrl=http://10.0.2.2:<port>` (the older
+`petkitMockUrl` still works). Shared helpers for these tests (the server's address and password,
+the mock's control API, a signed-in API client, a rule that resets the server before each test)
+are in `core/e2e`; a module uses them with `androidTestImplementation(projects.core.e2e)`.
+
+**Against the real server**: `scripts/real-server.sh` starts petkit-local itself, the floating
+`ghcr.io/gamso/petkit-local:dev` image of its latest main, without Home Assistant (service
+`petkit-local` of `e2e/docker-compose.yml`). It says which build it got (digest and commit),
+seeds it with the fake T5 litter box of the server's own smoke test taken at that commit, sets
+the app password and prints the arguments for the tests. Its panel is published on the host's
+loopback only, for the tests to do what the panel's user does (reset the password, revoke
+sessions).
+
+```sh
+scripts/real-server.sh up                             # app API on 8297, panel on 127.0.0.1:8299
+./gradlew :app:pixel6Api37DebugAndroidTest   -Pandroid.testInstrumentationRunnerArguments.petkitServerKind=real   -Pandroid.testInstrumentationRunnerArguments.petkitServerUrl=http://10.0.2.2:8297   -Pandroid.testInstrumentationRunnerArguments.petkitServerPanelUrl=http://10.0.2.2:8299   -Pandroid.testInstrumentationRunnerArguments.petkitServerPassword=petkit-e2e-password
+scripts/real-server.sh down
+```
+
+A test that drives the mock's control API (`/mock`) or relies on its seeded household is
+annotated `@MockOnly`, and is reported as skipped against the real server; every other test runs
+against both, reading what the server has from the server. A test that fails there and not
+against the mock shows a drift between the app, the mock and the server.
 
 **Smoke** (`scripts/smoke-test.sh`): the release build, minified by R8, on a running emulator. It
 installs, starts and shows its first screen, with no crash and no ANR in the log. It writes the

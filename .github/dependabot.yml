@@ -50,9 +50,6 @@ updates:
       actions:
         patterns: ["*"]
 
-  # The petkit-local server image the e2e and smoke tests run against (e2e/docker-compose.yml),
-  # so a new server release reaches the app as a reviewed, tested PR.
-  - package-ecosystem: docker-compose
-    directory: /e2e
-    schedule:
-      interval: weekly
+  # Not the petkit-local server image of e2e/docker-compose.yml: the nightly run against the real
+  # server (e2e-real-server.yml) takes its floating `dev` tag on purpose, to catch drift with the
+  # server as it is now, so there is no pin to raise.
