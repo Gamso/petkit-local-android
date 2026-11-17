@@ -2,22 +2,29 @@ package org.petkitlocal.feature.device.settings
 
 import androidx.lifecycle.SavedStateHandle
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.RegisterExtension
 import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.core.domain.Outcome
+import org.petkitlocal.core.domain.device.DeviceIdentity
+import org.petkitlocal.core.domain.device.DeviceLink
 import org.petkitlocal.core.domain.device.EntityWriteProblem
-import org.petkitlocal.core.domain.device.ObserveDeviceUseCase
+import org.petkitlocal.core.domain.device.ObserveDeviceSettingsUseCase
 import org.petkitlocal.core.domain.device.ObserveLiveUpdatesUseCase
 import org.petkitlocal.core.domain.device.RunDeviceActionUseCase
 import org.petkitlocal.core.domain.device.SetEntityValueUseCase
 import org.petkitlocal.core.domain.device.SettingCategory
+import org.petkitlocal.core.domain.devicepage.DevicePart
 import org.petkitlocal.core.domain.model.EntityValue
 import org.petkitlocal.core.domain.repository.CommandDelivery
 import org.petkitlocal.core.testing.FakeDeviceCommandRepository
@@ -35,12 +42,15 @@ class DeviceSettingsViewModelTest {
     @RegisterExtension
     val main = MainDispatcherExtension()
 
-    private val devices = FakeDeviceRepository(listOf(DeviceFixtures.fountain))
+    private val devices = FakeDeviceRepository(
+        listOf(DeviceFixtures.fountain, DeviceFixtures.litterSettings, DeviceFixtures.purifier),
+    )
     private val commands = FakeDeviceCommandRepository()
+    private var deviceId = DeviceFixtures.fountain.id
     private val viewModel by lazy {
         DeviceSettingsViewModel(
-            SavedStateHandle(mapOf(DEVICE_ID_KEY to DeviceFixtures.fountain.id)),
-            ObserveDeviceUseCase(devices),
+            SavedStateHandle(mapOf(DEVICE_ID_KEY to deviceId)),
+            ObserveDeviceSettingsUseCase(devices),
             ObserveLiveUpdatesUseCase(FakeLiveUpdatesRepository()),
             RunDeviceActionUseCase(commands),
             SetEntityValueUseCase(commands),
@@ -149,5 +159,71 @@ class DeviceSettingsViewModelTest {
         )
 
         assertEquals(changed, viewModel.uiState.value.editor!!.entity)
+    }
+
+    @Test
+    fun `the settings open on who the device is, then its consumables`() = runTest(main.dispatcher) {
+        deviceId = DeviceFixtures.litterSettings.id
+        shown()
+
+        with(viewModel.uiState.value) {
+            assertEquals(
+                DeviceIdentity("Pura Max", true, DeviceLink.Http, "1.652", "20240305T4001288"),
+                identity,
+            )
+            // The T4 has no sprayer: the N60 is the paired Pura Air's, as on the page.
+            assertEquals(
+                listOf(DevicePart.Litter, DevicePart.WasteBin, DevicePart.Deodorizer, DevicePart.PuraAirSpray),
+                consumables.map { it.part },
+            )
+            assertEquals(DeviceFixtures.purifier, puraAir)
+            assertEquals(listOf("reset_n50"), consumables.flatMap { hotspot -> hotspot.actions.map { it.key } })
+        }
+    }
+
+    @Test
+    fun `a relayed Bluetooth accessory is reached through its parent, with no firmware`() = runTest(main.dispatcher) {
+        deviceId = DeviceFixtures.purifier.id
+        shown()
+
+        with(viewModel.uiState.value) {
+            assertEquals(
+                DeviceIdentity("Pura Air K3", true, DeviceLink.Bluetooth("Pura Max"), null, "K3-0001"),
+                identity,
+            )
+            assertTrue(consumables.isEmpty())
+        }
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class) // advanceTimeBy, runCurrent
+    @Test
+    fun `copying the serial number says so for a moment, and a second copy starts the moment again`() =
+        runTest(main.dispatcher) {
+            shown()
+
+            viewModel.onSerialCopied()
+            assertTrue(viewModel.uiState.value.serialCopied)
+            advanceTimeBy(DeviceSettingsViewModel.COPIED_SHOWN_MS / 2)
+            viewModel.onSerialCopied()
+            advanceTimeBy(DeviceSettingsViewModel.COPIED_SHOWN_MS / 2 + 1)
+            assertTrue(viewModel.uiState.value.serialCopied)
+            advanceTimeBy(DeviceSettingsViewModel.COPIED_SHOWN_MS / 2)
+            runCurrent()
+            assertFalse(viewModel.uiState.value.serialCopied)
+        }
+
+    @Test
+    fun `a consumable's reset is confirmed, then sent, and says how it was delivered`() = runTest(main.dispatcher) {
+        deviceId = DeviceFixtures.litterSettings.id
+        shown()
+        val reset = viewModel.uiState.value.consumables.single { it.part == DevicePart.Deodorizer }.actions.single()
+
+        viewModel.onAction(reset)
+
+        assertEquals(reset, viewModel.uiState.value.commands.confirming)
+        assertTrue(commands.actions.isEmpty())
+        viewModel.onConfirmAction()
+        assertEquals(listOf(FakeDeviceCommandRepository.Action(1002, "reset_n50", confirm = true)), commands.actions)
+        assertEquals(CommandResult.Sent(CommandDelivery.Mqtt), viewModel.uiState.value.commands.feedback!!.result)
     }
 }

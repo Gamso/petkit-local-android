@@ -2,6 +2,27 @@
 <!-- The settings screen: section names, and one line on what each known setting does,
      by entity key (SettingCatalog in core:domain says which keys have one). -->
 <resources>
+    <!-- The identity card at the top of a device's settings (issue #59). -->
+    <string name="device_identity_online">Online</string>
+    <string name="device_identity_link">Link</string>
+    <string name="device_identity_link_http">HTTP</string>
+    <string name="device_identity_link_mqtt">MQTT</string>
+    <string name="device_identity_link_ble">Bluetooth</string>
+    <!-- A Bluetooth accessory's link: the device relaying it, by its model name. -->
+    <string name="device_identity_link_ble_via">Bluetooth, through the %1$s</string>
+    <string name="device_identity_firmware">Firmware</string>
+    <string name="device_identity_serial">Serial number</string>
+    <string name="device_identity_copy">Copy</string>
+    <!-- What the Copy button says for a moment once the serial number is on the clipboard. -->
+    <string name="device_identity_copied">Copied</string>
+    <!-- TalkBack: what a tap on Copy does. -->
+    <string name="device_identity_copy_action">Copy the serial number</string>
+
+    <!-- The device's parts, under its identity card, with their resets. -->
+    <string name="device_settings_consumables">Consumables</string>
+    <!-- A Pura Air's N60 on its litter box: the accessory it is read from. -->
+    <string name="device_consumable_via">Through the %1$s</string>
+
     <string name="device_setting_category_cleaning">Cleaning</string>
     <string name="device_setting_category_deodorizing">Deodorizing</string>
     <string name="device_setting_category_litter">Litter</string>

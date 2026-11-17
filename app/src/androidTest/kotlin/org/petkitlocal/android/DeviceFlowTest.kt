@@ -1,5 +1,6 @@
 package org.petkitlocal.android
 
+import android.content.ClipboardManager
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsOff
@@ -22,6 +23,7 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -37,7 +39,8 @@ import org.petkitlocal.feature.settings.SettingsTestTags
 
 /**
  * A device end to end, on a device, against the mock server (core:e2e): the page of the
- * EverSweet Ultra AI follows the mock over `/ws`, its settings are written through
+ * EverSweet Ultra AI follows the mock over `/ws`, its settings open on its identity card, whose
+ * Copy button puts its serial number on the clipboard, its settings are written through
  * `PUT /entities/{key}` and come back from the server's answer, its actions report how they
  * were delivered, and a session ended from the server while the socket is open (close code
  * 4401) sends the app back to sign-in.
@@ -76,9 +79,20 @@ class DeviceFlowTest {
         compose.onNode(confirm).performClick()
         waitFor(hasTestTag(DeviceTestTags.FEEDBACK) and hasText("Drain") and hasText("Sent to the device."))
 
-        // Settings: a switch, then a number through its editor.
+        // Settings open on the identity card: Copy puts the serial number on the clipboard.
         compose.onNode(hasContentDescription("Settings") and hasClickAction()).performClick()
         waitFor(hasTestTag(DeviceTestTags.SETTINGS_SCREEN))
+        waitFor(hasText(FOUNTAIN_SERIAL) and hasAnyAncestor(hasTestTag(DeviceTestTags.IDENTITY)))
+        compose.onNodeWithTag(DeviceTestTags.COPY_SERIAL).performClick()
+        waitFor(hasTestTag(DeviceTestTags.COPY_SERIAL) and hasText("Copied"))
+        compose.activityRule.scenario.onActivity { activity ->
+            val clip = activity.getSystemService(ClipboardManager::class.java).primaryClip
+            assertEquals(FOUNTAIN_SERIAL, clip?.getItemAt(0)?.text?.toString())
+        }
+
+        // Then the settings: a switch, then a number through its editor.
+        compose.onNodeWithTag(DeviceTestTags.SETTINGS_LIST)
+            .performScrollToNode(hasTestTag(DeviceTestTags.entity("child_lock")))
         val lock = compose.onNodeWithTag(DeviceTestTags.entity("child_lock"))
         lock.assertIsOff()
         lock.performClick()
@@ -86,6 +100,8 @@ class DeviceFlowTest {
         waitFor(hasTestTag(DeviceTestTags.entity("child_lock")) and isOn())
         lock.assertIsOn()
 
+        compose.onNodeWithTag(DeviceTestTags.SETTINGS_LIST)
+            .performScrollToNode(hasTestTag(DeviceTestTags.entity("fountain_time")))
         compose.onNodeWithTag(DeviceTestTags.entity("fountain_time")).performClick()
         waitFor(hasTestTag(DeviceTestTags.EDITOR))
         compose.onNode(hasContentDescription("Increase")).performClick()
@@ -151,6 +167,9 @@ class DeviceFlowTest {
 
     private companion object {
         const val FOUNTAIN = 3001L
+
+        /** The mock's serial number for its EverSweet Ultra AI (mock-server Seed). */
+        const val FOUNTAIN_SERIAL = "20250610W7H00077"
         const val FIRST_CARD = 1001L
         const val TIMEOUT_MS = 30_000L
     }

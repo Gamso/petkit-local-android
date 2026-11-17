@@ -74,11 +74,13 @@ class ServerHouseholdFlowTest {
             scrollHomeTo(card)
             compose.onNode(card).performClick()
 
-            // Its page, under its model's name, and its settings behind the header's gear.
+            // Its page, under its model's name, and its settings behind the header's gear, which
+            // open on its identity card.
             waitFor(hasTestTag(DeviceTestTags.STATUS))
             waitFor(hasText(device.model))
             compose.onNode(hasContentDescription("Settings") and hasClickAction()).performClick()
             waitFor(hasTestTag(DeviceTestTags.SETTINGS_SCREEN))
+            waitFor(hasTestTag(DeviceTestTags.IDENTITY))
             back()
             waitFor(hasTestTag(DeviceTestTags.STATUS))
             back()

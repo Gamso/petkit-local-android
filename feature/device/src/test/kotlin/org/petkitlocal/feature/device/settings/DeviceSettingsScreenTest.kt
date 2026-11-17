@@ -1,10 +1,16 @@
 package org.petkitlocal.feature.device.settings
 
+import android.content.ClipboardManager
+import android.content.Context
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasAnyDescendant
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -13,6 +19,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextReplacement
+import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -21,7 +28,10 @@ import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.core.domain.device.DeviceSections
 import org.petkitlocal.core.domain.device.EntityWriteProblem
+import org.petkitlocal.core.domain.model.DeviceAction
+import org.petkitlocal.core.domain.model.DeviceTransport
 import org.petkitlocal.core.domain.model.EntityValue
+import org.petkitlocal.core.testing.Household
 import org.petkitlocal.feature.device.DeviceFixtures
 import org.petkitlocal.feature.device.common.CommandState
 import org.petkitlocal.feature.device.common.DeviceTestTags
@@ -47,6 +57,8 @@ class DeviceSettingsScreenTest {
             saved += value
         },
         onDismissEditor = { calls += "dismiss" },
+        onAction = { calls += "action:${it.key}" },
+        onSerialCopied = { calls += "copied" },
     )
 
     private fun show(state: DeviceSettingsUiState) {
@@ -183,4 +195,110 @@ class DeviceSettingsScreenTest {
         assertEquals(listOf("dismiss", "save:refill_disturb_period"), calls)
         assertEquals(listOf(EntityValue.Text("23:00-06:00")), saved)
     }
+
+    @Test
+    fun `the identity card comes first, and Copy puts the serial number on the clipboard`() {
+        show(DeviceFixtures.settings())
+
+        compose.onNodeWithTag(DeviceTestTags.IDENTITY).assert(hasAnyText("EverSweet Ultra AI"))
+        compose.onNode(hasText("Online") and hasAnyAncestor(hasTestTag(DeviceTestTags.IDENTITY))).assertIsDisplayed()
+        compose.onNodeWithText("MQTT").assertIsDisplayed()
+        compose.onNodeWithText("1.263").assertIsDisplayed()
+        compose.onNodeWithText("20250610W7H00077").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Copy the serial number").performClick()
+        compose.waitForIdle()
+
+        assertEquals(listOf("copied"), calls)
+        val clipboard = ApplicationProvider.getApplicationContext<Context>().getSystemService(
+            ClipboardManager::class.java,
+        )
+        assertEquals("20250610W7H00077", clipboard.primaryClip!!.getItemAt(0).text.toString())
+    }
+
+    @Test
+    fun `once copied, the button says so`() {
+        show(DeviceFixtures.settings(serialCopied = true))
+
+        compose.onNodeWithTag(DeviceTestTags.COPY_SERIAL).assert(hasAnyText("Copied"))
+    }
+
+    @Test
+    fun `what the server does not send is left out, never shown as unknown`() {
+        val bare = DeviceFixtures.fountain.copy(firmware = null, serial = null, transport = DeviceTransport.Unknown)
+        show(DeviceFixtures.settings(device = bare.copy(online = false)))
+
+        compose.onNode(hasText("Offline") and hasAnyAncestor(hasTestTag(DeviceTestTags.IDENTITY))).assertIsDisplayed()
+        compose.onNodeWithText("Link").assertDoesNotExist()
+        compose.onNodeWithText("Firmware").assertDoesNotExist()
+        compose.onNodeWithText("Serial number").assertDoesNotExist()
+        compose.onNodeWithTag(DeviceTestTags.COPY_SERIAL).assertDoesNotExist()
+    }
+
+    @Test
+    fun `a litter box lists its parts and the N60 of its Pura Air, and resets its N50`() {
+        show(DeviceFixtures.settings(device = DeviceFixtures.litterSettings, puraAir = DeviceFixtures.purifier))
+
+        compose.onNodeWithText("Consumables").assertIsDisplayed()
+        compose.onNodeWithTag(DeviceTestTags.consumable("Litter")).assert(hasAnyText("91 %"))
+        compose.onNodeWithTag(DeviceTestTags.consumable("WasteBin")).assert(hasAnyText("Full"))
+        compose.onNodeWithTag(DeviceTestTags.consumable("Deodorizer")).assert(hasAnyText("21 days"))
+        compose.onNodeWithTag(DeviceTestTags.consumable("PuraAirSpray"))
+            .assert(hasAnyText("Pura Air · N60"))
+            .assert(hasAnyText("Through the Pura Air K3"))
+            .assert(hasAnyText("63 %"))
+        // The page's other actions on a part stay on the page: only resets are here.
+        compose.onNodeWithText("Level Litter").assertDoesNotExist()
+        compose.onNodeWithTag(DeviceTestTags.consumableAction("reset_n50")).performClick()
+
+        assertEquals(listOf("action:reset_n50"), calls)
+    }
+
+    @Test
+    fun `a feeder lists its desiccant with its reset, and a reset in flight waits`() {
+        val feeder = Household.feeder.copy(
+            firmware = "1.267",
+            serial = "20220914D4000654",
+            actions = listOf(DeviceAction("reset_desiccant", "Reset Desiccant", destructive = true)),
+        )
+        show(DeviceFixtures.settings(device = feeder, commands = CommandState(sending = setOf("reset_desiccant"))))
+
+        compose.onNodeWithTag(DeviceTestTags.consumable("Food")).assert(hasAnyText("OK"))
+        compose.onNodeWithTag(DeviceTestTags.consumable("Desiccant")).assert(hasAnyText("3 days"))
+        compose.onNodeWithTag(DeviceTestTags.consumableAction("reset_desiccant")).assertIsNotEnabled()
+    }
+
+    @Test
+    fun `a relayed Bluetooth fountain names its relay, and has no firmware line`() {
+        show(DeviceFixtures.settings(device = Household.batteryFountain, relay = Household.feeder))
+
+        compose.onNodeWithText("Bluetooth, through the Fresh Element Solo").assertIsDisplayed()
+        compose.onNodeWithText("Firmware").assertDoesNotExist()
+        compose.onNodeWithTag(DeviceTestTags.consumable("Filter")).assert(hasAnyText("12 %"))
+        compose.onNodeWithTag(DeviceTestTags.consumable("Water")).assertExists()
+    }
+
+    @Test
+    fun `a Pura Air has its identity card and no consumables of its own`() {
+        show(DeviceFixtures.settings(device = DeviceFixtures.purifier, relay = DeviceFixtures.puraMax))
+
+        compose.onNodeWithText("Bluetooth, through the Pura Max").assertIsDisplayed()
+        compose.onNodeWithText("K3-0001").assertIsDisplayed()
+        compose.onNodeWithTag(DeviceTestTags.CONSUMABLES).assertDoesNotExist()
+    }
+
+    @Test
+    @Config(qualifiers = "fr-w411dp-h2000dp")
+    fun `the identity card in French`() {
+        show(DeviceFixtures.settings(device = DeviceFixtures.litterSettings, puraAir = DeviceFixtures.purifier))
+
+        compose.onNodeWithText("En ligne").assertIsDisplayed()
+        compose.onNodeWithText("N° de série").assertIsDisplayed()
+        compose.onNodeWithText("Copier").assertIsDisplayed()
+        compose.onNodeWithText("Consommables").assertIsDisplayed()
+        compose.onNodeWithText("Via le Pura Air K3", substring = true).assertIsDisplayed()
+    }
 }
+
+/** [text] on the node itself (merged) or on one of its children. */
+private fun hasAnyText(text: String) =
+    hasText(text, substring = true) or hasAnyDescendant(hasText(text, substring = true))
