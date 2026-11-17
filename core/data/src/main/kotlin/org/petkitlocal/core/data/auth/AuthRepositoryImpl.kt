@@ -33,6 +33,7 @@ import org.petkitlocal.core.network.PetkitApi
 import org.petkitlocal.core.network.ServerAddressProvider
 import org.petkitlocal.core.network.auth.SessionEndListener
 import org.petkitlocal.core.network.auth.SessionTokenProvider
+import org.petkitlocal.core.network.dto.ChangePasswordRequestDto
 import org.petkitlocal.core.network.dto.LoginRequestDto
 import org.petkitlocal.core.network.error.apiCall
 
@@ -149,12 +150,20 @@ class AuthRepositoryImpl @Inject constructor(
         clearLocally(reason = null)
     }
 
-    override suspend fun validateSession() {
-        val checked = current ?: return
-        val info = apiCall { api.get().getInfo() }
+    override suspend fun serverInfo(): Outcome<ServerInfo> {
+        val checked = current ?: return Outcome.Failure(DomainError.SessionEnded(SessionEndReason.InvalidToken))
+        val info = apiCall { api.get().getInfo() }.map { it.toDomain() }
         if (info is Outcome.Success && !info.value.authenticated) {
             mutex.withLock { if (current === checked) clearLocally(SessionEndReason.InvalidToken) }
         }
+        return info
+    }
+
+    override suspend fun changePassword(current: String, new: String): Outcome<Int> =
+        apiCall { api.get().changePassword(ChangePasswordRequestDto(current, new)) }.map { it.revokedSessions }
+
+    override suspend fun validateSession() {
+        if (current != null) serverInfo()
     }
 
     override suspend fun endSession(reason: SessionEndReason) = mutex.withLock {

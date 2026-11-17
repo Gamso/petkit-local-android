@@ -13,6 +13,7 @@ import io.github.gamso.petkitlocal.mock.api.FeedingPlanDto
 import io.github.gamso.petkitlocal.mock.api.FeedingPlanResult
 import io.github.gamso.petkitlocal.mock.api.Info
 import io.github.gamso.petkitlocal.mock.api.LoginResponse
+import io.github.gamso.petkitlocal.mock.api.NotificationSettings
 import io.github.gamso.petkitlocal.mock.api.Ok
 import io.github.gamso.petkitlocal.mock.api.PetDetail
 import io.github.gamso.petkitlocal.mock.api.PetDto
@@ -58,6 +59,9 @@ import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
@@ -157,6 +161,7 @@ fun Route.apiRoutes(world: World) {
         mediaRoutes(world)
         petRoutes(world)
         updatesRoute(world)
+        notificationRoutes(world)
     }
 }
 
@@ -204,6 +209,41 @@ private fun Route.authRoutes(world: World) {
             }
         call.respondJson(ChangePasswordResponse.serializer(), ChangePasswordResponse(revokedSessions = revoked))
     }
+}
+
+/**
+ * `GET`/`PUT /notifications`: the session's kinds (`handlers/notifications.py`). The socket
+ * itself, `/notifications/ws`, is not served yet (issue #23), so `connected` is always false.
+ */
+private fun Route.notificationRoutes(world: World) {
+    get("/notifications") {
+        call.respondJson(NotificationSettings.serializer(), world.notificationSettings(call.session()))
+    }
+    put("/notifications") {
+        val body = call.jsonBody()
+        if ("kinds" !in body) throw ApiException(400, "bad_parameter", "kinds is required: a list of kinds, or null")
+        val kinds = checkKinds(body["kinds"]!!)
+        val session = call.session()
+        synchronized(world.lock) { session.kinds = kinds }
+        call.respondJson(NotificationSettings.serializer(), world.notificationSettings(session))
+    }
+}
+
+/**
+ * `kinds` as a session chose them (`push.py::check_kinds`): null for every kind, or a list of
+ * strings, at most 32, of which the unknown ones are dropped; kept in the server's order.
+ */
+private fun checkKinds(value: JsonElement): List<String>? {
+    if (value is JsonNull) return null
+    val list = value as? JsonArray
+    val strings = list?.mapNotNull { (it as? JsonPrimitive)?.takeIf { p -> p.isString }?.content }
+    if (list == null || strings == null || strings.size != list.size) {
+        throw ApiException(400, "bad_parameter", "kinds must be a list of strings, or null for every kind")
+    }
+    if (strings.size > AppSession.MAX_KINDS) {
+        throw ApiException(400, "bad_parameter", "kinds may list at most ${AppSession.MAX_KINDS} entries")
+    }
+    return AppSession.NOTIFICATION_KINDS.filter { it in strings }
 }
 
 private fun Route.deviceRoutes(world: World) {

@@ -285,6 +285,10 @@ class LiveUpdatesRepositoryImplTest {
 
         override suspend fun signOut() = error("not used")
 
+        override suspend fun serverInfo(): Outcome<ServerInfo> = error("not used")
+
+        override suspend fun changePassword(current: String, new: String): Outcome<Int> = error("not used")
+
         override suspend fun validateSession() = Unit
 
         override suspend fun endSession(reason: SessionEndReason) {

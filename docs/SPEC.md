@@ -125,12 +125,19 @@ screen).
 - "Talk" is shown disabled with an explanation (non-goal).
 
 ### 8 · Settings
-- Server: address, connection state, server version.
+- Server: address, server version.
 - Notifications: on/off, connection state (connected, reconnecting, battery optimisation still
   on, notification permission refused, each with the action that fixes it) and the kinds to show.
-- App: theme (system, light, dark), this phone's name. No language setting: the app follows the
-  phone.
+- App: this phone's name. No language or theme setting: the app follows the phone's language
+  and its light or dark theme.
 - Change password (needs the current one; signs out every other phone), sign out.
+- About: the app's version, the non-affiliation notice (decision 1), the app's own licence (MIT,
+  the repository's LICENSE) and the open-source licences: one line per project the app is built
+  on (all of AndroidX and Compose is one), with its licences and, when it has several components,
+  their list with versions; the licence text on a tap. Only the direct dependencies of the
+  release build are listed (what our modules declare, not what those bring along), plus the
+  bundled fonts and icons. The list is generated at build time from Gradle's resolution (never
+  kept by hand), shipped in the APK and read offline, with no Google service.
 
 ### 9 · Fountain
 - Header and hero as for the litter box. Hotspots only for the parts the model has (a table per
@@ -172,7 +179,7 @@ screen).
   - After a network loss or a reboot, the alerts missed meanwhile are delivered on reconnection.
 - **Accessibility.** Contrast ≥ 4.5:1, touch targets ≥ 48 dp, TalkBack labels on every
   icon-only control, dynamic font size, no information carried by colour alone.
-- **Dark theme** from the same tokens.
+- **Dark theme** from the same tokens, following the phone's setting (no in-app switch).
 
 ## 7. Languages
 

@@ -34,6 +34,10 @@ class SignInUseCaseTest {
 
         override suspend fun signOut() = Unit
 
+        override suspend fun serverInfo(): Outcome<ServerInfo> = probeResult
+
+        override suspend fun changePassword(current: String, new: String): Outcome<Int> = Outcome.Success(0)
+
         override suspend fun validateSession() = Unit
 
         override suspend fun endSession(reason: SessionEndReason) = Unit

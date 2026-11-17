@@ -13,13 +13,14 @@ per feature. Decisions that are hard to undo are recorded as ADRs in `docs/adr/`
 | HTTP | Retrofit + OkHttp + kotlinx.serialization | Mature; OkHttp also gives the WebSocket client |
 | Live updates | OkHttp WebSocket | Same client, same auth interceptor |
 | Local cache | Room | Last known devices, pets and timeline pages for offline display |
-| Preferences | DataStore | Server address, theme, notification kinds (the language is the phone's) |
+| Preferences | DataStore | Server address, notification state (the language and the theme are the phone's) |
 | Secret storage | Android Keystore (AES-GCM key) encrypting the session token in DataStore | No deprecated crypto library |
 | Images | Coil 3 with the shared OkHttp client | Media and thumbnails need the `Authorization` header |
 | Video | Media3 ExoPlayer: HLS natively; fMP4-over-WebSocket through a custom `DataSource` | One player, two transports |
 | Charts | Compose `Canvas` | Few, simple charts; no charting dependency |
 | Notifications | A foreground service holding the server's notification WebSocket (OkHttp) | No other app, server or Google service required |
 | Navigation | Navigation Compose with type-safe routes | Standard, testable |
+| Open-source licences | AboutLibraries Gradle plugin and core (no UI library): the list is generated into the APK, restricted to the release build's direct dependencies (build-logic `directExternalDependencies`); our own screens group it by project | Apache 2.0 wants the licence to travel with the APK; no Google Play services (so not Google's oss-licenses plugin) |
 | Static analysis | ktlint, detekt, Android lint | CI gate |
 | Tests | JUnit 5, MockK, Turbine, kotlinx-coroutines-test, Robolectric, Compose UI tests, screenshot tests | One layer each, below |
 
@@ -45,7 +46,7 @@ the project is created, and upgraded through Dependabot, as on the server.
 :feature:history          Day strip, filters, timeline, event detail, media viewer
 :feature:pets             Pet list and detail, weight chart
 :feature:live             Live video player
-:feature:settings         Server, notifications, theme, sign out
+:feature:settings         Server, notifications, phone name, sign out, About
 :push                     Notification connection service, channels and deep links
 ```
 

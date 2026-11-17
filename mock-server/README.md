@@ -67,9 +67,8 @@ Every option can be set as a flag, `--name=value`, or as an environment variable
 
 ## What it implements
 
-Every operation in `api/openapi.yaml` but the notification ones (`/push`, `/notifications`,
-`/notifications/ws`, issue #23: every session says `kinds: null, push: null`), with petkit-local's
-own rules. These were read from its
+Every operation in `api/openapi.yaml` but the notification socket and UnifiedPush (`/push`,
+`/notifications/ws`, issue #23: every session says `push: null`), with petkit-local's own rules. These were read from its
 `app_api/` at the commit recorded in `api/SOURCE`.
 
 - **Access**
@@ -81,6 +80,10 @@ own rules. These were read from its
   - One per phone, from `POST /auth/login`.
   - Ended by logout (that session only), by a password change (needs the current password; ends
     every other session) or after 90 days unused. Each use extends it. The clock can be advanced.
+- **Notification kinds:** `GET`/`PUT /notifications` keep each session's `kinds` (`null` for
+  every kind, `[]` for none), in the server's order without unknown kinds, as `Session.kinds`
+  too. `server_kinds` lists the seven kinds, all switched on unless the control API turned some
+  off; `connected` is always false and `last_id` 0, since no notification socket is served yet.
 - **Login throttle:** wrong passwords lock the client's address out for 1 s, 2 s, 4 s and so on,
   capped. Answers are 401 `invalid_password`, then 429 `too_many_attempts`, both with `Retry-After`.
 - **Devices and entities**
@@ -210,8 +213,9 @@ Under `/mock`, no authentication, JSON in and out. It is meant for the app's end
 | `POST /mock/devices/{id}/remove` | | Sends `device_removed`; a reset brings the device back. |
 | `PUT /mock/devices/{id}/state` | `{"<value_path>": value, ...}` | Sets raw state behind any entity, for example `{"consumables.liquid": 5}`. |
 | `POST /mock/clock/advance` | `seconds` | Moves the fake clock forward, for session expiry and lockouts. |
-| `GET /mock/sessions` | | Live sessions. |
+| `GET /mock/sessions` | | Live sessions, with the notification `kinds` each chose. |
 | `DELETE /mock/sessions/{id}`, `DELETE /mock/sessions` | | Revokes one or all; their sockets close with 4401. |
+| `PUT /mock/notifications` | `disabled`: list of kinds | Switches those kinds off as the panel's per-kind switches do (`server_kinds[].enabled`); `[]` turns them all back on, as does a reset. |
 | `PUT /mock/password` | `password`: string or `null` | Sets it as the panel does and drops every session. `null` means no password. |
 | `POST /mock/fail` | `method`, `path`, `status`, `error?`, `message?`, `retry_after?`, `times?` | The next `times` (default 1) requests to that route get this error. `path` is a spec template (`/devices/{id}`) or a concrete path. |
 | `DELETE /mock/fail` | | Clears forced failures. |

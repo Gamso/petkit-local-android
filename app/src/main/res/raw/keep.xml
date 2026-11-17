@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- AGP 9 shrinks resources it cannot see used. The licences list and the app's own licence are
+     read by their ids, but keep them whatever the shrinker decides (AboutLibraries' own advice
+     for AGP 9). -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@raw/aboutlibraries,@raw/license" />

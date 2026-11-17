@@ -50,6 +50,8 @@ import org.petkitlocal.core.network.dto.LoginResponseDto
 import org.petkitlocal.core.network.dto.MealDto
 import org.petkitlocal.core.network.dto.MediaDto
 import org.petkitlocal.core.network.dto.NotificationKind
+import org.petkitlocal.core.network.dto.NotificationKindsRequestDto
+import org.petkitlocal.core.network.dto.NotificationSettingsDto
 import org.petkitlocal.core.network.dto.OkDto
 import org.petkitlocal.core.network.dto.PetDetailDto
 import org.petkitlocal.core.network.dto.PetDto
@@ -114,6 +116,8 @@ class SchemaContractTest {
         "PetDetail" to PetDetailDto.serializer(),
         "UpdateMessage" to UpdateMessageDto.serializer(),
         "PushRegistration" to PushRegistrationDto.serializer(),
+        "NotificationSettings" to NotificationSettingsDto.serializer(),
+        "NotificationKindsRequest" to NotificationKindsRequestDto.serializer(),
         // A named `oneOf: [array, null]`, used by `Session.kinds`: a nullable list of kinds.
         "NotificationKinds" to ListSerializer(String.serializer()).nullable,
     )

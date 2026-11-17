@@ -85,7 +85,6 @@ tested build.
 - Settings screen complete:
   - server info;
   - notifications: on/off, connection state, kinds;
-  - theme;
   - change password.
 - End-to-end test against a petkit-local container in CI.
 - Signed APK attached to a GitHub release on each `v*` tag (spec, decision 2); About screen with

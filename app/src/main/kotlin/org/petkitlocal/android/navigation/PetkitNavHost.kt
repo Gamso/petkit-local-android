@@ -19,6 +19,8 @@ import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.auth.AuthState
 import org.petkitlocal.core.domain.repository.LiveUpdatesStatus
 import org.petkitlocal.feature.auth.SignInDestination
+import org.petkitlocal.feature.auth.password.changePasswordScreen
+import org.petkitlocal.feature.auth.password.navigateToChangePassword
 import org.petkitlocal.feature.auth.signInScreen
 import org.petkitlocal.feature.device.DeviceNavigation
 import org.petkitlocal.feature.device.deviceScreen
@@ -38,6 +40,9 @@ import org.petkitlocal.feature.pets.PetsNavigation
 import org.petkitlocal.feature.pets.navigateToPet
 import org.petkitlocal.feature.pets.navigateToPets
 import org.petkitlocal.feature.pets.petsScreens
+import org.petkitlocal.feature.settings.SettingsNavigation
+import org.petkitlocal.feature.settings.licences.licencesScreen
+import org.petkitlocal.feature.settings.licences.navigateToLicences
 import org.petkitlocal.feature.settings.navigateToSettings
 import org.petkitlocal.feature.settings.settingsScreen
 
@@ -119,7 +124,15 @@ fun PetkitNavHost(
             onOpenClip = { clip -> navController.navigateToClip(clip) },
             onOpenHistory = { deviceId -> navController.navigateToHistory(deviceId = deviceId) },
         )
-        settingsScreen(onBack = back)
+        settingsScreen(
+            SettingsNavigation(
+                onBack = back,
+                onChangePassword = { navController.navigateToChangePassword() },
+                onOpenLicences = { navController.navigateToLicences() },
+            ),
+        )
+        changePasswordScreen(onBack = back)
+        licencesScreen(onBack = back)
     }
     LaunchedEffect(signedIn) { navController.followSession(signedIn) }
 }

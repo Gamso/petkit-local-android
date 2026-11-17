@@ -41,8 +41,9 @@ data class SessionDto(
     val created: Double,
     @SerialName("last_used") val lastUsed: Double,
     val expires: Double,
-    // The mock has no notification channels: every session receives every kind, pushed nowhere.
+    /** The kinds this session chose (`PUT /notifications`); null for every kind. */
     val kinds: List<String>? = null,
+    // The mock has no UnifiedPush: no session ever registers an endpoint.
     val push: PushRegistration? = null,
 )
 
@@ -51,6 +52,21 @@ data class PushRegistration(
     val host: String,
     val kinds: List<String>?,
     val registered: Double,
+)
+
+/** One entry of `NotificationSettings.server_kinds`: a kind and the panel's switch for it. */
+@Serializable
+data class ServerKind(
+    val kind: String,
+    val enabled: Boolean,
+)
+
+@Serializable
+data class NotificationSettings(
+    val kinds: List<String>?,
+    @SerialName("server_kinds") val serverKinds: List<ServerKind>,
+    val connected: Boolean,
+    @SerialName("last_id") val lastId: Long,
 )
 
 @Serializable
