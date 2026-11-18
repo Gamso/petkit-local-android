@@ -31,7 +31,11 @@ object FeederRules {
 
     private const val DAYS_AHEAD = 7L
 
-    /** @param pets the household, in its order, which names and colours a pet a camera feeder saw. */
+    /**
+     * @param todayItems the cards of the local day shown, any device; [yesterdayItems] those of the
+     *   day before, which a camera feeder's eating is compared with.
+     * @param pets the household, in its order, which names and colours a pet a camera feeder saw.
+     */
     @Suppress("LongParameterList") // The page's sources, the time and the zone.
     fun page(
         device: Device,
@@ -41,6 +45,7 @@ object FeederRules {
         now: Instant,
         zone: ZoneId,
         pets: List<Pet> = emptyList(),
+        yesterdayItems: List<TimelineItem> = emptyList(),
     ): FeederPage {
         val cards = todayItems.filter { it.deviceId == device.id }
         // Meals that came out: not one that failed, nor a camera feeder's eating episode, which
@@ -60,6 +65,11 @@ object FeederRules {
             mealsToday = feeds.size,
             dispensed = device.entity("total_dispensed")?.let { e -> e.value.asDouble?.let { Quantity(it, e.unit) } },
             day = FeederDayRules.day(ActivityRules.entries(cards, pets), device.isCamera),
+            eating = if (device.isCamera) {
+                FeederEatingRules.eating(cards, yesterdayItems.filter { it.deviceId == device.id }, zone, pets)
+            } else {
+                null
+            },
         )
     }
 

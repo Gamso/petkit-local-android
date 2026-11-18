@@ -137,6 +137,9 @@ class FeederViewModel @Inject constructor(
     /** A chip over the day's list. */
     fun onDayFilter(filter: FeederDayFilter) = local.update { it.copy(dayFilter = filter) }
 
+    /** A pet of the meals-eaten chart's filter, or null for every pet. */
+    fun onPetFilter(petId: Long?) = local.update { it.copy(petFilter = petId) }
+
     /** A hopper's feed-now portions, within its setting's bounds. */
     fun onPortions(hopperIndex: Int, portions: Int) {
         val hoppers = page()?.manualFeed?.hoppers ?: return

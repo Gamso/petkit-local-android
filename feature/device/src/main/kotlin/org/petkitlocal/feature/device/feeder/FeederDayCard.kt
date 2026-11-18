@@ -20,6 +20,7 @@ import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.feeder.FeederDay
 import org.petkitlocal.core.domain.feeder.FeederDayFilter
 import org.petkitlocal.core.domain.feeder.FeederDayRow
+import org.petkitlocal.core.domain.feeder.FeederEating
 import org.petkitlocal.core.domain.model.MediaFile
 import org.petkitlocal.core.domain.model.Portions
 import org.petkitlocal.feature.device.R
@@ -30,8 +31,9 @@ import org.petkitlocal.feature.device.common.ActivityRowExtras
  * The feeder's day (SPEC.md §5.6, Today): the device's activity card, named Today, over the whole
  * day rather than its last rows, with counted chips (All, Meals, and At the camera on a camera
  * feeder), each meal's portions per hopper in the hopper's colour, and a clip's thumbnail where the
- * event has one. A camera feeder's figures of its pets' meals (#68) go between the title and the
- * chips.
+ * event has one. On a camera feeder, what its camera saw the pets eat ([eating], #68) goes between
+ * the title and the chips: the card is already the day's Today, which a second card would repeat,
+ * and its figures sit over the rows they count.
  */
 @Composable
 internal fun FeederDayCard(
@@ -42,6 +44,9 @@ internal fun FeederDayCard(
     onOpenClip: (MediaFile) -> Unit,
     onOpenHistory: () -> Unit,
     modifier: Modifier = Modifier,
+    eating: FeederEating? = null,
+    petFilter: Long? = null,
+    onPetFilter: (Long?) -> Unit = {},
 ) {
     val rows = day.rows(filter)
     val byId = rows.associateBy { it.id }
@@ -54,7 +59,10 @@ internal fun FeederDayCard(
         maxRows = Int.MAX_VALUE,
         onOpenClip = onOpenClip,
         extras = { entry -> byId[entry.item.id]?.let { rowExtras(it) } },
-        header = { DayFilterChips(day, filter, onFilter) },
+        header = {
+            eating?.let { EatingSection(it, petFilter, onPetFilter) }
+            DayFilterChips(day, filter, onFilter)
+        },
     )
 }
 

@@ -44,6 +44,8 @@ data class FeederUiState(
     val feedDraft: FeedDraft? = null,
     /** The chip picked over the day's list. */
     val dayFilter: FeederDayFilter = FeederDayFilter.All,
+    /** The pet the meals-eaten chart shows alone; null shows every pet. */
+    val petFilter: Long? = null,
 ) : PageLoadState {
     val offline: Boolean get() = liveUnreachable || refreshError is DomainError.Network
 

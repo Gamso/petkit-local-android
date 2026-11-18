@@ -37,6 +37,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import org.petkitlocal.core.designsystem.component.PkCard
 import org.petkitlocal.core.designsystem.component.PkFilterChip
@@ -87,7 +88,44 @@ internal fun DayChartCard(
     untimed: UntimedWords? = null,
 ) {
     PkCard(modifier.fillMaxWidth()) {
-        Text(title, style = PkTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
+        DayChart(
+            title = title,
+            emptyText = emptyText,
+            description = description,
+            dots = dots,
+            pets = pets,
+            colorIndexOf = colorIndexOf,
+            petFilter = petFilter,
+            onPetFilter = onPetFilter,
+            chartTag = chartTag,
+            minScaleMinutes = minScaleMinutes,
+            untimed = untimed,
+        )
+    }
+}
+
+/**
+ * What [DayChartCard] holds, for a card that shows the chart among other things: the feeder's
+ * Today, say. Its [title] is a heading in [titleStyle].
+ */
+@Composable
+internal fun DayChart(
+    title: String,
+    emptyText: String,
+    @PluralsRes description: Int,
+    dots: List<DayDot>,
+    pets: List<Pet>,
+    colorIndexOf: (Long?) -> Int?,
+    petFilter: Long?,
+    onPetFilter: (Long?) -> Unit,
+    chartTag: String,
+    modifier: Modifier = Modifier,
+    minScaleMinutes: Int = MIN_SCALE_MINUTES,
+    untimed: UntimedWords? = null,
+    titleStyle: TextStyle = PkTheme.typography.titleMedium,
+) {
+    Column(modifier.fillMaxWidth()) {
+        Text(title, style = titleStyle, modifier = Modifier.semantics { heading() })
         if (pets.isNotEmpty()) {
             LazyRow(
                 horizontalArrangement = Arrangement.spacedBy(PkTheme.spacing.xs),

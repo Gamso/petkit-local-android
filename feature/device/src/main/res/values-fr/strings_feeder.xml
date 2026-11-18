@@ -65,6 +65,22 @@
         <item quantity="other">%1$d du réservoir %2$d</item>
     </plurals>
 
+    <string name="feeder_eaten">Repas mangés</string>
+    <string name="feeder_average_meal">Durée moyenne</string>
+    <string name="feeder_eating_chart_title">Repas mangés de la journée</string>
+    <string name="feeder_eating_chart_empty">Aucun repas mangé aujourd\'hui.</string>
+    <plurals name="feeder_eating_chart_description">
+        <item quantity="one">Graphique de %1$d repas mangé aujourd\'hui, par heure et durée</item>
+        <item quantity="many">Graphique de %1$d repas mangés aujourd\'hui, par heure et durée</item>
+        <item quantity="other">Graphique de %1$d repas mangés aujourd\'hui, par heure et durée</item>
+    </plurals>
+    <string name="feeder_eating_chart_no_durations">Durées non signalées</string>
+    <plurals name="feeder_eating_chart_untimed">
+        <item quantity="one">%1$d sans durée connue, sur l\'axe</item>
+        <item quantity="many">%1$d sans durée connue, sur l\'axe</item>
+        <item quantity="other">%1$d sans durée connue, sur l\'axe</item>
+    </plurals>
+
     <string name="feeder_sheet_plan">Repas</string>
     <string name="feeder_sheet_later">Plus tard</string>
     <string name="feeder_sheet_history">Historique</string>

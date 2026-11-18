@@ -55,6 +55,8 @@ data class FeederCallbacks(
     val onDismissFeed: () -> Unit = {},
     val onCancelFeed: (String) -> Unit = {},
     val onDayFilter: (FeederDayFilter) -> Unit = {},
+    /** A pet of the meals-eaten chart's filter; null shows every pet. */
+    val onPetFilter: (Long?) -> Unit = {},
     val commands: PageCommandCallbacks = PageCommandCallbacks(),
 )
 
@@ -86,6 +88,7 @@ internal fun FeederRoute(navigation: DeviceNavigation, viewModel: FeederViewMode
             onDismissFeed = viewModel::onDismissFeed,
             onCancelFeed = viewModel::onCancelFeed,
             onDayFilter = viewModel::onDayFilter,
+            onPetFilter = viewModel::onPetFilter,
             commands = PageCommandCallbacks(
                 onAction = viewModel::onAction,
                 onConfirmAction = viewModel::onConfirmAction,
@@ -99,9 +102,10 @@ internal fun FeederRoute(navigation: DeviceNavigation, viewModel: FeederViewMode
 /**
  * The feeder page (SPEC.md §5.6): header, a camera's live card, the hero with the food, bowl and
  * desiccant hotspots, the live status line, the next meal with feed now, today's plan with its pause switch and the
- * weekly plan's editor, the day's meals and what the camera saw, the one-off feeds, a camera's
- * recent clips, and the action sheet every device screen shares: the feeder's buttons (feed is
- * feed now), then the plan, a one-off feed and History behind More.
+ * weekly plan's editor, the day's meals and what the camera saw (on a camera feeder, the pets'
+ * meals eaten against yesterday, and their chart), the one-off feeds, a camera's recent clips,
+ * and the action sheet every device screen shares: the feeder's buttons (feed is feed now), then
+ * the plan, a one-off feed and History behind More.
  */
 @Composable
 internal fun FeederScreen(
@@ -186,6 +190,9 @@ private fun LazyListScope.feederContent(
             onOpenClip = navigation.onOpenClip,
             onOpenHistory = { navigation.onOpenHistory(page.device.id) },
             modifier = Modifier.gutter(),
+            eating = page.eating,
+            petFilter = uiState.petFilter,
+            onPetFilter = callbacks.onPetFilter,
         )
     }
     item(key = "later") { OneOffCard(uiState, page, callbacks, Modifier.gutter()) }

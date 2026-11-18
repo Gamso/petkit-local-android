@@ -33,6 +33,8 @@ data class FeederPage(
     val dispensed: Quantity?,
     /** Today's meals and what the camera saw, newest first, behind counted chips. */
     val day: FeederDay = FeederDay(),
+    /** What the camera saw the pets eat, today and yesterday; null on a feeder without a camera. */
+    val eating: FeederEating? = null,
 )
 
 /** A recurring meal of today and how it went. */

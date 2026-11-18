@@ -5,6 +5,7 @@ import java.time.LocalDate
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import org.petkitlocal.core.domain.model.TimelineItem
 import org.petkitlocal.core.domain.repository.DeviceRepository
 import org.petkitlocal.core.domain.repository.FeedingRepository
 import org.petkitlocal.core.domain.repository.PetRepository
@@ -13,7 +14,8 @@ import org.petkitlocal.core.domain.repository.TimelineRepository
 /**
  * The feeder page of device [deviceId][invoke] on [day][invoke], from the caches only: null while
  * the device is not (or no longer) known. A meal's state is worked out at each emission, against
- * the clock's time then; what it served is on its card.
+ * the clock's time then; what it served is on its card. The day before is read too, which a camera
+ * feeder's eating is compared with.
  */
 class ObserveFeederUseCase @Inject constructor(
     private val devices: DeviceRepository,
@@ -26,9 +28,18 @@ class ObserveFeederUseCase @Inject constructor(
         devices.observeDevice(deviceId),
         feeding.observePlan(deviceId),
         feeding.observeDeferredFeeds(deviceId),
-        timeline.observeDay(day),
+        twoDays(day),
         pets.observePets(),
-    ) { device, plan, deferred, items, pets ->
-        device?.let { FeederRules.page(it, plan, deferred, items, clock.instant(), clock.zone, pets) }
+    ) { device, plan, deferred, (today, yesterday), pets ->
+        device?.let {
+            FeederRules.page(it, plan, deferred, today, clock.instant(), clock.zone, pets, yesterday)
+        }
     }
+
+    /** The cards of [day] and of the day before. */
+    private fun twoDays(day: LocalDate): Flow<Pair<List<TimelineItem>, List<TimelineItem>>> = combine(
+        timeline.observeDay(day),
+        timeline.observeDay(day.minusDays(1)),
+        ::Pair,
+    )
 }

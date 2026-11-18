@@ -55,7 +55,8 @@ data class FeederDayRow(
 /**
  * The feeder's day (SPEC.md §5.6, Today): its meals, served or failed, and the pets its camera
  * saw, newest first, behind counted chips. A camera feeder's eating episodes (#68) are rows of it
- * too, under "At the camera"; the figures and chart drawn from them go above the chips.
+ * too, under "At the camera"; the figures and chart drawn from them ([FeederEating]) go above the
+ * chips.
  */
 data class FeederDay(
     /** Today's rows, newest first. */
@@ -92,7 +93,7 @@ object FeederDayRules {
 
     fun kind(item: TimelineItem): FeederDayKind = when (ActivityRules.kind(item)) {
         // Served and eaten meals share the feeding chip on the server; only the label tells them apart.
-        ActivityKind.Meal -> if (isEating(item)) FeederDayKind.Camera else FeederDayKind.Meal
+        ActivityKind.Meal -> if (eatingLabel(item)) FeederDayKind.Camera else FeederDayKind.Meal
 
         ActivityKind.PetSeen -> FeederDayKind.Camera
 
@@ -102,7 +103,13 @@ object FeederDayRules {
     /** The card says it did not run to its end: "Feeding failed (nothing dispensed)". */
     fun failed(item: TimelineItem): Boolean = item.label?.let(StepLabel::parse)?.done == false
 
-    private fun isEating(item: TimelineItem): Boolean =
+    /**
+     * The card is a pet eating at a camera feeder: "Eating done", or "Eating started" for an
+     * episode whose end never arrived. Not a meal served, nor a pet that only came by.
+     */
+    fun isEating(item: TimelineItem): Boolean = ActivityRules.kind(item) == ActivityKind.Meal && eatingLabel(item)
+
+    private fun eatingLabel(item: TimelineItem): Boolean =
         item.label?.trim()?.lowercase(Locale.ROOT)?.startsWith(EATING) == true
 
     /** The short clip, else the whole recording, else the timelapse. */
