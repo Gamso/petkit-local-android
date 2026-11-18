@@ -66,7 +66,10 @@ jobs:
           load: true
           push: false
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # Writing the cache is a speed-up, never a reason to fail: GitHub can refuse the write
+          # ("cache write denied: token has no writable scopes" on a pull request), and the
+          # build itself had succeeded.
+          cache-to: type=gha,mode=max,ignore-error=true
       - name: Smoke test
         run: |
           docker run -d --name mock -p 8097:8097 -e PETKIT_MOCK_SCENARIO_INTERVAL=0 petkit-local-mock:ci

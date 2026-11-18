@@ -99,7 +99,10 @@ jobs:
           load: true
           push: false
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # Writing the cache is a speed-up, never a reason to fail: GitHub can refuse the write
+          # ("cache write denied: token has no writable scopes" on a pull request), and the
+          # build itself had succeeded.
+          cache-to: type=gha,mode=max,ignore-error=true
       - name: Start the mock server
         run: docker compose -f e2e/docker-compose.yml up --detach --wait
 
