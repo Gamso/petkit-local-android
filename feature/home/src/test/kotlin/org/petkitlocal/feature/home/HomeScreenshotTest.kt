@@ -15,7 +15,8 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * Home in light/dark x EN/FR x 100 %/130 % font scale (docs/DESIGN.md), with every family of the
- * mock household on screen, offline over the last known data, and with nothing to show. The
+ * mock household on screen, offline over the last known data, with nothing to show, and with the
+ * generations of a codename side by side. The
  * golden images are in src/test/screenshots; `./gradlew recordRoborazziDebug` re-records them.
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
@@ -35,6 +36,13 @@ class HomeScreenshotTest(private val variant: ScreenshotVariant) {
     @Test
     fun unreachable() {
         if (variant.fontScale == 1f) capture("home_unreachable", HomeFixtures.unreachableEmpty)
+    }
+
+    /** Each generation under its own name and photo, a generation without one under its glyph. */
+    @Test
+    @Config(qualifiers = "w360dp-h900dp-xhdpi", sdk = [36])
+    fun generations() {
+        if (variant.fontScale == 1f) capture("home_generations", HomeFixtures.generations)
     }
 
     @Test

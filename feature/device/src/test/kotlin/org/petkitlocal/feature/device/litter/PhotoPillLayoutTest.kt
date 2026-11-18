@@ -113,19 +113,19 @@ class PhotoPillLayoutTest {
     @Test
     fun `the photos place only parts their model has`() {
         val types = listOf(
-            "t3" to "Pura X",
-            "t4" to "Pura Max",
-            "t4" to "Pura Max 2",
-            "t5" to "Purobot Max Pro 2",
-            "t6" to "Purobot Ultra",
-            "t7" to "Purobot Crystal Duo",
-            "w7h" to "EverSweet Ultra AI",
-            "w5" to "EverSweet 3 Pro",
-            "ctw2" to "EverSweet Solo 2",
-            "ctw3" to "EverSweet Max Cordless",
+            "t3" to null,
+            "t4" to 1,
+            "t4" to 2,
+            "t5" to null,
+            "t6" to null,
+            "t7" to null,
+            "w7h" to null,
+            "w5" to null,
+            "ctw2" to null,
+            "ctw3" to null,
         )
-        types.forEach { (type, model) ->
-            val photo = DevicePhoto.of(type, model)!!
+        types.forEach { (type, generation) ->
+            val photo = DevicePhoto.of(type, generation)!!
             val parts = (LitterParts.of(type) ?: FountainParts.BY_TYPE.getValue(type)) + DevicePart.PuraAirSpray
             DevicePart.entries.filter { PhotoSpots.of(photo, it) != null }.forEach { part ->
                 assertTrue(part in parts) { "$type places $part" }

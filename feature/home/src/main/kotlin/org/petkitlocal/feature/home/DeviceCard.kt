@@ -121,7 +121,7 @@ internal fun DeviceCard(
 private fun DevicePicture(overview: DeviceOverview) {
     val colors = PkTheme.colors
     val device = overview.device
-    val photo = DevicePhoto.of(device.type, device.modelName)
+    val photo = DevicePhoto.of(device.type, device.generation)
     if (photo != null) {
         PkDevicePhoto(
             photo,

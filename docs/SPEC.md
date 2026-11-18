@@ -82,8 +82,8 @@ screen).
 
 ### 3 · Litter box
 - Header: name, settings shortcut, **mode chips** (auto clean, auto deodorize — from switches).
-- **Hero**: the model's product photo, else our drawing of the family, with **hotspot pills** on
-  its parts:
+- **Hero**: the product photo of the model and generation the server reports, else our drawing
+  of the family, with **hotspot pills** on its parts:
   - litter level;
   - waste bin;
   - deodorizer liquid or N50;

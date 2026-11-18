@@ -95,6 +95,13 @@ object LitterFixtures {
         LitterUiState(page = page(puraWithK3, puraAir = puraAir), loaded = true, zone = Household.zone)
     }
 
+    /** The same box as the server names a second generation (app issue #81): a Pura Max 2. */
+    val puraMax2 = puraWithK3.copy(modelName = "Pura Max 2", generation = 2)
+
+    val puraMax2WithPuraAir by lazy {
+        LitterUiState(page = page(puraMax2, puraAir = puraAir), loaded = true, zone = Household.zone)
+    }
+
     val todayItems: List<TimelineItem> = listOf(
         item(16, 1002, at(9, 45), TimelineCategory.Toileting, pet = 1, duration = 95).copy(
             weightG = 4310,

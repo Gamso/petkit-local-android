@@ -223,7 +223,7 @@ private fun LazyListScope.deviceContent(
     item(key = "hero") {
         PkCard(Modifier.fillMaxWidth()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                DeviceIllustration(device.family, photo = DevicePhoto.of(device.type, device.modelName))
+                DeviceIllustration(device.family, photo = DevicePhoto.of(device.type, device.generation))
                 Spacer(Modifier.width(PkTheme.spacing.m))
                 uiState.status?.let { status ->
                     DeviceStatusLine(

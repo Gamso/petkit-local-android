@@ -9,8 +9,7 @@ import org.petkitlocal.core.designsystem.R
  * shot of the device alone, a lossless WebP of at most 900 px whose pixels were never edited:
  * its white background disappears with a multiply blend on whatever is behind it ([PkDevicePhoto]).
  *
- * A device is matched by its codename, and by its generation where PetKit sells several under one
- * codename ([of]).
+ * A device is matched by its codename and the generation the server reports ([of]).
  */
 enum class DevicePhoto(@param:DrawableRes val drawable: Int) {
     PuraX(R.drawable.device_photo_pura_x_t3),
@@ -33,49 +32,41 @@ enum class DevicePhoto(@param:DrawableRes val drawable: Int) {
     ;
 
     companion object {
-        /** One product per codename (petkit-local, `utils/const.py` `DEVICE_NAMES`). */
-        private val BY_TYPE = mapOf(
-            "t3" to PuraX,
-            "t5" to PurobotMaxPro2,
-            "t6" to PurobotUltra,
-            "t7" to PurobotCrystalDuo,
-            "d4" to FreshElementSolo,
-            "d4s" to FreshElementGemini,
-            "w7h" to EverSweetUltraAi,
-            "w5" to EverSweet3Pro,
-            "ctw2" to EverSweetSolo2,
-            "ctw3" to EverSweetMax2,
-            "k3" to PuraAir,
-        )
-
         /**
-         * Codenames PetKit uses for products of several generations that look different, by
-         * generation: the Pura Max and Pura Max 2 (`t4`), the YumShare Solo and Solo 2 (`d4h`), the
-         * YumShare Dual-Hopper and Dual-Hopper 2 (`d4sh`). A generation with no photo (a Pura Max 3)
-         * keeps our drawing.
+         * The photo of each generation of each codename, first generation first (petkit-local,
+         * `utils/const.py` `DEVICE_NAMES` and `MODEL_GENERATIONS`). PetKit sells several
+         * generations that look different under `t4` (Pura Max, Pura Max 2, Pura Max 3), `d4h`
+         * (YumShare Solo, Solo 2) and `d4sh` (YumShare Dual-Hopper, Dual-Hopper 2); every other
+         * codename is one product. A generation with no photo here (a Pura Max 3) keeps our drawing.
          */
-        private val GENERATIONS = mapOf(
+        private val BY_GENERATION: Map<String, List<DevicePhoto>> = mapOf(
+            "t3" to listOf(PuraX),
             "t4" to listOf(PuraMax, PuraMax2),
+            "t5" to listOf(PurobotMaxPro2),
+            "t6" to listOf(PurobotUltra),
+            "t7" to listOf(PurobotCrystalDuo),
+            "d4" to listOf(FreshElementSolo),
+            "d4s" to listOf(FreshElementGemini),
             "d4h" to listOf(YumShareSolo, YumShareSolo2),
             "d4sh" to listOf(YumShareDualHopper, YumShareDualHopper2),
+            "w7h" to listOf(EverSweetUltraAi),
+            "w5" to listOf(EverSweet3Pro),
+            "ctw2" to listOf(EverSweetSolo2),
+            "ctw3" to listOf(EverSweetMax2),
+            "k3" to listOf(PuraAir),
         )
 
-        private val TRAILING_NUMBER = Regex("""\b(\d+)$""")
-
         /**
-         * The generation of a product, read from the name the server gives it: its trailing number
-         * ("Pura Max 2"), else the first. `/app/v1` has no generation of its own yet and petkit-local
-         * names both generations alike today ("Pura Max", `utils/const.py` `DEVICE_NAMES`), so the
-         * photo always matches the name the app shows. The one place to change when the server
-         * reports the generation (petkit-local#107, app issue #81).
+         * The photo of a device of codename [type] and [generation] as the server reports them, or
+         * null for none: that generation's photo, and never another generation's, so a Pura Max
+         * 3 keeps our drawing rather than look like a Pura Max 2.
+         *
+         * A null [generation] (the server does not know it, the codename has one product, or the
+         * server predates generations) is the first: the server then names the device by its
+         * codename alone ("Pura Max"), which is the first generation's name, so the photo still
+         * matches the name shown (issue #69).
          */
-        internal fun generationOf(model: String): Int =
-            TRAILING_NUMBER.find(model.trim())?.groupValues?.get(1)?.toIntOrNull() ?: 1
-
-        /** The photo of a device of codename [type] named [model] by the server, or null for none. */
-        fun of(type: String, model: String): DevicePhoto? {
-            val code = type.lowercase()
-            return BY_TYPE[code] ?: GENERATIONS[code]?.getOrNull(generationOf(model) - 1)
-        }
+        fun of(type: String, generation: Int?): DevicePhoto? =
+            BY_GENERATION[type.lowercase()]?.getOrNull((generation ?: 1) - 1)
     }
 }

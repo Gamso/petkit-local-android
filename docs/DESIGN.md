@@ -153,10 +153,11 @@ by a multiply blend on what lies under it (the hero's tint, the card's surface),
 shading of a white product. In dark the same blend would sink the product into the page, so the
 photo lies on a light rounded plate (`photoPlate`). The positions of a photo's parts are given in
 percent of the photo padded to a square, per photo. Where PetKit sells several
-generations under one codename (`t4`, `d4h`, `d4sh`), the generation is the trailing number of
-the server's name ("Pura Max 2"), else the first, so the photo matches the name shown; a
-generation without a photo (a Pura Max 3) keeps the drawing. When the server reports the
-generation itself, it will choose instead (`DevicePhoto.generationOf`).
+generations under one codename (`t4`, `d4h`, `d4sh`), the photo is the one of the generation the
+server reports (`DeviceSummary.generation`), with that photo's pill positions; no generation
+(unknown, or a server that predates them, which names the device by its codename alone, "Pura
+Max") is the first, so the photo matches the name shown. A generation without a photo (a Pura
+Max 3) keeps the drawing, never another generation's photo (`DevicePhoto.of`).
 
 **Drawings**: simple line-and-fill drawings, one per family (litter box, feeder, fountain, camera
 litter box), with anchor points for hotspots; what a model without a photo shows.
