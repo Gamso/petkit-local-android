@@ -78,7 +78,9 @@ class ServerApiTest {
             setOf(DeviceKind.LITTER_BOX, DeviceKind.FEEDER, DeviceKind.FOUNTAIN, DeviceKind.PURIFIER),
             devices.map { it.kind }.toSet(),
         )
-        assertEquals("Pura Max", devices.single { it.id == PURA_MAX }.model)
+        // Its codename's name, and its full name and generation: the mock's is a Pura Max 2.
+        val puraMax = devices.single { it.id == PURA_MAX }
+        assertEquals(listOf("Pura Max", "Pura Max 2", 2), listOf(puraMax.model, puraMax.modelName, puraMax.generation))
     }
 
     private companion object {

@@ -57,7 +57,7 @@ class AccessoryFlowTest {
     fun thePuraMaxShowsItsPuraAirsLevelAndLeadsToIt() {
         signIn()
         open(PURA_MAX)
-        waitFor(hasText("Pura Max"))
+        waitFor(hasText("Pura Max 2"))
 
         // The Pura Air's N60, on the box that has none of its own; a new level follows over /ws.
         waitFor(hasContentDescription("Pura Air · N60, 63 %"))
@@ -70,7 +70,7 @@ class AccessoryFlowTest {
         waitFor(hasTestTag(DeviceTestTags.OPEN_ACCESSORY))
         compose.onNodeWithTag(DeviceTestTags.OPEN_ACCESSORY).performClick()
         waitFor(hasText("Pura Air K3"))
-        waitFor(hasText("Reports through Pura Max"))
+        waitFor(hasText("Reports through Pura Max 2"))
         compose.onNodeWithTag(DeviceTestTags.RELAY).performClick()
         waitFor(hasContentDescription("Pura Air · N60, 12 %, Needs attention"))
 

@@ -39,6 +39,38 @@ class SeedTest {
     }
 
     @Test
+    fun `the second generations are named by it, and a device of unknown generation by its codename`() {
+        val summaries = world.devices.values.associate { it.id to it.summary() }
+        val named = summaries.getValue(Seed.T4)
+        assertEquals(listOf("Pura Max", "Pura Max 2", 2), listOf(named.model, named.modelName, named.generation))
+        val dual = summaries.getValue(Seed.D4SH)
+        assertEquals(
+            listOf("YumShare Dual-Hopper", "YumShare Dual-Hopper 2", 2),
+            listOf(dual.model, dual.modelName, dual.generation),
+        )
+        // Generation unknown, a one-product codename, an accessory: no generation, the model's name.
+        listOf(Seed.D4H, Seed.T5, Seed.K3).map(summaries::getValue).forEach {
+            assertEquals(null, it.generation, it.type)
+            assertEquals(it.model, it.modelName, it.type)
+        }
+        assertEquals("YumShare Solo", summaries.getValue(Seed.D4H).modelName)
+        // The detail says the same, and a generation the server does not name is not reported.
+        assertEquals(
+            "Pura Max 2",
+            world.devices
+                .getValue(Seed.T4)
+                .detail()
+                .modelName,
+        )
+        val unnamed =
+            world.devices
+                .getValue(Seed.D4H)
+                .apply { generation = 3 }
+                .summary()
+        assertEquals(listOf("YumShare Solo", null), listOf(unnamed.modelName, unnamed.generation))
+    }
+
+    @Test
     fun `each device shows exactly the entities and actions petkit-local defines for its model`() {
         val catalog = Catalog.load()
         assertEquals("2b080d1bca183f31288740defb238ef08e352482", catalog.source)

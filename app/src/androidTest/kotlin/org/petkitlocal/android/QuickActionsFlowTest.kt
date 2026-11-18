@@ -121,7 +121,7 @@ class QuickActionsFlowTest {
         compose.onNodeWithTag(HomeTestTags.LIST).performScrollToNode(card)
         compose.onNode(card).performClick()
         waitFor(hasTestTag(DeviceTestTags.STATUS))
-        compose.onNodeWithText("Pura Max").assertExists()
+        compose.onNodeWithText("Pura Max 2").assertExists()
         waitFor(hasTestTag(DeviceTestTags.SHEET_MORE))
     }
 
