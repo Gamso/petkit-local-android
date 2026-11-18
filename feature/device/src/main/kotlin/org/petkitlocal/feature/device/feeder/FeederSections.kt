@@ -345,6 +345,10 @@ object FeederTestTags {
     /** The day's card, and its chips. */
     const val DAY = "feeder:day"
 
+    /** A camera feeder's meals eaten, at the top of the day's card, and their chart. */
+    const val EATING = "feeder:eating"
+    const val EATING_CHART = "feeder:eating:chart"
+
     fun dayFilter(filter: FeederDayFilter): String = "feeder:day:${filter.name.lowercase()}"
 
     fun oneOff(id: String): String = "feeder:one_off:$id"

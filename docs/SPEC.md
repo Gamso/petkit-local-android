@@ -126,10 +126,16 @@ screen).
   switch, edit sheet for the weekly plan.
 - **Today**: the day's meals, newest first, as the activity card lists them, and the pets the
   camera saw; a meal that failed in the error colour with its reason. Chips with counts: all,
-  meals, and "at the camera" on a camera feeder only. A meal says what it put out, read from its
-  event: "2 portions" on a single hopper, "2 portions · Hopper 1 ×1 · Hopper 2 ×1" on a
-  Dual-Hopper, each hopper in its colour. A row whose event has a clip shows its thumbnail, which
+  meals, and "at the camera" on a camera feeder only. A meal says what it put out, as its
+  timeline card does (`served`): "2 portions" on a single hopper, "2 portions · Hopper 1 ×1 ·
+  Hopper 2 ×1" on a Dual-Hopper, each hopper in its colour. A row whose event has a clip shows its thumbnail, which
   opens the clip player. A camera feeder's eating episodes are rows of it, under "at the camera".
+- On a camera feeder only (`is_camera`), the top of that Today card says what the camera saw the
+  pets eat: meals eaten and the average meal, each with the change since yesterday as on the
+  litter box, then the day's chart, one stem per meal eaten (its height the time spent eating) in
+  the pet's colour, with the pet filter. Meals eaten with no duration keep their count, lose the
+  average and lie on the chart's axis, as a fountain's drinks do. A feeder without a camera cannot
+  see who eats, and shows none of it.
 - One-off feeds ("later"): list, add, cancel.
 - Bottom action sheet: feed, plan, later, history.
 

@@ -274,9 +274,18 @@ data class TimelineItemDto(
     val pet: PetRef?,
     @SerialName("duration_sec") val durationSec: Int?,
     @SerialName("weight_g") val weightG: Int?,
+    val served: ServedAmounts?,
     val facts: List<String>,
     val media: MediaDto?,
     val steps: List<TimelineStep>,
+)
+
+/** What a finished feed put out: per hopper on a Dual-Hopper, the total alone on a single hopper. */
+@Serializable
+data class ServedAmounts(
+    val total: Int,
+    val hopper1: Int?,
+    val hopper2: Int?,
 )
 
 @Serializable

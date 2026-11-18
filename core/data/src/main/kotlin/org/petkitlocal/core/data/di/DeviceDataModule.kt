@@ -8,12 +8,10 @@ import dagger.multibindings.IntoSet
 import org.petkitlocal.core.data.DeviceRepositoryImpl
 import org.petkitlocal.core.data.DeviceSessionCache
 import org.petkitlocal.core.data.PetRepositoryImpl
-import org.petkitlocal.core.data.ServedPortionsRepositoryImpl
 import org.petkitlocal.core.data.TimelineRepositoryImpl
 import org.petkitlocal.core.domain.auth.SessionScopedCache
 import org.petkitlocal.core.domain.repository.DeviceRepository
 import org.petkitlocal.core.domain.repository.PetRepository
-import org.petkitlocal.core.domain.repository.ServedPortionsRepository
 import org.petkitlocal.core.domain.repository.TimelineRepository
 
 /** The cache-backed repositories of devices, pets and the timeline, and the cache the session clears. */
@@ -28,9 +26,6 @@ interface DeviceDataModule {
 
     @Binds
     fun timelineRepository(impl: TimelineRepositoryImpl): TimelineRepository
-
-    @Binds
-    fun servedPortionsRepository(impl: ServedPortionsRepositoryImpl): ServedPortionsRepository
 
     @Binds
     @IntoSet

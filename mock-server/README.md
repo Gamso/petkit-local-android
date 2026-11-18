@@ -175,16 +175,23 @@ the commit recorded in `api/SOURCE`.
 
 - **Pets:** Mochi (id 1, 4.2 kg entered, learned weight in use, has a photo) and Tigrou (id 2,
   6 kg, heavier, no photo).
-- **History:** seven days of it, about 170 cards. It holds visits with weights and durations,
-  auto, periodic and manual cleanings, scheduled meals, drinks, cats seen by a camera, one fault
-  episode and one visit flagged as a health alert. The history is generated from the seed, so a
+- **History:** seven days of it, about 210 cards. It holds visits with weights and durations,
+  auto, periodic and manual cleanings, scheduled meals, drinks, cats seen by a camera, cats
+  eating at the two camera feeders (Mochi at the YumShare Solo, Tigrou at the Dual-Hopper, and a
+  cat neither camera could tell), one fault episode and one visit flagged as a health alert. The history is generated from the seed, so a
   given seed always replays the same week relative to today.
 - **Today on the feeders:** besides the meals already due, whatever the hour (once the day is
   ten minutes old), a meal served from the app on the Solo, the YumShare Solo and the
   Dual-Hopper, a meal that put nothing out on the Solo and the Dual-Hopper ("Feeding failed
-  (nothing dispensed)"), and a cat at the camera of both YumShares (code 8 "Pet detected", with
-  a clip). A meal's event carries what it put out as petkit-local passes the device's report
-  through: `real_amount` on a single hopper, `real_amount1` and `real_amount2` on a Dual-Hopper.
+  (nothing dispensed)"), a cat at the camera of both YumShares (code 8 "Pet detected", with
+  a clip), and cats eating at both of them, one the camera could not tell. A meal's event carries
+  what it put out as petkit-local passes the device's report through: `real_amount` on a single
+  hopper, `real_amount1` and `real_amount2` on a Dual-Hopper; its card says the same as
+  `served` (`total`, and `hopper1`/`hopper2` on a Dual-Hopper; 0 for a meal that put nothing
+  out).
+- **Durations:** a visit, a drink and a meal eaten carry `duration_sec`, a dispensed feed none.
+  A meal eaten is 5 "Eating started" then 6 "Eating done"; on the Dual-Hopper, two days ago, one
+  never got its end, so its card is the start, with no duration.
 
 Each model's entity keys and action keys are exactly the ones petkit-local defines for it.
 `src/main/resources/catalog.json` is generated from petkit-local's own definitions
@@ -229,6 +236,7 @@ Under `/mock`, no authentication, JSON in and out. It is meant for the app's end
 | `POST /mock/devices/{id}/visit` | `pet_id?`, `weight_g?`, `duration_sec?`, `auto_clean?`, `health_alert?` | A live visit on a litter box. |
 | `POST /mock/devices/{id}/meal` | `amount?`, `amount1?`, `amount2?` | A feeder serves a meal. |
 | `POST /mock/devices/{id}/drink` | `pet_id?`, `duration_sec?` | A drink at a fountain. |
+| `POST /mock/devices/{id}/eat` | `pet_id?`, `duration_sec?` | A cat eating at a camera feeder (422 on any other device): an "Eating done" card, timed. |
 | `POST /mock/devices/{id}/error` | `message?` (default `bin full`) | Error state and a fault card. |
 | `POST /mock/devices/{id}/error/clear` | | Clears it, with an "Error cleared" card. |
 | `POST /mock/devices/{id}/offline`, `/online` | | Sends a `device` message; an MQTT device falls back to `http` while offline. |

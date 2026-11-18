@@ -28,7 +28,7 @@ class ControlApiTest {
         }
 
     @Test
-    fun `triggers - visit, meal, drink, error, offline`() =
+    fun `triggers - visit, meal, drink, eating, error, offline`() =
         mockTest { world, api ->
             api.login()
             val before = world.timeline.cards.size
@@ -38,9 +38,12 @@ class ControlApiTest {
             assertEquals(404, api.client.control(HttpMethod.Post, "/devices/${Seed.T3}/visit", """{"pet_id":9}""").status)
             assertEquals(200, api.client.control(HttpMethod.Post, "/devices/${Seed.D4}/meal", """{"amount":2}""").status)
             assertEquals(200, api.client.control(HttpMethod.Post, "/devices/${Seed.W7H}/drink", """{"pet_id":2}""").status)
+            assertEquals(200, api.client.control(HttpMethod.Post, "/devices/${Seed.D4SH}/eat", """{"pet_id":2}""").status)
+            assertEquals(422, api.client.control(HttpMethod.Post, "/devices/${Seed.D4}/eat").status)
+            assertEquals(404, api.client.control(HttpMethod.Post, "/devices/${Seed.D4H}/eat", """{"pet_id":9}""").status)
             assertEquals(200, api.client.control(HttpMethod.Post, "/devices/${Seed.T3}/error", """{"message":"motor stuck"}""").status)
             kotlinx.coroutines.delay(300)
-            assertTrue(world.timeline.cards.size >= before + 4)
+            assertTrue(world.timeline.cards.size >= before + 5)
             val t3 = api.get("/devices/{id}", "/devices/${Seed.T3}")["device"].jsonObject
             assertEquals("motor stuck", entity(t3, "error")["value"]!!.jsonPrimitive.content)
             assertEquals("Mochi", entity(t3, "last_pet")["value"]!!.jsonPrimitive.content)

@@ -356,6 +356,7 @@ class LiveUpdatesRepositoryImplTest {
         pet = null,
         durationSec = null,
         weightG = null,
+        served = null,
         facts = emptyList(),
         media = null,
         steps = emptyList(),

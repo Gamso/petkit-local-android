@@ -12,6 +12,7 @@ import io.github.gamso.petkitlocal.mock.state.World
 import io.github.gamso.petkitlocal.mock.state.asStrictInt
 import io.github.gamso.petkitlocal.mock.state.clearError
 import io.github.gamso.petkitlocal.mock.state.playDrink
+import io.github.gamso.petkitlocal.mock.state.playEating
 import io.github.gamso.petkitlocal.mock.state.playFeed
 import io.github.gamso.petkitlocal.mock.state.playVisit
 import io.github.gamso.petkitlocal.mock.state.raiseError
@@ -88,6 +89,7 @@ private val CONTROL_ROUTES =
         "POST   /mock/devices/{id}/visit              {pet_id?, weight_g?, duration_sec?, auto_clean?, health_alert?}",
         "POST   /mock/devices/{id}/meal               {amount?, amount1?, amount2?}",
         "POST   /mock/devices/{id}/drink              {pet_id?, duration_sec?}",
+        "POST   /mock/devices/{id}/eat                {pet_id?, duration_sec?}  a pet eating at a camera feeder",
         "POST   /mock/devices/{id}/error              {message?}  (default \"bin full\")",
         "POST   /mock/devices/{id}/error/clear",
         "POST   /mock/devices/{id}/offline | /online",
@@ -179,6 +181,19 @@ private fun Route.deviceControl(world: World) {
             if (!device.isFountain) throw ApiException(422, "not_a_fountain", "drinks happen at fountains")
             val body = call.optionalBody()
             val card = synchronized(world.lock) { world.playDrink(device, body.int("pet_id"), body.int("duration_sec")) }
+            call.ok(buildJsonObject { put("card_id", card.id) })
+        }
+        post("/eat") {
+            val device = world.controlDevice(call)
+            if (!device.isFeeder || !device.model.isCamera) {
+                throw ApiException(422, "not_a_camera_feeder", "pets are seen eating at camera feeders")
+            }
+            val body = call.optionalBody()
+            val petId = body.int("pet_id")
+            if (petId != null && petId !in world.pets) throw ApiException(404, "pet_not_found", "no such pet")
+            val duration = body.int("duration_sec")
+            if (duration != null && duration < 0) throw ApiException(400, "bad_request", "duration_sec must be 0 or more")
+            val card = synchronized(world.lock) { world.playEating(device, petId, duration) }
             call.ok(buildJsonObject { put("card_id", card.id) })
         }
         post("/error") {

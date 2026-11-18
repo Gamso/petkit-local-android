@@ -1,6 +1,7 @@
 package io.github.gamso.petkitlocal.mock.state
 
 import io.github.gamso.petkitlocal.mock.api.EventField
+import io.github.gamso.petkitlocal.mock.api.ServedAmounts
 import java.util.Locale
 import kotlin.math.roundToInt
 
@@ -8,7 +9,8 @@ import kotlin.math.roundToInt
  * The rows and cards each kind of episode leaves in the history. Labels, codes and decoded fields
  * are petkit-local's (`events/codes.py`, `events/decode.py`) for the same reports: a visit summary
  * is code 10 "Toilet visit", a cleaning cycle 3 then 5 "Auto cleaning completed", a meal 4
- * "Feeding completed", a drink 5 then 6 "Drinking done". HTTP event codes are per device category,
+ * "Feeding completed", a pet eating at a camera feeder 5 "Eating started" then 6 "Eating done", a
+ * drink 5 then 6 "Drinking done". HTTP event codes are per device category,
  * which is why every row carries its device type.
  *
  * Used three ways: the seed writes finished episodes into the past, the scenario engine and the
@@ -55,6 +57,7 @@ fun World.card(
     media: CardMedia? = null,
     steps: List<Int> = emptyList(),
     healthAlert: Boolean = false,
+    served: ServedAmounts? = null,
 ): Card =
     timeline.add(
         Card(
@@ -74,6 +77,7 @@ fun World.card(
             media = media,
             steps = steps.toMutableList(),
             healthAlert = healthAlert,
+            served = served,
         ),
     )
 
@@ -254,8 +258,10 @@ enum class FeedSource(
 /**
  * A meal's report, code 4 "Feeding completed", as petkit-local stores a feeder's `feed_over`: the
  * device's own `real_amount` (single hopper) or `real_amount1`/`real_amount2` (Dual-Hopper) are
- * passed through undecoded, which is where the app reads what each hopper put out. A [failure]
- * ("nothing dispensed", a `FEED_RESULT` wording) is a feed that ran and put nothing out.
+ * passed through undecoded. Its card says the same as `served` (`events/sessions.py`
+ * `served_amounts`): each hopper and their sum on a Dual-Hopper, the total alone on a single one.
+ * A [failure] ("nothing dispensed", a `FEED_RESULT` wording) is a feed that ran and put nothing
+ * out: 0, never null.
  */
 @Suppress("LongParameterList") // The meal's device, time, source and counts.
 fun World.feedCard(
@@ -273,11 +279,19 @@ fun World.feedCard(
         key: String,
         count: Int?,
     ) = f(key, key, "${if (failure != null) 0 else count ?: 0}")
+
+    fun given(count: Int?) = if (failure != null) 0 else count ?: 0
     val served =
         if (device.isDualHopper) {
             listOf(out("real_amount1", a1), out("real_amount2", a2))
         } else {
             listOf(out("real_amount", amount))
+        }
+    val amounts =
+        if (device.isDualHopper) {
+            ServedAmounts(given(a1) + given(a2), given(a1), given(a2))
+        } else {
+            ServedAmounts(given(amount), null, null)
         }
     val r =
         row(
@@ -295,7 +309,30 @@ fun World.feedCard(
         } else {
             null
         }
-    return card(r, Kinds.FEEDING, media = media)
+    return card(r, Kinds.FEEDING, media = media, served = amounts)
+}
+
+/**
+ * A pet eating at a camera feeder, [petId] when its face was recognised: 5 "Eating started" (a
+ * detail) when it came to the bowl, then 6 "Eating done" when it left, which names its start
+ * (`start_time`) and heads the card, timed as petkit-local times it (`duration_sec`). Without a
+ * [durationSec] the end has not arrived: the card is headed by its start, with no duration. It
+ * shares the feeding chip with the meals served, and serves nothing (`served` null).
+ */
+fun World.eatingCard(
+    device: MockDevice,
+    ts: Double,
+    durationSec: Int?,
+    petId: Int?,
+): Card {
+    val startedAt = ts - (durationSec ?: 0)
+    val started = row(device, startedAt, "5", Kinds.FEEDING, "Eating started", petId, detail = durationSec != null)
+    val paths = mediaFor(device, started.id, startedAt, listOf("snapshot", "highlight"))
+    val media = CardMedia(snapshot = paths["snapshot"], highlight = paths["highlight"])
+    if (durationSec == null) return card(started, Kinds.FEEDING, media = media)
+    val done =
+        row(device, ts, "6", Kinds.FEEDING, "Eating done", petId, listOf(f("start_time", "Started", fieldTime(startedAt))))
+    return card(done, Kinds.FEEDING, displayTs = startedAt, durationSec = durationSec, media = media, steps = listOf(started.id))
 }
 
 /** The portions a meal's report says it put out, all hoppers together. */

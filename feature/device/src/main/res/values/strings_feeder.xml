@@ -67,6 +67,22 @@
         <item quantity="other">%1$d from hopper %2$d</item>
     </plurals>
 
+    <!-- A camera feeder's Today: what the camera saw the pets eat, against yesterday (#68). -->
+    <string name="feeder_eaten">Meals eaten</string>
+    <string name="feeder_average_meal">Average meal</string>
+    <string name="feeder_eating_chart_title">Meals eaten over the day</string>
+    <string name="feeder_eating_chart_empty">No meal eaten yet today.</string>
+    <plurals name="feeder_eating_chart_description">
+        <item quantity="one">Chart of %1$d meal eaten today, by time and duration</item>
+        <item quantity="other">Chart of %1$d meals eaten today, by time and duration</item>
+    </plurals>
+    <!-- The chart when meals eaten come without a duration (one whose end never arrived, say). -->
+    <string name="feeder_eating_chart_no_durations">Durations not reported</string>
+    <plurals name="feeder_eating_chart_untimed">
+        <item quantity="one">%1$d with no known duration, on the axis</item>
+        <item quantity="other">%1$d with no known duration, on the axis</item>
+    </plurals>
+
     <string name="feeder_sheet_plan">Plan</string>
     <string name="feeder_sheet_later">Later</string>
     <string name="feeder_sheet_history">History</string>

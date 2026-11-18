@@ -4,7 +4,9 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -58,6 +60,7 @@ class FeederScreenTest {
         onSaveFeed = { calls += "save-feed" },
         onCancelFeed = { calls += "cancel:$it" },
         onDayFilter = { calls += "day:$it" },
+        onPetFilter = { calls += "pet:$it" },
         commands = PageCommandCallbacks(onAction = { calls += "action:${it.key}" }),
     )
 
@@ -108,8 +111,9 @@ class FeederScreenTest {
 
         compose.onNodeWithText("All 2").assertExists()
         compose.onNodeWithText("Meals 2").assertExists()
-        // No camera, no chip for it.
+        // No camera, no chip for it, and no meals eaten: it cannot see who eats.
         compose.onNodeWithText("At the camera", substring = true).assertDoesNotExist()
+        compose.onNodeWithTag(FeederTestTags.EATING).assertDoesNotExist()
         compose.onNodeWithTag(
             ActivityTestTags.row(30),
         ).assertContentDescriptionEquals("${time(7, 0)}, Meal served, 1 portion")
@@ -155,10 +159,74 @@ class FeederScreenTest {
         // Two rows have a clip; the feed the camera did not record has none, and says nothing of it.
         compose.onAllNodesWithContentDescription("Play the video").assertCountEquals(2)
         compose.onAllNodesWithContentDescription("Play the video").onFirst().performClick()
-        compose.onNodeWithTag(FeederTestTags.dayFilter(FeederDayFilter.Camera)).assert(hasText("At the camera 1"))
+        compose.onNodeWithTag(FeederTestTags.dayFilter(FeederDayFilter.Camera)).assert(hasText("At the camera 4"))
         compose.onNodeWithTag(FeederTestTags.dayFilter(FeederDayFilter.Camera)).performClick()
 
         assertEquals(listOf("clip:Highlight", "day:Camera"), calls)
+    }
+
+    @Test
+    fun `a camera feeder's Today reads its meals eaten and the average meal against yesterday`() {
+        show(FeederFixtures.eating())
+        compose.onNodeWithTag(PageTestTags.LIST).performScrollToNode(hasTestTag(FeederTestTags.EATING))
+
+        compose.onNodeWithContentDescription("Meals eaten, 3, 1 more than yesterday").assertExists()
+        compose.onNodeWithContentDescription("Average meal, 1 minute 8 seconds, 22 seconds shorter than yesterday")
+            .assertExists()
+        // Tigrou is eating still: counted, with no duration yet, so a mark on the axis.
+        compose.onNodeWithContentDescription(
+            "Chart of 3 meals eaten today, by time and duration. 1 with no known duration, on the axis",
+        ).assertExists()
+        compose.onNodeWithText("Meals eaten over the day", useUnmergedTree = true).assertExists()
+    }
+
+    @Test
+    fun `meals eaten with none yesterday have nothing to compare with`() {
+        show(FeederFixtures.eating(yesterday = emptyList()))
+        compose.onNodeWithTag(PageTestTags.LIST).performScrollToNode(hasTestTag(FeederTestTags.EATING))
+        compose.onNodeWithContentDescription("Meals eaten, 3").assertExists()
+        compose.onNodeWithContentDescription("Average meal, 1 minute 8 seconds").assertExists()
+    }
+
+    @Test
+    fun `meals eaten as many and as long as yesterday are the same as yesterday`() {
+        val sameAsToday = FeederFixtures.todayItems.map { it.copy(id = it.id + 100) }
+        show(FeederFixtures.eating(yesterday = sameAsToday))
+        compose.onNodeWithTag(PageTestTags.LIST).performScrollToNode(hasTestTag(FeederTestTags.EATING))
+
+        compose.onNodeWithContentDescription("Meals eaten, 3, Same as yesterday").assertExists()
+        compose.onNodeWithContentDescription("Average meal, 1 minute 8 seconds, Same as yesterday").assertExists()
+    }
+
+    @Test
+    fun `meals eaten without a duration keep their count, lose the average, and lie on the axis`() {
+        show(
+            FeederFixtures.eating(
+                today = FeederFixtures.untimed(FeederFixtures.todayItems),
+                yesterday = FeederFixtures.untimed(FeederFixtures.yesterdayItems),
+            ),
+        )
+        compose.onNodeWithTag(PageTestTags.LIST).performScrollToNode(hasTestTag(FeederTestTags.EATING))
+
+        compose.onNodeWithContentDescription("Meals eaten, 3, 1 more than yesterday").assertExists()
+        compose.onNodeWithText("Average meal", useUnmergedTree = true).assertDoesNotExist()
+        compose.onNodeWithContentDescription(
+            "Chart of 3 meals eaten today, by time and duration. 3 with no known duration, on the axis",
+        ).assertExists()
+        compose.onNodeWithText("Durations not reported", useUnmergedTree = true).assertExists()
+    }
+
+    @Test
+    fun `the meals eaten chart can be filtered on a pet, apart from the day's chips`() {
+        show(FeederFixtures.eating())
+        compose.onNodeWithTag(PageTestTags.LIST).performScrollToNode(hasTestTag(FeederTestTags.EATING))
+
+        // Mochi and Tigrou ate today; the cat the camera could not tell has no chip of its own.
+        fun chip(name: String) = hasText(name) and hasAnyAncestor(hasTestTag(FeederTestTags.EATING))
+        compose.onNode(chip("Tigrou"), useUnmergedTree = true).performClick()
+        compose.onNode(chip("Mochi"), useUnmergedTree = true).performClick()
+
+        assertEquals(listOf("pet:2", "pet:1"), calls)
     }
 
     @Test

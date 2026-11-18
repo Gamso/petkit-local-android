@@ -23,6 +23,10 @@ data class TimelineItem(
     /** The server's English label; null for a visit. */
     val label: String?,
     val pet: PetRef?,
+    /**
+     * How long the episode lasted: set on a visit, a drink and a meal eaten at a camera feeder;
+     * null when not known, and on every other card.
+     */
     val durationSec: Int?,
     val weightG: Int?,
     val facts: List<String>,
@@ -30,6 +34,11 @@ data class TimelineItem(
     val media: TimelineMedia? = null,
     /** The episode's other reports, in the server's order: the cleaning that followed a visit. */
     val steps: List<TimelineStep> = emptyList(),
+    /**
+     * What a finished feed put out, per hopper on a Dual-Hopper; null on every other card, and on
+     * a feed whose report states no amount (a meal that put nothing out is a total of 0).
+     */
+    val served: Portions? = null,
 ) {
     /** When the card happened, as a screen places it. */
     val shownAt: Instant? get() = displayTs ?: ts

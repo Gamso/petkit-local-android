@@ -39,7 +39,9 @@ class FeederScreenshotTest(private val variant: ScreenshotVariant) {
         if (variant.fontScale == 1f) capture("feeder_single") { Screen(FeederFixtures.single) }
     }
 
+    /** Taller: a camera feeder's Today adds its meals eaten and their chart (#68). */
     @Test
+    @Config(qualifiers = "w360dp-h2800dp-xhdpi", sdk = [36])
     fun dualPaused() = capture("feeder_dual_paused") {
         PreviewImages { Screen(FeederFixtures.dualPaused, DeviceFixtures.recentClips, DeviceFixtures.liveCard) }
     }

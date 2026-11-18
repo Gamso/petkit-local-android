@@ -4,6 +4,7 @@ import io.github.gamso.petkitlocal.mock.api.EventDetail
 import io.github.gamso.petkitlocal.mock.api.EventField
 import io.github.gamso.petkitlocal.mock.api.MediaDto
 import io.github.gamso.petkitlocal.mock.api.PetRef
+import io.github.gamso.petkitlocal.mock.api.ServedAmounts
 import io.github.gamso.petkitlocal.mock.api.TimelineItemDto
 import io.github.gamso.petkitlocal.mock.api.TimelineStep
 import io.github.gamso.petkitlocal.mock.api.plainNumber
@@ -100,6 +101,8 @@ class Card(
     var media: CardMedia?,
     val steps: MutableList<Int> = mutableListOf(),
     val healthAlert: Boolean = false,
+    /** What a finished feed put out; null on every other card. */
+    val served: ServedAmounts? = null,
 ) {
     val filters: List<String>
         get() {
@@ -163,6 +166,7 @@ class Timeline {
         pet = petRef(pets, card.petId),
         durationSec = card.durationSec,
         weightG = card.weightG,
+        served = card.served,
         facts = card.facts,
         media = card.media?.takeUnless { it.isEmpty }?.dto(),
         steps =

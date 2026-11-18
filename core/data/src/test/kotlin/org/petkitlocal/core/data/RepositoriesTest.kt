@@ -21,6 +21,7 @@ import org.petkitlocal.core.domain.model.EntityCategory
 import org.petkitlocal.core.domain.model.EntityComponent
 import org.petkitlocal.core.domain.model.EntityValue
 import org.petkitlocal.core.domain.model.PetRef
+import org.petkitlocal.core.domain.model.Portions
 import org.petkitlocal.core.domain.model.TimelineCategory
 import org.petkitlocal.core.domain.model.TimelineStep
 import org.robolectric.RobolectricTestRunner
@@ -215,6 +216,39 @@ class RepositoriesTest {
     }
 
     @Test
+    fun `what a feed served is cached from its card, per hopper on a Dual-Hopper`() = runTest {
+        val day = LocalDate.of(2026, 11, 15)
+        val cards = listOf(
+            feed(5, """{"total":3,"hopper1":2,"hopper2":1}"""),
+            // A hopper the report left out gave none.
+            feed(6, """{"total":2,"hopper1":null,"hopper2":2}"""),
+            // A single hopper: the total alone, in its own unit.
+            feed(7, """{"total":10,"hopper1":null,"hopper2":null}"""),
+            // A meal that put nothing out is 0; a card that says nothing is null.
+            feed(8, """{"total":0,"hopper1":null,"hopper2":null}"""),
+            feed(9, "null"),
+            // A server older than `served` leaves the key out.
+            untimedDrink(10),
+        )
+        server.on("timeline?day=2026-11-15&limit=100", """{"items":[${cards.joinToString(",")}],"next_cursor":null}""")
+
+        assertEquals(Outcome.Success(Unit), timeline.refreshDay(day))
+
+        val served = timeline.observeDay(day).first().associate { it.id to it.served }
+        assertEquals(
+            mapOf(
+                5L to Portions.Dual(2, 1),
+                6L to Portions.Dual(0, 2),
+                7L to Portions.Single(10),
+                8L to Portions.Single(0),
+                9L to null,
+                10L to null,
+            ),
+            served,
+        )
+    }
+
+    @Test
     fun `a page that fails leaves the cached day as it was`() = runTest {
         val day = LocalDate.of(2026, 11, 15)
         server.on("timeline?day=2026-11-15&limit=100", """{"items":[${item(1)}],"next_cursor":null}""")
@@ -279,6 +313,11 @@ class RepositoriesTest {
         "device_id":3001,"device_type":"w7h","ts":${1_794_719_959 + id},"display_ts":${1_794_719_959 + id},
         "event_type":"drink","event_kind":"drink","label":"Drink","pet":{"id":2,"name":"Tigrou"},
         "duration_sec":null,"weight_g":null,"facts":[],"media":null,"steps":[]}"""
+
+    private fun feed(id: Long, served: String) = """{"id":$id,"kind":"event","filters":["feeding"],
+        "device_id":2004,"device_type":"d4sh","ts":${1_794_719_959 + id},"display_ts":${1_794_719_959 + id},
+        "event_type":"4","event_kind":"feeding","label":"Feeding completed","pet":null,
+        "duration_sec":null,"weight_g":null,"served":$served,"facts":[],"media":null,"steps":[]}"""
 
     private fun item(id: Long) = """{"id":$id,"kind":"visit","filters":["toileting","health_alert","later_chip"],
         "device_id":1002,"device_type":"t4","ts":${1_794_719_959 + id},"display_ts":1794719773,

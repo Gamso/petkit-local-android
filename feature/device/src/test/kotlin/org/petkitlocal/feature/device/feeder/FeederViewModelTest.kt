@@ -24,8 +24,11 @@ import org.petkitlocal.core.domain.device.ObserveLiveUpdatesUseCase
 import org.petkitlocal.core.domain.device.RunDeviceActionUseCase
 import org.petkitlocal.core.domain.device.SetEntityValueUseCase
 import org.petkitlocal.core.domain.devicepage.RefreshDevicePageUseCase
+import org.petkitlocal.core.domain.feeder.EatingEpisode
+import org.petkitlocal.core.domain.feeder.EatingStats
 import org.petkitlocal.core.domain.feeder.FeedProblem
 import org.petkitlocal.core.domain.feeder.FeederDayFilter
+import org.petkitlocal.core.domain.feeder.FeederDayKind
 import org.petkitlocal.core.domain.feeder.MealState
 import org.petkitlocal.core.domain.feeder.ObserveFeederUseCase
 import org.petkitlocal.core.domain.feeder.PlanProblem
@@ -38,7 +41,6 @@ import org.petkitlocal.core.testing.FakeDeviceRepository
 import org.petkitlocal.core.testing.FakeFeedingRepository
 import org.petkitlocal.core.testing.FakeLiveUpdatesRepository
 import org.petkitlocal.core.testing.FakePetRepository
-import org.petkitlocal.core.testing.FakeServedPortionsRepository
 import org.petkitlocal.core.testing.FakeTimelineRepository
 import org.petkitlocal.core.testing.Household
 import org.petkitlocal.core.testing.MainDispatcherExtension
@@ -64,15 +66,13 @@ class FeederViewModelTest {
     }
     private val live = FakeLiveUpdatesRepository()
     private val commands = FakeDeviceCommandRepository().apply { result = Outcome.Success(CommandDelivery.Queued) }
-    private val served = FakeServedPortionsRepository(FeederFixtures.servedPortions)
 
     private fun viewModel(id: Long) = FeederViewModel(
         SavedStateHandle(mapOf(DEVICE_ID_KEY to id)),
-        ObserveFeederUseCase(devices, feeding, FakePetRepository(Household.pets), timeline, served, Household.clock),
+        ObserveFeederUseCase(devices, feeding, FakePetRepository(Household.pets), timeline, Household.clock),
         ObserveLiveUpdatesUseCase(live),
         RefreshDevicePageUseCase(devices, FakePetRepository(), timeline),
         feeding,
-        served,
         RunDeviceActionUseCase(commands),
         SetEntityValueUseCase(commands),
         TodayUseCase(Household.clock),
@@ -300,26 +300,92 @@ class FeederViewModelTest {
 
             val day = viewModel.uiState.value.page!!.day
             assertEquals(listOf(FeederDayFilter.All, FeederDayFilter.Meals, FeederDayFilter.Camera), day.filters)
-            assertEquals(listOf(3, 2, 1), day.filters.map(day::count))
-            assertEquals(listOf(33L, 32L, 31L), day.rows(viewModel.uiState.value.shownDayFilter).map { it.id })
+            assertEquals(listOf(6, 2, 4), day.filters.map(day::count))
+            assertEquals(
+                listOf(37L, 33L, 36L, 32L, 35L, 31L),
+                day.rows(viewModel.uiState.value.shownDayFilter).map { it.id },
+            )
 
             viewModel.onDayFilter(FeederDayFilter.Camera)
             advanceUntilIdle()
 
             val state = viewModel.uiState.value
-            assertEquals(listOf(32L), state.page!!.day.rows(state.shownDayFilter).map { it.id })
+            // The pets eating, and Mochi coming by.
+            assertEquals(listOf(37L, 36L, 32L, 35L), state.page!!.day.rows(state.shownDayFilter).map { it.id })
         }
 
     @Test
-    fun `a dual hopper's meals give their portions per hopper, read once from their events`() =
+    fun `a dual hopper's meals give their portions per hopper, as their cards say`() = runTest(main.dispatcher) {
+        val viewModel = open(2004)
+
+        val rows = viewModel.uiState.value.page!!.day.rows.filter { it.kind == FeederDayKind.Meal }
+        assertEquals(listOf(Portions.Dual(0, 2), Portions.Dual(1, 1)), rows.map { it.portions })
+        // The clip of the 08:00 meal; the feed the camera did not record has none.
+        assertEquals(listOf(false, true), rows.map { it.clip != null })
+        // What the camera saw is not a meal served: it says nothing served.
+        val others = viewModel.uiState.value.page!!.day.rows.filter { it.kind != FeederDayKind.Meal }
+        assertTrue(others.all { it.portions == null })
+    }
+
+    @Test
+    fun `a camera feeder counts the meals its pets ate and their average, against yesterday`() =
+        runTest(main.dispatcher) {
+            timeline.days.value = mapOf(
+                Household.today to FeederFixtures.todayItems,
+                Household.today.minusDays(1) to FeederFixtures.yesterdayItems,
+            )
+            val viewModel = open(2004)
+
+            val eating = viewModel.uiState.value.page!!.eating!!
+            // Three meals eaten; Tigrou's has no end yet, so the average is of the other two.
+            assertEquals(EatingStats(meals = 3, averageDurationSec = 68), eating.today)
+            // The meal served yesterday is not one eaten.
+            assertEquals(EatingStats(meals = 2, averageDurationSec = 90), eating.yesterday)
+            assertTrue(eating.durationsKnown)
+            assertEquals(
+                listOf(EatingEpisode(35, 8 * 60 + 5, 95, 1), EatingEpisode(36, 9 * 60 + 30, 40, null)),
+                eating.episodes.take(2),
+            )
+            assertEquals(EatingEpisode(37, 9 * 60 + 50, null, 2), eating.episodes.last())
+            assertEquals(listOf(1L, 2L), eating.chartPets.map { it.id })
+        }
+
+    @Test
+    fun `with nothing cached for yesterday, today's meals eaten have nothing to compare with`() =
         runTest(main.dispatcher) {
             val viewModel = open(2004)
 
-            val rows = viewModel.uiState.value.page!!.day.rows
-            assertEquals(listOf(Portions.Dual(0, 2), null, Portions.Dual(1, 1)), rows.map { it.portions })
-            assertEquals(setOf(33L, 31L), served.fetched.first())
-            // The clip of the 08:00 meal; the feed the camera did not record has none.
-            assertEquals(listOf(false, true, true), rows.map { it.clip != null })
+            val eating = viewModel.uiState.value.page!!.eating!!
+            assertEquals(3, eating.today.meals)
+            assertEquals(EatingStats(meals = 0, averageDurationSec = null), eating.yesterday)
+        }
+
+    @Test
+    fun `meals eaten with no duration on either day lose the average, not the count`() = runTest(main.dispatcher) {
+        timeline.days.value = mapOf(
+            Household.today to FeederFixtures.untimed(FeederFixtures.todayItems),
+            Household.today.minusDays(1) to FeederFixtures.untimed(FeederFixtures.yesterdayItems),
+        )
+        val viewModel = open(2004)
+
+        val eating = viewModel.uiState.value.page!!.eating!!
+        assertEquals(EatingStats(meals = 3, averageDurationSec = null), eating.today)
+        assertFalse(eating.durationsKnown)
+    }
+
+    @Test
+    fun `a feeder without a camera has no meals eaten, and the chart's filter follows the chip tapped`() =
+        runTest(main.dispatcher) {
+            assertNull(open(2001).uiState.value.page!!.eating)
+
+            val viewModel = open(2004)
+            viewModel.onPetFilter(2)
+            advanceUntilIdle()
+            assertEquals(2L, viewModel.uiState.value.petFilter)
+
+            viewModel.onPetFilter(null)
+            advanceUntilIdle()
+            assertNull(viewModel.uiState.value.petFilter)
         }
 
     @Test
@@ -340,15 +406,16 @@ class FeederViewModelTest {
         }
 
     @Test
-    fun `portions that could not be read are read again on a refresh`() = runTest(main.dispatcher) {
-        served.result = Outcome.Failure(DomainError.Network("timeout"))
-        val viewModel = open(2004)
-        assertEquals(null, viewModel.uiState.value.page!!.day.rows.last().portions)
+    fun `a meal whose card states no amount shows none, and a live card that says it does`() =
+        runTest(main.dispatcher) {
+            val unsaid = FeederFixtures.todayItems.map { if (it.id == 31L) it.copy(served = null) else it }
+            timeline.days.value = mapOf(Household.today to unsaid)
+            val viewModel = open(2004)
+            assertEquals(null, viewModel.uiState.value.page!!.day.rows.last().portions)
 
-        served.result = Outcome.Success(Unit)
-        viewModel.onRefresh()
-        advanceUntilIdle()
+            timeline.days.value = mapOf(Household.today to FeederFixtures.todayItems)
+            advanceUntilIdle()
 
-        assertEquals(Portions.Dual(1, 1), viewModel.uiState.value.page!!.day.rows.last().portions)
-    }
+            assertEquals(Portions.Dual(1, 1), viewModel.uiState.value.page!!.day.rows.last().portions)
+        }
 }
