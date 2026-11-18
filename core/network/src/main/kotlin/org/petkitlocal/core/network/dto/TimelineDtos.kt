@@ -72,9 +72,26 @@ data class TimelineItemDto(
     @SerialName("pet") val pet: PetRefDto?,
     @SerialName("duration_sec") val durationSec: Int?,
     @SerialName("weight_g") val weightG: Int?,
+    /**
+     * What a finished feed put out; null on every other card, and on a feed whose report states
+     * no amount (which is not a meal that served nothing: that one is 0).
+     */
+    @SerialName("served") val served: ServedAmountsDto?,
     @SerialName("facts") val facts: List<String>,
     @SerialName("media") val media: MediaDto?,
     @SerialName("steps") val steps: List<TimelineStepDto>,
+)
+
+/**
+ * `ServedAmounts`: a finished feed's output as the feeder reported it, in the model's own unit
+ * (portions on a Dual-Hopper). A single hopper has no [hopper1] or [hopper2]; a Dual-Hopper's
+ * [total] is their sum, and a hopper its report left out is null.
+ */
+@Serializable
+data class ServedAmountsDto(
+    @SerialName("total") val total: Int,
+    @SerialName("hopper1") val hopper1: Int?,
+    @SerialName("hopper2") val hopper2: Int?,
 )
 
 /** `TimelinePage`. */

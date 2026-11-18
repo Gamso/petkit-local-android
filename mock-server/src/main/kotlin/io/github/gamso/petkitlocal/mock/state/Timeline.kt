@@ -163,6 +163,7 @@ class Timeline {
         pet = petRef(pets, card.petId),
         durationSec = card.durationSec,
         weightG = card.weightG,
+        served = null,
         facts = card.facts,
         media = card.media?.takeUnless { it.isEmpty }?.dto(),
         steps =

@@ -60,6 +60,7 @@ import org.petkitlocal.core.network.dto.PetRefDto
 import org.petkitlocal.core.network.dto.PetStatsDto
 import org.petkitlocal.core.network.dto.PushMessageDto
 import org.petkitlocal.core.network.dto.PushRegistrationDto
+import org.petkitlocal.core.network.dto.ServedAmountsDto
 import org.petkitlocal.core.network.dto.SessionDto
 import org.petkitlocal.core.network.dto.TimelineFilter
 import org.petkitlocal.core.network.dto.TimelineItemDto
@@ -109,6 +110,7 @@ class SchemaContractTest {
         "Media" to MediaDto.serializer(),
         "PetRef" to PetRefDto.serializer(),
         "TimelineStep" to TimelineStepDto.serializer(),
+        "ServedAmounts" to ServedAmountsDto.serializer(),
         "TimelineItem" to TimelineItemDto.serializer(),
         "TimelinePage" to TimelinePageDto.serializer(),
         "EventField" to EventFieldDto.serializer(),
