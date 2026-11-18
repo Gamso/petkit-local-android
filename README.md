@@ -145,4 +145,6 @@ of its owner and is used here only to say which devices the app works with.
 
 ## Licence
 
-MIT, see [LICENSE](LICENSE).
+MIT, see [LICENSE](LICENSE). The product photos of the supported devices
+(`core/designsystem/src/main/res/drawable-nodpi/device_photo_*.webp`) are PetKit's images,
+© PetKit, and are **not** covered by the MIT licence: see [NOTICE](NOTICE).

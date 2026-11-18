@@ -36,6 +36,7 @@ import org.petkitlocal.feature.device.litter.PageCommandCallbacks
 import org.petkitlocal.feature.device.litter.PageTop
 import org.petkitlocal.feature.device.litter.RefreshBanner
 import org.petkitlocal.feature.device.litter.gutter
+import org.petkitlocal.feature.device.litter.heroPhoto
 import org.petkitlocal.feature.device.litter.missingPage
 
 /** What the user can do on the feeder page besides its device commands, one callback per intent. */
@@ -164,6 +165,7 @@ private fun LazyListScope.feederContent(
                 anchors = ::feederAnchor,
                 onHotspot = callbacks.onHotspot,
                 modifier = Modifier.padding(top = PkTheme.spacing.xs),
+                photo = heroPhoto(page.device),
             ) { FeederIllustration(page.dualHopper, Modifier.fillMaxSize()) }
         }
     }

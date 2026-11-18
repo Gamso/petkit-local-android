@@ -33,6 +33,12 @@ data class PkColors(
     val heroFeeder: Color,
     val heroFountain: Color,
     val heroPet: Color,
+    /**
+     * What a product photo is laid on in this palette ([org.petkitlocal.core.designsystem.photo.PkDevicePhoto]):
+     * none in light, where its white background melts into the page by a multiply blend; a light
+     * plate in dark, where the same blend would sink a white product into the dark page.
+     */
+    val photoPlate: Color,
     /** Pet colours in their fixed order, so charts and avatars agree everywhere. */
     val pets: List<Color>,
     /** A Dual-Hopper's hoppers, 1 then 2: the food drawn in each and the portions it gave. */
@@ -69,6 +75,7 @@ val LightPkColors = PkColors(
     heroFeeder = Color(0xFFE8EEF7),
     heroFountain = Color(0xFFE2EFF7),
     heroPet = Color(0xFFF6EBDF),
+    photoPlate = Color.Unspecified,
     pets = listOf(Color(0xFF0B7A72), Color(0xFF2E4C78), Color(0xFF7B4FA8), Color(0xFFA8436A)),
     hoppers = listOf(Color(0xFF0B7A72), Color(0xFFB45309)),
     isDark = false,
@@ -97,6 +104,7 @@ val DarkPkColors = PkColors(
     heroFeeder = Color(0xFF1B2433),
     heroFountain = Color(0xFF15293A),
     heroPet = Color(0xFF33281C),
+    photoPlate = Color(0xFFDDE2E7),
     pets = listOf(Color(0xFF5CC8BD), Color(0xFF9DB8E3), Color(0xFFC8A2EC), Color(0xFFF291B3)),
     hoppers = listOf(Color(0xFF5CC8BD), Color(0xFFF2A65A)),
     isDark = true,

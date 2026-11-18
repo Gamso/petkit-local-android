@@ -31,6 +31,8 @@ import java.time.ZoneId
 import org.petkitlocal.core.designsystem.component.PkBackButton
 import org.petkitlocal.core.designsystem.component.PkIconButton
 import org.petkitlocal.core.designsystem.icon.PkIcons
+import org.petkitlocal.core.designsystem.photo.DevicePhoto
+import org.petkitlocal.core.designsystem.photo.PkDevicePhoto
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.home.DeviceStatus
 import org.petkitlocal.core.domain.model.Device
@@ -109,17 +111,20 @@ fun DeviceHeader(
 }
 
 /**
- * A device's picture: for now its family's symbol on a tinted tile, our own drawing (no PetKit
- * artwork, docs/DESIGN.md). In its own composable so a model drawing, or the user's photo, can
- * replace it later.
+ * A device's picture: the model's product [photo] when the app has one, else its family's symbol
+ * on a tinted tile, our own drawing. In its own composable so the user's photo can replace it later.
  */
 @Composable
-fun DeviceIllustration(family: DeviceFamily, modifier: Modifier = Modifier) {
+fun DeviceIllustration(family: DeviceFamily, modifier: Modifier = Modifier, photo: DevicePhoto? = null) {
     val colors = PkTheme.colors
     val tint = when (family) {
         DeviceFamily.LitterBox -> colors.heroLitter
         DeviceFamily.Feeder -> colors.heroFeeder
         else -> colors.accentContainer
+    }
+    if (photo != null) {
+        PkDevicePhoto(photo, ILLUSTRATION_SIZE, modifier.size(ILLUSTRATION_SIZE), backdrop = tint)
+        return
     }
     Box(
         contentAlignment = Alignment.Center,

@@ -1,0 +1,34 @@
+petkit-local-android
+Copyright (c) 2026 Gamso
+
+The project's own code, documentation and drawings are under the MIT licence (LICENSE). The
+bundled fonts and icons are under their own open-source licences (core/designsystem/licenses/).
+
+PetKit product photos
+---------------------
+
+The product photos below are PetKit's own images of its products, © PetKit. They are NOT
+covered by the MIT licence of this project, and no licence to them is granted here. The app
+ships them, unedited, only to show each supported device as the product it is. This project is
+not affiliated with, endorsed by or connected to PetKit; "PetKit" and the product names are
+trademarks of their owner.
+
+In core/designsystem/src/main/res/drawable-nodpi/:
+
+device_photo_pura_x_t3.webp                    Pura X (T3)
+device_photo_puramax_t4.webp                   Pura Max (T4)
+device_photo_puramax_2_t4_2.webp               Pura Max 2 (T4)
+device_photo_purobot_max_pro_2_t5.webp         Purobot Max Pro 2 (T5)
+device_photo_purobot_ultra_t6.webp             Purobot Ultra (T6)
+device_photo_purobot_crystal_duo_t7.webp       Purobot Crystal Duo (T7)
+device_photo_fresh_element_solo_d4.webp        Fresh Element Solo (D4)
+device_photo_fresh_element_gemini_d4s.webp     Fresh Element Gemini (D4S)
+device_photo_yumshare_solo_d4h.webp            YumShare Solo (D4H)
+device_photo_yumshare_solo_2_d4h.webp          YumShare Solo 2 (D4H)
+device_photo_yumshare_dual_hopper_d4sh.webp    YumShare Dual-Hopper (D4SH)
+device_photo_yumshare_dual_hopper_2_d4sh.webp  YumShare Dual-Hopper 2 (D4SH)
+device_photo_eversweet_ultra_ai_w7h.webp       EverSweet Ultra AI (W7H)
+device_photo_eversweet_3_pro_w5.webp           EverSweet 3 Pro (W5)
+device_photo_eversweet_solo_2_ctw2.webp        EverSweet Solo 2 (CTW2)
+device_photo_eversweet_max_2_ctw3.webp         EverSweet Max 2 (CTW3)
+device_photo_pura_air_k3.webp                  Pura Air (K3)
