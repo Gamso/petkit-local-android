@@ -3,7 +3,6 @@
 // run and published as a container without the Android SDK.
 pluginManagement {
     repositories {
-        gradlePluginPortal()
         // Google's mirror of Maven Central first: the same files (dependency verification checks
         // their hashes), and CI runners are rarely refused by it, where Maven Central answers 429.
         maven {
@@ -11,6 +10,7 @@ pluginManagement {
             url = uri("https://maven-central.storage-download.googleapis.com/maven2/")
         }
         mavenCentral()
+        gradlePluginPortal()
     }
 }
 
