@@ -17,7 +17,7 @@ data class NotificationText(val title: String, val text: String)
  */
 class NotificationTexts(private val resources: Resources) {
     fun of(notification: ServerNotification, subject: NotificationSubject): NotificationText {
-        val device = subject.device?.model ?: resources.getString(R.string.push_some_device)
+        val device = subject.device?.modelName ?: resources.getString(R.string.push_some_device)
         val pet = subject.petName
         return when (notification.kind) {
             NotificationKinds.TOILET -> NotificationText(

@@ -124,7 +124,7 @@ private fun SheetHeader(sheet: EventSheetState, zone: ZoneId, labels: ServerLabe
                 color = colors.onSurface,
                 modifier = Modifier.semantics { heading() },
             )
-            listOfNotNull(time, sheet.entry.device?.model).takeIf { it.isNotEmpty() }?.let {
+            listOfNotNull(time, sheet.entry.device?.modelName).takeIf { it.isNotEmpty() }?.let {
                 Text(it.joinToString(" · "), style = PkTheme.typography.bodyMedium, color = colors.onSurfaceMuted)
             }
         }

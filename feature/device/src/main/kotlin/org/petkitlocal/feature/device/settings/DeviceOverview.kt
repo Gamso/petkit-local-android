@@ -222,7 +222,7 @@ internal fun ConsumablesCard(
             consumables.forEach { hotspot ->
                 ConsumableRow(
                     hotspot,
-                    via = puraAir?.model?.takeIf { hotspot.part == DevicePart.PuraAirSpray },
+                    via = puraAir?.modelName?.takeIf { hotspot.part == DevicePart.PuraAirSpray },
                     sending = sending,
                     onAction = onAction,
                 )

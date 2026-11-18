@@ -179,7 +179,7 @@ internal fun FilterRow(
         // The pickers first: a History opened from a device's page shows which device at once.
         if (state.devices.size > 1 || state.query.deviceId != null) {
             PickerChip(
-                label = state.device?.model ?: if (state.query.deviceId != null) {
+                label = state.device?.modelName ?: if (state.query.deviceId != null) {
                     stringResource(R.string.history_unknown_device)
                 } else {
                     stringResource(R.string.history_all_devices)
@@ -188,7 +188,7 @@ internal fun FilterRow(
                 menuTitle = stringResource(R.string.history_pick_device),
                 options =
                     listOf(null to stringResource(R.string.history_all_devices)) +
-                        state.devices.map { it.id to it.model },
+                        state.devices.map { it.id to it.modelName },
                 onPick = callbacks.onDevice,
             )
         }
@@ -279,7 +279,7 @@ internal fun HistoryCard(entry: HistoryEntry, zone: ZoneId, onClick: () -> Unit,
     val labels = rememberServerLabels()
     val locale = LocalConfiguration.current.locales[0]
     val details = listOfNotNull(
-        entry.device?.model ?: item.deviceId?.let { stringResource(R.string.history_unknown_device) },
+        entry.device?.modelName ?: item.deviceId?.let { stringResource(R.string.history_unknown_device) },
         item.durationSec?.let(::formatDurationMinSec),
         item.weightG?.let { formatWeightKg(it.toDouble(), locale) },
     ).joinToString(" · ")

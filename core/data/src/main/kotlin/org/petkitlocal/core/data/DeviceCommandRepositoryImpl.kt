@@ -56,7 +56,7 @@ class DeviceCommandRepositoryImpl @Inject constructor(private val api: PetkitApi
     private suspend fun named(error: DomainError, deviceId: Long): DomainError {
         if (error !is DomainError.AccessoryUnreachable || error.relay != null) return error
         val relay = dao.getDevice(deviceId)?.parentId?.let { dao.getDevice(it) } ?: return error
-        return DomainError.AccessoryUnreachable(relay.model)
+        return DomainError.AccessoryUnreachable(relay.modelName)
     }
 
     private companion object {

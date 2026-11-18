@@ -79,7 +79,7 @@ class HistoryViewModelTest {
             with(viewModel.uiState.value) {
                 assertEquals(HistoryQuery(today), query)
                 assertEquals(HistoryFixtures.items.map { it.id }, entries.map { it.item.id })
-                assertEquals("Purobot Max Pro 2", entries.first { it.item.id == 12L }.device?.model)
+                assertEquals("Purobot Max Pro 2", entries.first { it.item.id == 12L }.device?.modelName)
                 assertEquals((9..15).map { today.withDayOfMonth(it) }, week)
                 assertFalse(hasNextWeek)
                 assertTrue(paging.loading)
@@ -104,7 +104,7 @@ class HistoryViewModelTest {
 
         val state = viewModel.uiState.value
         assertEquals(1002L, state.query.deviceId)
-        assertEquals("Pura Max", state.device?.model)
+        assertEquals("Pura Max", state.device?.modelName)
         assertEquals(listOf(16L, 14L, 11L, 10L), state.entries.map { it.item.id })
         assertEquals(HistoryQuery(today, deviceId = 1002), timeline.pageRequests.single().first)
     }

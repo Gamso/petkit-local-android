@@ -118,7 +118,7 @@ class QuickActionsViewModel @Inject constructor(
     ): QuickActionsEditorState {
         val layout = DeviceActionOrder.layout(device.actions, pinned)
         return QuickActionsEditorState(
-            deviceName = device.model,
+            deviceName = device.modelName,
             row = layout.main,
             others = layout.more,
             custom = pinned != null,

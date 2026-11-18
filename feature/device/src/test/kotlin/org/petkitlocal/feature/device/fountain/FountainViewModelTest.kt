@@ -85,7 +85,7 @@ class FountainViewModelTest {
             val state = viewModel.uiState.value
             assertTrue(state.loaded)
             assertTrue(state.refreshing)
-            assertEquals("EverSweet Ultra AI", state.page?.device?.model)
+            assertEquals("EverSweet Ultra AI", state.page?.device?.modelName)
             assertEquals(5, state.page?.today?.drinks)
             assertEquals(3, state.page?.yesterday?.drinks)
             // Shown, so the live socket is kept open.
@@ -104,7 +104,7 @@ class FountainViewModelTest {
         advanceUntilIdle()
 
         val page = viewModel.uiState.value.page!!
-        assertEquals("YumShare Dual-Hopper", page.relay?.model)
+        assertEquals("YumShare Dual-Hopper", page.relay?.modelName)
         assertFalse(page.recordsDrinks)
         assertEquals(14_400, page.pumpTodaySec)
 

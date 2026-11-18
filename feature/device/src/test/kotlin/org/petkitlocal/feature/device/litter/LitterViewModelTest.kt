@@ -84,7 +84,7 @@ class LitterViewModelTest {
         val state = viewModel.uiState.value
         assertTrue(state.loaded)
         assertTrue(state.refreshing)
-        assertEquals("Pura Max", state.page?.device?.model)
+        assertEquals("Pura Max", state.page?.device?.modelName)
         assertEquals(4, state.page?.today?.visits)
         assertEquals(Household.zone, state.zone)
         // Shown, so the live socket is kept open.

@@ -212,7 +212,7 @@ class HomeRulesTest {
     private fun device(id: Long, family: DeviceFamily, vararg entities: Entity, online: Boolean = true) = Device(
         id = id,
         type = "x$id",
-        model = "Model $id",
+        modelName = "Model $id",
         family = family,
         online = online,
         transport = DeviceTransport.Http,

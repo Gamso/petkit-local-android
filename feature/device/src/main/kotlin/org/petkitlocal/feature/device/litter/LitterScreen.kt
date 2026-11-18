@@ -125,7 +125,7 @@ private fun LazyListScope.litterContent(
     item(key = "top") {
         PageTop(PkTheme.colors.heroLitter) {
             DeviceHeader(
-                title = page.device.model,
+                title = page.device.modelName,
                 onBack = navigation.onBack,
                 onOpenSettings = { navigation.onOpenSettings(page.device.id) },
             )

@@ -46,7 +46,7 @@ object HomeRules {
                     headline = headline(device, items),
                     status = status(device),
                     dayEvents = dayEvents(items, zone),
-                    relay = device.parentId?.takeIf { device.isAccessory }?.let(byId::get)?.model,
+                    relay = device.parentId?.takeIf { device.isAccessory }?.let(byId::get)?.modelName,
                 )
             },
             pets = pets.mapIndexed { index, pet ->

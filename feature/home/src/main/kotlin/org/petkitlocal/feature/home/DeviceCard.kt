@@ -90,7 +90,7 @@ internal fun DeviceCard(
                 // The name gets the card's whole width: model names are long, and at a large font
                 // scale a word squeezed beside the glyph would break in the middle.
                 Text(
-                    overview.device.model,
+                    overview.device.modelName,
                     style = PkTheme.typography.titleMedium,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
@@ -121,7 +121,7 @@ internal fun DeviceCard(
 private fun DevicePicture(overview: DeviceOverview) {
     val colors = PkTheme.colors
     val device = overview.device
-    val photo = DevicePhoto.of(device.type, device.model)
+    val photo = DevicePhoto.of(device.type, device.modelName)
     if (photo != null) {
         PkDevicePhoto(
             photo,

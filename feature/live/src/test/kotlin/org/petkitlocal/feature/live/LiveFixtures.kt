@@ -24,7 +24,7 @@ internal object LiveFixtures {
 
     private fun state(session: LiveSession) = LiveUiState(
         deviceId = camera.id,
-        deviceName = camera.model,
+        deviceName = camera.modelName,
         availability = LiveAvailability.Camera,
         session = session,
         clips = clips,
@@ -55,7 +55,7 @@ internal object LiveFixtures {
 
     val notACamera = LiveUiState(
         deviceId = Household.feeder.id,
-        deviceName = Household.feeder.model,
+        deviceName = Household.feeder.modelName,
         availability = LiveAvailability.NotACamera,
     )
 }

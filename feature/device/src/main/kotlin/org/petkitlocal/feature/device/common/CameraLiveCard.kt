@@ -63,7 +63,7 @@ internal fun rememberLiveCard(viewModel: LiveCardViewModel = hiltViewModel()): L
  */
 @Composable
 internal fun CameraLiveCard(device: Device, state: LiveCardState, onOpen: () -> Unit, modifier: Modifier = Modifier) {
-    if (device.isCamera) LiveCard(device.model, state, onOpen, modifier)
+    if (device.isCamera) LiveCard(device.modelName, state, onOpen, modifier)
 }
 
 /** The live card of [device]'s family page, opening the live video through [navigation]. */

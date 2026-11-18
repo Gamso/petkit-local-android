@@ -64,10 +64,10 @@ object DeviceSettingsRules {
     )
 
     fun identity(device: Device, relay: Device? = null): DeviceIdentity = DeviceIdentity(
-        name = device.model,
+        name = device.modelName,
         online = device.online,
         link = when {
-            device.isAccessory -> DeviceLink.Bluetooth(relay?.takeIf { it.id == device.parentId }?.model)
+            device.isAccessory -> DeviceLink.Bluetooth(relay?.takeIf { it.id == device.parentId }?.modelName)
             device.transport == DeviceTransport.Mqtt -> DeviceLink.Mqtt
             device.transport == DeviceTransport.Http -> DeviceLink.Http
             else -> null

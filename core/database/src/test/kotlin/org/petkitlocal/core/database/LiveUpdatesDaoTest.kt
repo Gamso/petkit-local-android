@@ -144,6 +144,8 @@ class LiveUpdatesDaoTest {
         position = position,
         type = "w5",
         model = "EverSweet 3 Pro",
+        modelName = "EverSweet 3 Pro",
+        generation = null,
         kind = "fountain",
         online = true,
         transport = "http",

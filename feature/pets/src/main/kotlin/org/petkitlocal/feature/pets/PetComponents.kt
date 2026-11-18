@@ -189,7 +189,7 @@ internal fun PetTiles(page: PetPage, today: LocalDate, zone: ZoneId, modifier: M
             } else {
                 listOfNotNull(
                     dayLabel(lastVisit.atZone(zone).toLocalDate(), today, locale),
-                    page.lastVisitDevice?.model,
+                    page.lastVisitDevice?.modelName,
                 ).joinToString(" · ")
             },
             modifier = tile,
@@ -322,7 +322,7 @@ private fun VisitRow(visit: PetVisit, today: LocalDate, zone: ZoneId, onClick: (
         }
         Column(Modifier.padding(start = PkTheme.spacing.s).weight(1f)) {
             Text(
-                visit.device?.model ?: stringResource(R.string.pet_unknown_device),
+                visit.device?.modelName ?: stringResource(R.string.pet_unknown_device),
                 style = PkTheme.typography.bodyLarge,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,

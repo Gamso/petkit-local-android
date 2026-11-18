@@ -26,7 +26,7 @@ import org.robolectric.annotation.Config
 private val PURA_MAX = Device(
     id = 1002,
     type = "t4",
-    model = "Pura Max",
+    modelName = "Pura Max",
     family = DeviceFamily.LitterBox,
     online = true,
     transport = DeviceTransport.Http,

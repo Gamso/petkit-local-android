@@ -125,7 +125,7 @@ private fun AccessorySection(accessory: Device, shownKey: String, onOpen: () -> 
     }
     if (!accessory.online) {
         Text(
-            stringResource(R.string.page_accessory_offline, accessory.model),
+            stringResource(R.string.page_accessory_offline, accessory.modelName),
             style = PkTheme.typography.bodyMedium,
             color = PkTheme.colors.warning,
         )
@@ -142,7 +142,7 @@ private fun AccessorySection(accessory: Device, shownKey: String, onOpen: () -> 
         }
     }
     PkButton(
-        stringResource(R.string.page_open_accessory, accessory.model),
+        stringResource(R.string.page_open_accessory, accessory.modelName),
         onClick = onOpen,
         style = PkButtonStyle.Secondary,
         icon = PkIcons.ChevronRight,

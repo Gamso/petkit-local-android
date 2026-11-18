@@ -59,10 +59,10 @@ class PetkitDatabaseMigrationTest {
     fun `the oldest supported database keeps its data when the app opens it`() = runTest {
         helper.createDatabase(PetkitDatabase.OLDEST_SUPPORTED_VERSION).apply {
             execSQL(
-                "INSERT INTO devices (id, position, type, model, kind, online, transport, last_seen, " +
-                    "firmware, is_camera, serial, connection, parent_id, accessories_json) " +
-                    "VALUES (1002, 0, 't4', 'Pura Max', 'litter_box', 1, 'http', NULL, NULL, 0, NULL, " +
-                    "'wifi', NULL, '[]')",
+                "INSERT INTO devices (id, position, type, model, model_name, generation, kind, online, " +
+                    "transport, last_seen, firmware, is_camera, serial, connection, parent_id, accessories_json) " +
+                    "VALUES (1002, 0, 't4', 'Pura Max', 'Pura Max 2', 2, 'litter_box', 1, 'http', NULL, NULL, 0, " +
+                    "NULL, 'wifi', NULL, '[]')",
             )
             execSQL(
                 "INSERT INTO pets (id, position, name, device_ids_json, entered_weight_g, weight_g, weight_learned, " +
@@ -76,7 +76,8 @@ class PetkitDatabaseMigrationTest {
             .addMigrations(*PetkitDatabase.MIGRATIONS)
             .build()
         try {
-            assertEquals(listOf("Pura Max"), db.deviceDao().observeDevices().first().map { it.device.model })
+            val device = db.deviceDao().observeDevices().first().single().device
+            assertEquals(listOf("Pura Max", "Pura Max 2", 2), listOf(device.model, device.modelName, device.generation))
             assertEquals(listOf("Mochi"), db.petDao().observePets().first().map { it.name })
         } finally {
             db.close()
