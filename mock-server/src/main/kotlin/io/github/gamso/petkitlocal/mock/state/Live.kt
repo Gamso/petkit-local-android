@@ -210,6 +210,22 @@ fun World.playDrink(
     return card
 }
 
+/** A pet eats at a camera feeder: the card arrives when it leaves the bowl, timed. */
+fun World.playEating(
+    device: MockDevice,
+    petId: Int?,
+    durationSec: Int? = null,
+): Card {
+    val duration = durationSec ?: random.nextInt(30, 180)
+    val card =
+        change(device) {
+            device.setIfShown("state.lastPetDetect", iso(clock.now()))
+            eatingCard(device, clock.now(), duration, petId)
+        }
+    publish(card)
+    return card
+}
+
 fun World.raiseError(
     device: MockDevice,
     message: String,

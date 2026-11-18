@@ -16,6 +16,7 @@ import io.github.gamso.petkitlocal.mock.state.cleaningDone
 import io.github.gamso.petkitlocal.mock.state.cleaningRows
 import io.github.gamso.petkitlocal.mock.state.deepCleanCard
 import io.github.gamso.petkitlocal.mock.state.drinkCard
+import io.github.gamso.petkitlocal.mock.state.eatingCard
 import io.github.gamso.petkitlocal.mock.state.errorCard
 import io.github.gamso.petkitlocal.mock.state.errorClearedCard
 import io.github.gamso.petkitlocal.mock.state.feedCard
@@ -180,6 +181,7 @@ class Seed(
             ) = start + rng.nextDouble(fromHour, toHour) * 3600
             planVisits(offset, ::time, horizon)
             planMeals(day, offset, start, horizon)
+            if (offset > 0) planEating(offset, start)
             // Two to four drinks per cat at the W7H, which recognises them.
             world.pets.values.forEach { pet ->
                 repeat(rng.nextInt(2, 5)) {
@@ -293,10 +295,28 @@ class Seed(
     }
 
     /**
+     * The cats eating at the two camera feeders on the days before today, each feeder's own cat
+     * and one its camera could not tell, a little longer each day back; on the Dual-Hopper, two
+     * days ago, a meal eaten whose end never arrived (no duration). Fixed times, without the RNG,
+     * so the rest of the seed replays unchanged.
+     */
+    private fun planEating(
+        offset: Int,
+        start: Double,
+    ) {
+        EATING.forEach { meal ->
+            val duration = meal.seconds + offset * EATING_LONGER_PER_DAY
+            val ts = start + meal.hour * 3600 + duration
+            val untimed = meal.feeder == D4SH && offset == 2 && meal.petId == null
+            at(ts) { world.eatingCard(dev(meal.feeder), ts, duration.takeUnless { untimed }, meal.petId) }
+        }
+    }
+
+    /**
      * Whatever the hour, today already holds on the feeders a meal served from the app, one that
-     * put nothing out, and a cat at the camera: the feeder page's day has every kind of row to
-     * show. Placed at fixed fractions of the day so far, without the RNG, so the rest of the seed
-     * replays unchanged.
+     * put nothing out, a cat at the camera, and cats eating at both camera feeders (one the camera
+     * could not tell): the feeder page's day has every kind of row to show. Placed at fixed
+     * fractions of the day so far, without the RNG, so the rest of the seed replays unchanged.
      */
     private fun todayAtTheFeeders(
         start: Double,
@@ -314,6 +334,10 @@ class Seed(
             t(0.40) to { world.feedCard(dev(D4SH), t(0.40), FeedSource.APP, null, 1, 1) },
             t(0.50) to { world.feedCard(dev(D4SH), t(0.50), FeedSource.SCHEDULE, null, 1, 1, "nothing dispensed") },
             t(0.65) to { world.feederPetCard(dev(D4SH), t(0.65), 1) },
+            t(0.37) to { world.eatingCard(dev(D4H), t(0.37), 95, 1) },
+            t(0.45) to { world.eatingCard(dev(D4H), t(0.45), 40, null) },
+            t(0.42) to { world.eatingCard(dev(D4SH), t(0.42), 120, 2) },
+            t(0.70) to { world.eatingCard(dev(D4SH), t(0.70), 55, null) },
         ).forEach { (ts, play) -> at(ts) { play() } }
     }
 
@@ -385,6 +409,23 @@ class Seed(
     companion object {
         /** Less of today than this, and the feeders' day starts empty: there is no room for it. */
         private const val MIN_DAY_SO_FAR = 600.0
+
+        /**
+         * The meals eaten of a day before today at the camera feeders: the feeder, the hour the
+         * cat came to the bowl, the cat (null: the camera could not tell) and how long it ate.
+         */
+        private val EATING =
+            listOf(
+                Eating(D4H, 7.3, 1, 85),
+                Eating(D4H, 12.6, null, 50),
+                Eating(D4H, 19.2, 1, 110),
+                Eating(D4SH, 8.2, 2, 130),
+                Eating(D4SH, 18.5, 2, 90),
+                Eating(D4SH, 21.0, null, 45),
+            )
+
+        /** Each day back, the cats ate this many seconds longer: today is not like yesterday. */
+        private const val EATING_LONGER_PER_DAY = 6
 
         /** A deodorizing cycle ends this long after the cleaning before it. */
         private const val DEODORIZE_AFTER_SEC = 60.0
@@ -578,3 +619,11 @@ class Seed(
             )
     }
 }
+
+/** A meal eaten in the seed's history: at [feeder], from [hour] (local), by [petId], for [seconds]. */
+private data class Eating(
+    val feeder: Int,
+    val hour: Double,
+    val petId: Int?,
+    val seconds: Int,
+)

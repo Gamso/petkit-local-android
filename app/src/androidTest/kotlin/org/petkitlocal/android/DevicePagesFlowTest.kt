@@ -43,7 +43,8 @@ import org.petkitlocal.feature.home.HomeTestTags
  * from Home. A destructive action is confirmed before it is sent, its banner says it was queued
  * for the HTTP box, and the box reports the cycle over `/ws`; feed now is queued and the feeder
  * reports feeding; a one-off feed is added and cancelled on the server; a meal served shows in
- * the feeder's day, counted, with what each hopper gave.
+ * the feeder's day, counted, with what each hopper gave; a cat eating at the camera is counted
+ * in the meals eaten.
  */
 @MockOnly("the mock's Pura Max and feeder, and the commands they answer")
 @OptIn(ExperimentalTestApi::class) // waitUntil...Exists
@@ -126,6 +127,29 @@ class DevicePagesFlowTest {
         waitFor(hasText("3 portions · Hopper\u00A01\u00A0×2 · Hopper\u00A02\u00A0×1"), unmerged = true)
         compose.waitUntil(TIMEOUT_MS) { compose.onNode(meals).chipCount() > before }
     }
+
+    @Test
+    fun aCatEatingAtTheCameraIsCountedInTheMealsEaten() {
+        signIn()
+        open(DUAL_HOPPER)
+        waitFor(hasText("YumShare Dual-Hopper"))
+        val list = compose.onNodeWithTag(PageTestTags.LIST)
+        list.performScrollToNode(hasTestTag(FeederTestTags.EATING))
+        val eaten = hasContentDescription("Meals eaten, ", substring = true)
+        waitFor(eaten)
+        val before = compose.onNode(eaten).mealsEaten()
+
+        // Tigrou eats at the camera for a minute and a half; the feeder reports it over /ws.
+        MockServer.control("POST", "devices/$DUAL_HOPPER/eat", """{"pet_id": 2, "duration_sec": 90}""")
+
+        list.performScrollToNode(hasTestTag(FeederTestTags.EATING))
+        compose.waitUntil(TIMEOUT_MS) { compose.onNode(eaten).mealsEaten() == before + 1 }
+    }
+
+    /** The figure of the meals-eaten tile, as TalkBack reads it: "Meals eaten, 4, …" is 4. */
+    private fun SemanticsNodeInteraction.mealsEaten(): Int =
+        fetchSemanticsNode().config[SemanticsProperties.ContentDescription].joinToString("")
+            .substringAfter(", ").substringBefore(",").trim().toInt()
 
     /** The count a chip of the feeder's day shows: "Meals 4" is 4. */
     private fun SemanticsNodeInteraction.chipCount(): Int =

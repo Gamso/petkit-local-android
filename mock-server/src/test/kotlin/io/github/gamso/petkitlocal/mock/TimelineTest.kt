@@ -1,5 +1,6 @@
 package io.github.gamso.petkitlocal.mock
 
+import io.github.gamso.petkitlocal.mock.api.ServedAmounts
 import io.github.gamso.petkitlocal.mock.seed.Seed
 import io.github.gamso.petkitlocal.mock.state.Card
 import io.github.gamso.petkitlocal.mock.state.Timeline
@@ -17,6 +18,7 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
+import java.time.LocalDate
 
 class TimelineTest {
     private suspend fun Api.walk(query: String): List<JsonObject> {
@@ -221,6 +223,72 @@ class TimelineTest {
                     it["label"]!!.jsonPrimitive.content == "Feeding completed"
                 }
             assertEquals(setOf("real_amount"), served(api, solo).keys)
+
+            // Its card says the same as `served`: per hopper and their sum on a Dual-Hopper, the
+            // total alone on a single hopper, 0 for a meal that put nothing out; never timed.
+            val amounts = meal["served"]!!.jsonObject
+            assertEquals(
+                amounts["hopper1"]!!.jsonPrimitive.int + amounts["hopper2"]!!.jsonPrimitive.int,
+                amounts["total"]!!.jsonPrimitive.int,
+            )
+            assertEquals(JsonNull, meal["duration_sec"])
+            assertEquals(JsonNull, solo["served"]!!.jsonObject["hopper1"])
+            val failed = dual.first { it["label"]!!.jsonPrimitive.content == "Feeding failed (nothing dispensed)" }
+            assertEquals(0, failed["served"]!!.jsonObject["total"]!!.jsonPrimitive.int)
+            assertEquals(JsonNull, seen["served"])
+        }
+
+    @Test
+    fun `the camera feeders' cats eat today and yesterday, timed, with their pet or none`() =
+        mockTest { world, api ->
+            api.login()
+            val today = world.clock.today()
+            val (start, _) = world.clock.dayBounds(today)
+            assumeTrue(world.clock.now() - start > 15 * 60, "the day is too young for its feeders' events")
+
+            suspend fun eaten(
+                device: Int,
+                day: LocalDate,
+            ) = api.walk("device=$device&day=$day&kind=feeding&limit=100").filter {
+                it["label"]!!.jsonPrimitive.content.startsWith("Eating")
+            }
+            listOf(Seed.D4H, Seed.D4SH).forEach { feeder ->
+                listOf(today, today.minusDays(1)).forEach { day ->
+                    val cards = eaten(feeder, day)
+                    assertTrue(cards.size >= 2, "$feeder on $day: ${cards.size}")
+                    // A cat it recognised, and one it could not tell.
+                    assertTrue(cards.any { it["pet"] != JsonNull } && cards.any { it["pet"] == JsonNull })
+                    cards.forEach { card ->
+                        assertEquals(listOf("feeding"), card["filters"]!!.jsonArray.map { it.jsonPrimitive.content })
+                        assertEquals(JsonNull, card["served"])
+                        assertTrue(card["duration_sec"]!!.jsonPrimitive.int > 0)
+                    }
+                }
+            }
+            // A meal eaten whose end never arrived: headed by its start, with no duration.
+            val open = eaten(Seed.D4SH, today.minusDays(2)).single { it["duration_sec"] == JsonNull }
+            assertEquals("Eating started", open["label"]!!.jsonPrimitive.content)
+            // No feeder without a camera sees anyone eat.
+            assertTrue(eaten(Seed.D4, today).isEmpty())
+            // A drink is timed too.
+            val drinks = api.walk("device=${Seed.W7H}&day=${today.minusDays(1)}&kind=drinking&limit=100")
+            assertTrue(drinks.isNotEmpty() && drinks.all { it["duration_sec"]!!.jsonPrimitive.int > 0 })
+        }
+
+    @Test
+    fun `a cat eating from the control API is a timed card of the feeding chip`() =
+        mockTest { world, api ->
+            api.login()
+            val response =
+                api.client.control(HttpMethod.Post, "/devices/${Seed.D4H}/eat", """{"pet_id":1,"duration_sec":75}""")
+            assertEquals(200, response.status)
+
+            val card = synchronized(world.lock) { world.timeline.sorted().first { it.deviceId == Seed.D4H } }
+            assertEquals("Eating done", card.label)
+            assertEquals(75, card.durationSec)
+            assertEquals(1, card.petId)
+            assertEquals(null, card.served)
+            assertEquals(card.ts - 75, card.displayTs)
         }
 
     @Test
@@ -252,6 +320,7 @@ class TimelineTest {
                 }.associate { it.key to it.text }
             assertEquals("2", fields["real_amount1"])
             assertEquals("1", fields["real_amount2"])
+            assertEquals(ServedAmounts(3, 2, 1), card!!.served)
         }
 
     /** The `real_amount*` fields of [card]'s event. */
