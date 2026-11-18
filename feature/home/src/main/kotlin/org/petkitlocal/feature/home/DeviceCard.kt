@@ -44,6 +44,8 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import java.text.NumberFormat
 import org.petkitlocal.core.designsystem.icon.PkIcons
+import org.petkitlocal.core.designsystem.photo.DevicePhoto
+import org.petkitlocal.core.designsystem.photo.PkDevicePhoto
 import org.petkitlocal.core.designsystem.theme.PkColors
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.home.DayEvent
@@ -54,9 +56,10 @@ import org.petkitlocal.core.domain.home.Headline
 import org.petkitlocal.core.ui.rememberServerLabels
 
 /**
- * One device on Home (docs/DESIGN.md, DeviceCard): glyph and name, the family's headline figure,
- * the 24-hour strip of the day's cards, and the status band at the bottom. [petColors] gives each
- * pet's colour index, so a visit on the strip has its pet's colour.
+ * One device on Home (docs/DESIGN.md, DeviceCard): name and picture (the product's photo, else a
+ * glyph), the family's headline figure, the 24-hour strip of the day's cards, and the status band
+ * at the bottom. [petColors] gives each pet's colour index, so a visit on the strip has its pet's
+ * colour.
  *
  * A Bluetooth accessory with a card of its own says, discreetly under its name, which device it
  * reports through.
@@ -100,20 +103,7 @@ internal fun DeviceCard(
                     ) {
                         HeadlineFigure(overview.headline)
                     }
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .size(34.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(colors.surfaceMuted),
-                    ) {
-                        Icon(
-                            HomeIcons.forFamily(overview.device.family),
-                            contentDescription = null,
-                            tint = colors.onSurfaceMuted,
-                            modifier = Modifier.size(22.dp),
-                        )
-                    }
+                    DevicePicture(overview)
                 }
                 Spacer(Modifier.weight(1f))
                 DayStrip(overview.dayEvents, petColors)
@@ -122,6 +112,43 @@ internal fun DeviceCard(
         }
     }
 }
+
+/**
+ * The model's product photo when the app has one (issue #69, layout C), on the card's own colour;
+ * else the family's glyph on a small tile.
+ */
+@Composable
+private fun DevicePicture(overview: DeviceOverview) {
+    val colors = PkTheme.colors
+    val device = overview.device
+    val photo = DevicePhoto.of(device.type, device.model)
+    if (photo != null) {
+        PkDevicePhoto(
+            photo,
+            decodeSize = PHOTO_SIZE,
+            modifier = Modifier.size(PHOTO_SIZE),
+            backdrop = colors.surface,
+            shape = RoundedCornerShape(10.dp),
+        )
+        return
+    }
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = Modifier
+            .size(34.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(colors.surfaceMuted),
+    ) {
+        Icon(
+            HomeIcons.forFamily(device.family),
+            contentDescription = null,
+            tint = colors.onSurfaceMuted,
+            modifier = Modifier.size(22.dp),
+        )
+    }
+}
+
+private val PHOTO_SIZE = 56.dp
 
 /** "via Pura Max": small and muted, part of the card (which opens the accessory itself). */
 @Composable
