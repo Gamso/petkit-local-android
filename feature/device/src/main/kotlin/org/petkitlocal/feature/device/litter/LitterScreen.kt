@@ -136,6 +136,7 @@ private fun LazyListScope.litterContent(
                 anchors = ::litterAnchor,
                 onHotspot = callbacks.onHotspot,
                 modifier = Modifier.padding(top = PkTheme.spacing.xs),
+                photo = heroPhoto(page.device),
             ) { LitterBoxIllustration(Modifier.fillMaxSize()) }
         }
     }

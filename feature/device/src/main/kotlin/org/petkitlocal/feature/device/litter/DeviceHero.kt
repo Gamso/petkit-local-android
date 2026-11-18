@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.sp
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
+import org.petkitlocal.core.designsystem.photo.DevicePhoto
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.devicepage.DevicePart
 import org.petkitlocal.core.domain.devicepage.Hotspot
@@ -50,9 +51,10 @@ enum class PillSide { Left, Right }
 data class PartAnchor(val x: Float, val y: Float, val side: PillSide)
 
 /**
- * The hero of a device page (docs/DESIGN.md, DeviceHero): the family's drawing in the middle and
- * one [HotspotPill] per hotspot on either side, each joined by a line to a dot on its part. A pill
- * goes as near its part's height as the others leave room for; the hero grows to fit them.
+ * The hero of a device page (docs/DESIGN.md, DeviceHero). With the model's [photo], the photo and
+ * its pills ([PhotoHero]). Without one, the family's drawing in the middle and one [HotspotPill]
+ * per hotspot on either side, each joined by a line to a dot on its part. A pill goes as near its
+ * part's height as the others leave room for; the hero grows to fit them.
  */
 @Composable
 internal fun DeviceHero(
@@ -60,8 +62,13 @@ internal fun DeviceHero(
     anchors: (DevicePart) -> PartAnchor,
     onHotspot: (DevicePart) -> Unit,
     modifier: Modifier = Modifier,
+    photo: DevicePhoto? = null,
     illustration: @Composable () -> Unit,
 ) {
+    if (photo != null) {
+        PhotoHero(hotspots, photo, onHotspot, modifier)
+        return
+    }
     val colors = PkTheme.colors
     val labels = rememberServerLabels()
     val links = remember { HeroLinks() }

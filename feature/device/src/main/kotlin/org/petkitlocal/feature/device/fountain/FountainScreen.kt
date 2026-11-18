@@ -41,6 +41,7 @@ import org.petkitlocal.feature.device.litter.PageCommandCallbacks
 import org.petkitlocal.feature.device.litter.PageTop
 import org.petkitlocal.feature.device.litter.RefreshBanner
 import org.petkitlocal.feature.device.litter.gutter
+import org.petkitlocal.feature.device.litter.heroPhoto
 import org.petkitlocal.feature.device.litter.missingPage
 
 /** What the user can do on the fountain page besides its commands, one callback per intent. */
@@ -233,6 +234,7 @@ private fun FountainTop(
             anchors = ::fountainAnchor,
             onHotspot = onHotspot,
             modifier = Modifier.padding(top = PkTheme.spacing.xs),
+            photo = heroPhoto(page.device),
         ) { FountainIllustration(Modifier.fillMaxSize()) }
     }
 }

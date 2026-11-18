@@ -40,6 +40,7 @@ import org.petkitlocal.core.designsystem.component.PkCard
 import org.petkitlocal.core.designsystem.component.PkLoadingView
 import org.petkitlocal.core.designsystem.component.PkOfflineBanner
 import org.petkitlocal.core.designsystem.icon.PkIcons
+import org.petkitlocal.core.designsystem.photo.DevicePhoto
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.model.Device
 import org.petkitlocal.core.domain.model.DeviceAction
@@ -222,7 +223,7 @@ private fun LazyListScope.deviceContent(
     item(key = "hero") {
         PkCard(Modifier.fillMaxWidth()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                DeviceIllustration(device.family)
+                DeviceIllustration(device.family, photo = DevicePhoto.of(device.type, device.model))
                 Spacer(Modifier.width(PkTheme.spacing.m))
                 uiState.status?.let { status ->
                     DeviceStatusLine(
