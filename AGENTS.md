@@ -45,8 +45,11 @@ These rules are binding for every contributor, human or agent.
 - **No awkward empty bands** in layouts; content that may not fit scrolls from the top.
 - **Show only what the device has**: no hotspot, pill or action for a part the model lacks; "missing"
   only when the device reports the part absent, never because a value is null.
-- **No PetKit image, logo, colour or product photo**, ever: illustrations are our own drawings, in
-  their own composable so a user photo can replace them.
+- **No PetKit image, logo or colour, and no PetKit artwork**, ever, with one exception decided by
+  the owner (issue #69): PetKit's product photos of the models the app supports, one per model,
+  unedited, in `core:designsystem` (`DevicePhoto`) and listed in `NOTICE` as © PetKit and not under
+  the MIT licence. Nothing else of PetKit's: no logo, no colours, no app artwork or icons. A model
+  without a photo keeps our own drawing, in its own composable so a user photo can replace it.
 - **The app follows the phone's theme**: light or dark as the system is, no in-app theme switch.
 - **Destructive actions are confirmed** (`PkConfirmDialog`) and every command reports how it was
   delivered (`mqtt`, `queued`, `local`) or the server's error.

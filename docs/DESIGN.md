@@ -8,9 +8,9 @@ PetKit's own app:
 - big daily figures compared with yesterday.
 
 The identity itself is original: palette, type and illustrations. Icons are Material Symbols
-(below). **No PetKit image, logo,
-colour or product photo is used anywhere**, and device illustrations are our own simplified
-drawings.
+(below). **No PetKit logo, colour or app artwork is used anywhere.** The one exception, decided by
+the owner (issue #69), is PetKit's product photo of each supported model (below, Illustrations),
+© PetKit and listed in `NOTICE`; a model without one shows our own simplified drawing.
 
 ## Tokens
 
@@ -70,7 +70,8 @@ palettes and fails the build below 4.5:1. Ratios are against `surface` unless st
 | `onDanger` | `#3A0904` | 7.6:1 on `danger` |
 | `outline` | `#3A424C` | Separators only, like its light value |
 
-Hero tints in dark: litter `#16302D`, feeder `#1B2433`, fountain `#15293A`, pet `#33281C`. In dark, filled colours
+Hero tints in dark: litter `#16302D`, feeder `#1B2433`, fountain `#15293A`, pet `#33281C`.
+`photoPlate` is what a product photo lies on: nothing in light, `#DDE2E7` in dark (Illustrations). In dark, filled colours
 are light and their "on" colours dark, the reverse of the light palette. The live-video screen
 is always dark.
 
@@ -122,10 +123,10 @@ arrow mirrored in right-to-left languages.
 
 | Component | Where | Notes |
 |---|---|---|
-| `DeviceCard` | Home | Glyph, name, headline figure, 24 h strip, status band (idle / busy / offline / error) |
+| `DeviceCard` | Home | Name, the model's product photo (56 dp, else the family's glyph), headline figure, 24 h strip, status band (idle / busy / offline / error) |
 | `AlertBanner` | Home | Warning container, one line, chevron to the device |
 | `PetChip` | Home, Pets | Avatar (photo or initial on pet colour), name, weight, visits today |
-| `DeviceHero` | Litter, Feeder, Fountain | Illustration plus positioned `HotspotPill`s; positions defined per family in a small layout table |
+| `DeviceHero` | Litter, Feeder, Fountain | With the model's photo: the photo fills the hero, each `HotspotPill` right beside a dot on its part (positions per photo, `PhotoSpots`), kept inside the frame, overlapping pills pushed apart, a part the photo does not place under it. Without one: the family's drawing with the pills on either side, positions defined per family in a small layout table |
 | `HotspotPill` | Device pages | Label and value, a dot on the illustrated part, colour by state, tappable |
 | `ModeChip` | Device header | Shows an on/off mode from a switch entity; on a fountain, only the features that are on, after its battery |
 | `StatCompareTile` | Device (litter box, W7H, camera feeder), Pet | Big figure and the change since yesterday: a neutral arrow (Material Symbol, never a good/bad colour) and the amount, read in words by TalkBack ("2 more than yesterday") |
@@ -144,9 +145,21 @@ Every component has light/dark × EN/FR previews and a screenshot test.
 
 ## Illustrations
 
-Simple line-and-fill drawings, one per family (litter box, feeder, fountain, camera litter box),
-drawn as vector drawables with named anchor points for hotspots. Model-specific drawings can come
-later; a family drawing is always the fallback.
+**Product photos** (issue #69): PetKit's own shot of each supported model, the device alone,
+shipped unedited as lossless WebP of at most 900 px in `core:designsystem` (`drawable-nodpi`,
+`DevicePhoto`, keyed by the server's codename). They are © PetKit and not covered by the MIT
+licence (`NOTICE`). A photo's pixels are never altered: its white background melts into the page
+by a multiply blend on what lies under it (the hero's tint, the card's surface), which keeps the
+shading of a white product. In dark the same blend would sink the product into the page, so the
+photo lies on a light rounded plate (`photoPlate`). The positions of a photo's parts are given in
+percent of the photo padded to a square, per photo. Where PetKit sells several
+generations under one codename (`t4`, `d4h`, `d4sh`), the generation is the trailing number of
+the server's name ("Pura Max 2"), else the first, so the photo matches the name shown; a
+generation without a photo (a Pura Max 3) keeps the drawing. When the server reports the
+generation itself, it will choose instead (`DevicePhoto.generationOf`).
+
+**Drawings**: simple line-and-fill drawings, one per family (litter box, feeder, fountain, camera
+litter box), with anchor points for hotspots; what a model without a photo shows.
 
 ## Copy
 
