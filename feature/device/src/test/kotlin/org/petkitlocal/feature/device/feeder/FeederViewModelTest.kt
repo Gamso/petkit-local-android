@@ -38,7 +38,6 @@ import org.petkitlocal.core.testing.FakeDeviceRepository
 import org.petkitlocal.core.testing.FakeFeedingRepository
 import org.petkitlocal.core.testing.FakeLiveUpdatesRepository
 import org.petkitlocal.core.testing.FakePetRepository
-import org.petkitlocal.core.testing.FakeServedPortionsRepository
 import org.petkitlocal.core.testing.FakeTimelineRepository
 import org.petkitlocal.core.testing.Household
 import org.petkitlocal.core.testing.MainDispatcherExtension
@@ -64,15 +63,13 @@ class FeederViewModelTest {
     }
     private val live = FakeLiveUpdatesRepository()
     private val commands = FakeDeviceCommandRepository().apply { result = Outcome.Success(CommandDelivery.Queued) }
-    private val served = FakeServedPortionsRepository(FeederFixtures.servedPortions)
 
     private fun viewModel(id: Long) = FeederViewModel(
         SavedStateHandle(mapOf(DEVICE_ID_KEY to id)),
-        ObserveFeederUseCase(devices, feeding, FakePetRepository(Household.pets), timeline, served, Household.clock),
+        ObserveFeederUseCase(devices, feeding, FakePetRepository(Household.pets), timeline, Household.clock),
         ObserveLiveUpdatesUseCase(live),
         RefreshDevicePageUseCase(devices, FakePetRepository(), timeline),
         feeding,
-        served,
         RunDeviceActionUseCase(commands),
         SetEntityValueUseCase(commands),
         TodayUseCase(Household.clock),
@@ -311,16 +308,14 @@ class FeederViewModelTest {
         }
 
     @Test
-    fun `a dual hopper's meals give their portions per hopper, read once from their events`() =
-        runTest(main.dispatcher) {
-            val viewModel = open(2004)
+    fun `a dual hopper's meals give their portions per hopper, as their cards say`() = runTest(main.dispatcher) {
+        val viewModel = open(2004)
 
-            val rows = viewModel.uiState.value.page!!.day.rows
-            assertEquals(listOf(Portions.Dual(0, 2), null, Portions.Dual(1, 1)), rows.map { it.portions })
-            assertEquals(setOf(33L, 31L), served.fetched.first())
-            // The clip of the 08:00 meal; the feed the camera did not record has none.
-            assertEquals(listOf(false, true, true), rows.map { it.clip != null })
-        }
+        val rows = viewModel.uiState.value.page!!.day.rows
+        assertEquals(listOf(Portions.Dual(0, 2), null, Portions.Dual(1, 1)), rows.map { it.portions })
+        // The clip of the 08:00 meal; the feed the camera did not record has none.
+        assertEquals(listOf(false, true, true), rows.map { it.clip != null })
+    }
 
     @Test
     fun `a single hopper shows its amount, a failed meal is not served, and has no camera chip`() =
@@ -340,15 +335,16 @@ class FeederViewModelTest {
         }
 
     @Test
-    fun `portions that could not be read are read again on a refresh`() = runTest(main.dispatcher) {
-        served.result = Outcome.Failure(DomainError.Network("timeout"))
-        val viewModel = open(2004)
-        assertEquals(null, viewModel.uiState.value.page!!.day.rows.last().portions)
+    fun `a meal whose card states no amount shows none, and a live card that says it does`() =
+        runTest(main.dispatcher) {
+            val unsaid = FeederFixtures.todayItems.map { if (it.id == 31L) it.copy(served = null) else it }
+            timeline.days.value = mapOf(Household.today to unsaid)
+            val viewModel = open(2004)
+            assertEquals(null, viewModel.uiState.value.page!!.day.rows.last().portions)
 
-        served.result = Outcome.Success(Unit)
-        viewModel.onRefresh()
-        advanceUntilIdle()
+            timeline.days.value = mapOf(Household.today to FeederFixtures.todayItems)
+            advanceUntilIdle()
 
-        assertEquals(Portions.Dual(1, 1), viewModel.uiState.value.page!!.day.rows.last().portions)
-    }
+            assertEquals(Portions.Dual(1, 1), viewModel.uiState.value.page!!.day.rows.last().portions)
+        }
 }

@@ -37,21 +37,19 @@ class FeederDayRulesTest {
 
     @Test
     fun `meals and what the camera saw are counted apart, a fault under All only`() {
-        val day = FeederDayRules.day(ActivityRules.entries(cards, emptyList()), emptyMap(), camera = true)
+        val day = FeederDayRules.day(ActivityRules.entries(cards, emptyList()), camera = true)
 
         assertEquals(listOf(FeederDayFilter.All, FeederDayFilter.Meals, FeederDayFilter.Camera), day.filters)
         assertEquals(listOf(5, 2, 2), day.filters.map(day::count))
         assertEquals(listOf(5L, 2L), day.rows(FeederDayFilter.Meals).map { it.id })
         // An eating episode shares the feeding chip on the server, but it is the camera's.
         assertEquals(listOf(4L, 3L), day.rows(FeederDayFilter.Camera).map { it.id })
-        assertEquals(setOf(5L, 2L), day.mealIds)
     }
 
     @Test
     fun `a feeder without a camera has no chip for it`() {
         val day = FeederDayRules.day(
             ActivityRules.entries(listOf(served, failed), emptyList()),
-            emptyMap(),
             camera = false,
         )
 
@@ -59,10 +57,17 @@ class FeederDayRulesTest {
     }
 
     @Test
-    fun `a meal carries what it put out, a row its short clip, and nothing when it has none`() {
-        val portions = mapOf(5L to Portions.Dual(1, 1), 2L to null, 4L to Portions.Single(9))
+    fun `a meal carries what its card says it put out, a row its short clip, and nothing when it has none`() {
+        // A card that is not a meal says nothing served, whatever it carries.
+        val said = cards.map {
+            when (it.id) {
+                5L -> it.copy(served = Portions.Dual(1, 1))
+                4L -> it.copy(served = Portions.Single(9))
+                else -> it
+            }
+        }
 
-        val rows = FeederDayRules.day(ActivityRules.entries(cards, emptyList()), portions, camera = true).rows
+        val rows = FeederDayRules.day(ActivityRules.entries(said, emptyList()), camera = true).rows
 
         assertEquals(listOf(Portions.Dual(1, 1), null, null, null, null), rows.map { it.portions })
         assertEquals(highlight, rows[0].clip)

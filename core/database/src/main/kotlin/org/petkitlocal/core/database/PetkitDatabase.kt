@@ -12,7 +12,6 @@ import org.petkitlocal.core.database.model.EntityRow
 import org.petkitlocal.core.database.model.PetActivityRow
 import org.petkitlocal.core.database.model.PetRow
 import org.petkitlocal.core.database.model.PetWeightRow
-import org.petkitlocal.core.database.model.ServedPortionsRow
 import org.petkitlocal.core.database.model.TimelineItemRow
 
 /**
@@ -39,7 +38,6 @@ import org.petkitlocal.core.database.model.TimelineItemRow
         PetActivityRow::class,
         PetWeightRow::class,
         TimelineItemRow::class,
-        ServedPortionsRow::class,
     ],
     version = PetkitDatabase.VERSION,
     exportSchema = true,
@@ -59,8 +57,10 @@ abstract class PetkitDatabase : RoomDatabase() {
          * 5: timeline cards say whether they hold a clip (a camera's recent clips).
          * 6: timeline cards keep their steps (a device's activity by visit).
          * 7: a feeder's meals keep the portions they served (the feeder's day).
+         * 8: timeline cards keep what a feed served, which the server now sends on the card; the
+         *    portions read from each meal's event, and their table, are gone.
          */
-        const val VERSION = 7
+        const val VERSION = 8
 
         /** The oldest schema an installed app may hold; [VERSION] until the first release. */
         const val OLDEST_SUPPORTED_VERSION = VERSION

@@ -115,25 +115,17 @@ object FeederFixtures {
     val tomorrowFeed = DeferredFeed("d_1", at(12, 30).plusSeconds(DAY), Portions.Single(1))
 
     /**
-     * This morning on both feeders: on the Solo the 07:00 meal, then one that put nothing out; on
-     * the Dual-Hopper the 08:00 meal (with its clip), Mochi at the camera, and a feed from hopper 2
-     * the camera did not record.
+     * This morning on both feeders, each meal with what its card says it served: on the Solo the
+     * 07:00 meal, then one that put nothing out; on the Dual-Hopper the 08:00 meal (with its clip),
+     * Mochi at the camera, and a feed from hopper 2 the camera did not record.
      */
     val todayItems: List<TimelineItem> = listOf(
-        meal(34, 2001, at(9, 15), "Feeding failed (nothing dispensed)"),
-        meal(33, 2004, at(9, 40), "Feeding completed"),
+        meal(34, 2001, at(9, 15), "Feeding failed (nothing dispensed)", Portions.Single(0)),
+        meal(33, 2004, at(9, 40), "Feeding completed", Portions.Dual(0, 2)),
         item(32, 2004, at(9, 20), TimelineCategory.Pet, pet = 1).copy(label = "Pet detected")
             .withClips(MediaKind.Highlight),
-        meal(31, 2004, at(8, 0), "Feeding completed").withClips(MediaKind.Highlight),
-        meal(30, 2001, at(7, 0).plusSeconds(7), "Feeding completed"),
-    )
-
-    /** What each of [todayItems]' meals put out, as their events say. */
-    val servedPortions: Map<Long, Portions> = mapOf(
-        30L to Portions.Single(1),
-        31L to Portions.Dual(1, 1),
-        33L to Portions.Dual(0, 2),
-        34L to Portions.Single(0),
+        meal(31, 2004, at(8, 0), "Feeding completed", Portions.Dual(1, 1)).withClips(MediaKind.Highlight),
+        meal(30, 2001, at(7, 0).plusSeconds(7), "Feeding completed", Portions.Single(1)),
     )
 
     fun page(
@@ -148,7 +140,6 @@ object FeederFixtures {
         Household.clock.instant(),
         Household.zone,
         Household.pets,
-        servedPortions,
     )
 
     private fun state(page: FeederPage) =
@@ -183,8 +174,9 @@ object FeederFixtures {
 
     private const val DAY = 86_400L
 
-    private fun meal(id: Long, device: Long, at: Instant, label: String) =
-        item(id, device, at, TimelineCategory.Feeding).copy(kind = "feeding", eventKind = "feeding", label = label)
+    private fun meal(id: Long, device: Long, at: Instant, label: String, served: Portions?) =
+        item(id, device, at, TimelineCategory.Feeding)
+            .copy(kind = "feeding", eventKind = "feeding", label = label, served = served)
 
     private fun meal(hour: Int, minute: Int, portions: Portions) =
         Meal("n_${hour * 3600 + minute * 60}", LocalTime.of(hour, minute), portions)

@@ -120,8 +120,8 @@ class DevicePagesFlowTest {
         // Two portions from hopper 1 and one from hopper 2: no meal of the seed gave that.
         MockServer.control("POST", "devices/$DUAL_HOPPER/meal", """{"amount1": 2, "amount2": 1}""")
 
-        // The feeder reports the meal over /ws: its row says what each hopper gave, read from its
-        // event, and the chip counts it.
+        // The feeder reports the meal over /ws: its row says what each hopper gave, as its card
+        // does, and the chip counts it.
         list.performScrollToNode(meals)
         waitFor(hasText("3 portions · Hopper\u00A01\u00A0×2 · Hopper\u00A02\u00A0×1"), unmerged = true)
         compose.waitUntil(TIMEOUT_MS) { compose.onNode(meals).chipCount() > before }

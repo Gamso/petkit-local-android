@@ -1,8 +1,8 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 7,
-    "identityHash": "c937d640cec4eb9f2975ac6cbd68e477",
+    "version": 8,
+    "identityHash": "7a2e05e450846306d5b28d121cbce114",
     "entities": [
       {
         "tableName": "devices",
@@ -428,7 +428,7 @@
       },
       {
         "tableName": "timeline_items",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `day` TEXT NOT NULL, `kind` TEXT NOT NULL, `filters_json` TEXT NOT NULL, `device_id` INTEGER, `device_type` TEXT, `ts` REAL, `display_ts` REAL, `event_type` TEXT, `event_kind` TEXT, `label` TEXT, `pet_id` INTEGER, `pet_name` TEXT, `duration_sec` INTEGER, `weight_g` INTEGER, `facts_json` TEXT NOT NULL, `media_json` TEXT, `has_clip` INTEGER NOT NULL, `steps_json` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `day` TEXT NOT NULL, `kind` TEXT NOT NULL, `filters_json` TEXT NOT NULL, `device_id` INTEGER, `device_type` TEXT, `ts` REAL, `display_ts` REAL, `event_type` TEXT, `event_kind` TEXT, `label` TEXT, `pet_id` INTEGER, `pet_name` TEXT, `duration_sec` INTEGER, `weight_g` INTEGER, `served_total` INTEGER, `served_hopper1` INTEGER, `served_hopper2` INTEGER, `facts_json` TEXT NOT NULL, `media_json` TEXT, `has_clip` INTEGER NOT NULL, `steps_json` TEXT NOT NULL, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -510,6 +510,21 @@
             "affinity": "INTEGER"
           },
           {
+            "fieldPath": "servedTotal",
+            "columnName": "served_total",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "servedHopper1",
+            "columnName": "served_hopper1",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "servedHopper2",
+            "columnName": "served_hopper2",
+            "affinity": "INTEGER"
+          },
+          {
             "fieldPath": "factsJson",
             "columnName": "facts_json",
             "affinity": "TEXT",
@@ -559,44 +574,11 @@
             "createSql": "CREATE INDEX IF NOT EXISTS `index_timeline_items_device_id` ON `${TABLE_NAME}` (`device_id`)"
           }
         ]
-      },
-      {
-        "tableName": "served_portions",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `amount` INTEGER, `amount1` INTEGER, `amount2` INTEGER, PRIMARY KEY(`id`))",
-        "fields": [
-          {
-            "fieldPath": "id",
-            "columnName": "id",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "amount",
-            "columnName": "amount",
-            "affinity": "INTEGER"
-          },
-          {
-            "fieldPath": "amount1",
-            "columnName": "amount1",
-            "affinity": "INTEGER"
-          },
-          {
-            "fieldPath": "amount2",
-            "columnName": "amount2",
-            "affinity": "INTEGER"
-          }
-        ],
-        "primaryKey": {
-          "autoGenerate": false,
-          "columnNames": [
-            "id"
-          ]
-        }
       }
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'c937d640cec4eb9f2975ac6cbd68e477')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '7a2e05e450846306d5b28d121cbce114')"
     ]
   }
 }

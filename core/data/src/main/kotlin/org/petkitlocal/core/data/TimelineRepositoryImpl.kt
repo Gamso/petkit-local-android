@@ -24,6 +24,7 @@ import org.petkitlocal.core.domain.model.EventField
 import org.petkitlocal.core.domain.model.MediaFile
 import org.petkitlocal.core.domain.model.MediaKind
 import org.petkitlocal.core.domain.model.PetRef
+import org.petkitlocal.core.domain.model.Portions
 import org.petkitlocal.core.domain.model.TimelineCategory
 import org.petkitlocal.core.domain.model.TimelineItem
 import org.petkitlocal.core.domain.model.TimelineMedia
@@ -191,6 +192,9 @@ internal fun TimelineItemDto.toRow(day: String) = TimelineItemRow(
     petName = pet?.name,
     durationSec = durationSec,
     weightG = weightG,
+    servedTotal = served?.total,
+    servedHopper1 = served?.hopper1,
+    servedHopper2 = served?.hopper2,
     factsJson = encodeStrings(facts),
     mediaJson = media?.let { PetkitJson.encodeToString(MediaDto.serializer(), it) },
     hasClip = media?.hasClip == true,
@@ -226,7 +230,22 @@ internal fun TimelineItemRow.toDomain(apiBase: HttpUrl?) = TimelineItem(
     facts = decodeStrings(factsJson),
     media = mediaJson?.let(::decodeMedia)?.toDomain(apiBase),
     steps = decodeSteps(stepsJson).map { it.toDomain() },
+    served = servedPortions(),
 )
+
+/**
+ * What the card's feed put out: per hopper on a Dual-Hopper (a hopper the report left out gave
+ * none), the total on a single hopper, which reports no split; null when the card says nothing.
+ */
+internal fun TimelineItemRow.servedPortions(): Portions? {
+    fun count(value: Int?) = value?.coerceAtLeast(0)
+    return when {
+        servedHopper1 != null || servedHopper2 != null ->
+            Portions.Dual(count(servedHopper1) ?: 0, count(servedHopper2) ?: 0)
+
+        else -> count(servedTotal)?.let(Portions::Single)
+    }
+}
 
 private fun TimelineStepDto.toDomain() = TimelineStep(id, ts?.let(::epochSecondsToInstant), label, detail)
 

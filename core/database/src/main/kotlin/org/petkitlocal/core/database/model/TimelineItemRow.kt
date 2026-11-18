@@ -31,6 +31,13 @@ data class TimelineItemRow(
     @ColumnInfo(name = "pet_name") val petName: String?,
     @ColumnInfo(name = "duration_sec") val durationSec: Int?,
     @ColumnInfo(name = "weight_g") val weightG: Int?,
+    /**
+     * What a finished feed put out (`served`): [servedTotal] null when the card says nothing of it;
+     * the hoppers null on a single hopper, or a hopper the report left out.
+     */
+    @ColumnInfo(name = "served_total") val servedTotal: Int? = null,
+    @ColumnInfo(name = "served_hopper1") val servedHopper1: Int? = null,
+    @ColumnInfo(name = "served_hopper2") val servedHopper2: Int? = null,
     /** A JSON array of strings. */
     @ColumnInfo(name = "facts_json") val factsJson: String,
     /** The `Media` object as the server sent it (API paths), or null when the card has none. */
