@@ -174,6 +174,11 @@ object FeederFixtures {
 
     val planUnread = state(page(solo, null, null))
 
+    /** The Dual-Hopper as the server names its second generation (app issue #81). */
+    val dualHopper2 = state(
+        page(dual.copy(modelName = "YumShare Dual-Hopper 2", generation = 2), dualPlan, emptyList()),
+    )
+
     /** The Dual-Hopper's page with [today] and [yesterday] as its cards: its meals eaten. */
     fun eating(today: List<TimelineItem> = todayItems, yesterday: List<TimelineItem> = yesterdayItems) =
         state(page(dual, dualPlan, emptyList(), today, yesterday))

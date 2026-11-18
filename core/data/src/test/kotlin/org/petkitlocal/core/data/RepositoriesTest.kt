@@ -84,6 +84,26 @@ class RepositoriesTest {
     }
 
     @Test
+    fun `a device is named by its generation, and by its model from a server that does not send one`() = runTest {
+        val named = """"model":"Pura Max","model_name":"Pura Max 2","generation":2,"""
+        server.on(
+            "devices",
+            """{"devices":[${summary(1002, "litter_box").replace(""""model":"Model 1002",""", named)},""" +
+                """${summary(1003, "litter_box")}]}""",
+        )
+        server.on("devices/1002", detail(1002, "litter_box").replace(""""model":"Model 1002",""", named))
+        server.on("devices/1003", detail(1003, "litter_box"))
+
+        devices.refresh()
+
+        val (generation2, older) = devices.observeDevices().first()
+        assertEquals("Pura Max 2", generation2.modelName)
+        assertEquals(2, generation2.generation)
+        assertEquals("Model 1003", older.modelName)
+        assertNull(older.generation)
+    }
+
+    @Test
     fun `a Bluetooth accessory names its parent, which lists it, and the first purifier is the K3`() = runTest {
         val k3 = """{"id":4001,"type":"k3","model":"Pura Air K3","kind":"purifier","online":true,
            "transport":"http","last_seen":null,"firmware":null,"is_camera":false,

@@ -29,7 +29,7 @@ object HomeAlerts {
      */
     fun alerts(devices: List<Device>): List<DeviceAlert> = devices
         .flatMap { device ->
-            alertKinds(device).map { DeviceAlert(device.id, device.model, it) }
+            alertKinds(device).map { DeviceAlert(device.id, device.modelName, it) }
         }
         .sortedBy { severity(it.kind) }
 

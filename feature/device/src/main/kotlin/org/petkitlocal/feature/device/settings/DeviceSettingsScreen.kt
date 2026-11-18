@@ -152,7 +152,7 @@ internal fun DeviceSettingsScreen(
             item(key = "header") {
                 DeviceHeader(
                     title = stringResource(R.string.device_settings_title),
-                    subtitle = uiState.device?.model ?: deviceFallbackTitle(),
+                    subtitle = uiState.device?.modelName ?: deviceFallbackTitle(),
                     onBack = actions.onBack,
                 )
             }

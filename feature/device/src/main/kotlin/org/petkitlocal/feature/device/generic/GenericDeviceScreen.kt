@@ -187,7 +187,7 @@ private fun DeviceList(
     ) {
         item(key = "header") {
             DeviceHeader(
-                title = device?.model ?: deviceFallbackTitle(),
+                title = device?.modelName ?: deviceFallbackTitle(),
                 subtitle = device?.serial,
                 onBack = actions.onBack,
                 // Settings also hold this phone's quick actions of a device that has actions.
@@ -223,7 +223,7 @@ private fun LazyListScope.deviceContent(
     item(key = "hero") {
         PkCard(Modifier.fillMaxWidth()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                DeviceIllustration(device.family, photo = DevicePhoto.of(device.type, device.model))
+                DeviceIllustration(device.family, photo = DevicePhoto.of(device.type, device.generation))
                 Spacer(Modifier.width(PkTheme.spacing.m))
                 uiState.status?.let { status ->
                     DeviceStatusLine(
@@ -239,7 +239,7 @@ private fun LazyListScope.deviceContent(
             }
             uiState.relay?.let { relay ->
                 Spacer(Modifier.height(PkTheme.spacing.xs))
-                RelayLink(relay.model, onClick = { actions.onOpenDevice(relay.id) })
+                RelayLink(relay.modelName, onClick = { actions.onOpenDevice(relay.id) })
             }
         }
     }

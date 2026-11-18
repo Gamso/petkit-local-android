@@ -79,7 +79,7 @@ class QuickActionsScreenTest {
 
     private fun editor(pinned: List<String>?, notice: QuickActionEditResult? = null): QuickActionsEditorState {
         val layout = DeviceActionOrder.layout(fountain.actions, pinned)
-        return QuickActionsEditorState(fountain.model, layout.main, layout.more, pinned != null, notice)
+        return QuickActionsEditorState(fountain.modelName, layout.main, layout.more, pinned != null, notice)
     }
 
     private fun show(content: @Composable () -> Unit) {

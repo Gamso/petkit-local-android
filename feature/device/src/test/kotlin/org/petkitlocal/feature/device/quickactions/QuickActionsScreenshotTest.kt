@@ -41,7 +41,13 @@ import org.robolectric.annotation.GraphicsMode
 class QuickActionsScreenshotTest(private val variant: ScreenshotVariant) {
     private fun editorOf(device: Device, pinned: List<String>?, notice: QuickActionEditResult? = null) =
         DeviceActionOrder.layout(device.actions, pinned).let { layout ->
-            QuickActionsEditorState(device.model, layout.main, layout.more, custom = pinned != null, notice = notice)
+            QuickActionsEditorState(
+                device.modelName,
+                layout.main,
+                layout.more,
+                custom = pinned != null,
+                notice = notice,
+            )
         }
 
     /** A Pura Max's chosen row, a destructive action in it, after an add found it full. */

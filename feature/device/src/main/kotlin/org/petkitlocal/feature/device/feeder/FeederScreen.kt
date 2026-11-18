@@ -155,7 +155,7 @@ private fun LazyListScope.feederContent(
     item(key = "top") {
         PageTop(PkTheme.colors.heroFeeder) {
             DeviceHeader(
-                title = page.device.model,
+                title = page.device.modelName,
                 onBack = navigation.onBack,
                 onOpenSettings = { navigation.onOpenSettings(page.device.id) },
             )

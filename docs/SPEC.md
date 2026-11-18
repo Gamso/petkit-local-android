@@ -71,7 +71,9 @@ screen).
   says so, with "Allow" (Android's prompt, or its notification settings for the app once refused
   for good) and "Not now", which puts it away until the next sign-in; Settings keeps its prompt.
 - **Device grid**, two columns, one card per device:
-  - name, and the model's product photo (the family's glyph without one);
+  - name, and the model's product photo (the family's glyph without one). A device's name, here
+    and everywhere in the app, is the full product name the server gives (`model_name`, "Pura
+    Max 2"), or its `model` from a server that does not send one;
   - the family's headline figure: visits today for a litter box, portions served for a feeder, water level for a fountain;
   - a 24-hour strip of the day's events;
   - a status band at the bottom: idle, busy, offline, error.
@@ -80,8 +82,8 @@ screen).
 
 ### 3 · Litter box
 - Header: name, settings shortcut, **mode chips** (auto clean, auto deodorize — from switches).
-- **Hero**: the model's product photo, else our drawing of the family, with **hotspot pills** on
-  its parts:
+- **Hero**: the product photo of the model and generation the server reports, else our drawing
+  of the family, with **hotspot pills** on its parts:
   - litter level;
   - waste bin;
   - deodorizer liquid or N50;

@@ -15,8 +15,13 @@ data class Device(
     val id: Long,
     /** Codename, e.g. `t5`, `d4sh`. */
     val type: String,
-    /** Commercial name; the server has no user-given device name, so this is what is shown. */
-    val model: String,
+    /**
+     * The full product name, generation included ("Pura Max 2"): the server has no user-given
+     * device name, so this is what the app calls the device everywhere. While the generation is
+     * unknown, and from a server that does not tell generations apart, the codename's own name
+     * ("Pura Max").
+     */
+    val modelName: String,
     val family: DeviceFamily,
     val online: Boolean,
     val transport: DeviceTransport,
@@ -32,6 +37,12 @@ data class Device(
     val parentId: Long? = null,
     /** The Bluetooth accessories this device relays, in the server's order. */
     val accessories: List<AccessoryRef> = emptyList(),
+    /**
+     * Which generation of its codename [type] this is (2 for a Pura Max 2); null while the server
+     * does not know, for a codename sold in one generation only, for an accessory, and from a
+     * server that does not tell generations apart.
+     */
+    val generation: Int? = null,
 ) {
     fun entity(key: String): Entity? = entities.firstOrNull { it.key == key }
 

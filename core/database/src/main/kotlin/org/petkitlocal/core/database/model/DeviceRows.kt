@@ -24,7 +24,12 @@ data class DeviceRow(
     /** Its place in the server's list. */
     val position: Int,
     val type: String,
+    /** The codename's name, whatever the generation. */
     val model: String,
+    /** The full product name, generation included; [model] from a server that does not send it. */
+    @ColumnInfo(name = "model_name") val modelName: String,
+    /** Which generation of its codename this is; null while unknown. */
+    val generation: Int?,
     val kind: String,
     val online: Boolean,
     val transport: String,

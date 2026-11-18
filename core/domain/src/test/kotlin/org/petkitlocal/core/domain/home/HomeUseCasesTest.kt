@@ -69,7 +69,7 @@ class HomeUseCasesTest {
     private fun device(id: Long) = Device(
         id = id,
         type = "t4",
-        model = "Pura Max",
+        modelName = "Pura Max",
         family = DeviceFamily.LitterBox,
         online = true,
         transport = DeviceTransport.Http,

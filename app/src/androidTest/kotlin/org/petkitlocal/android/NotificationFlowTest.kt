@@ -62,7 +62,7 @@ class NotificationFlowTest {
         MockServer.control("POST", "devices/$PURA_MAX/visit", """{"pet_id":$MOCHI}""")
         val visit = waitForAlert("kind_toilet")
         assertEquals("Mochi used the litter box", visit.notification.extras.getString(NotificationCompat.EXTRA_TITLE))
-        assertEquals("Pura Max", visit.notification.extras.getString(NotificationCompat.EXTRA_TEXT))
+        assertEquals("Pura Max 2", visit.notification.extras.getString(NotificationCompat.EXTRA_TEXT))
         visit.notification.contentIntent.send()
         waitFor(hasTestTag(HistoryTestTags.SCREEN))
         waitFor(hasTestTag(HistoryTestTags.day(LocalDate.now())))

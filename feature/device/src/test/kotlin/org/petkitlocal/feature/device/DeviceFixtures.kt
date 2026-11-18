@@ -101,7 +101,7 @@ object DeviceFixtures {
     val fountain = Device(
         id = 3001,
         type = "w7h",
-        model = "EverSweet Ultra AI",
+        modelName = "EverSweet Ultra AI",
         family = DeviceFamily.Fountain,
         online = true,
         transport = DeviceTransport.Mqtt,

@@ -106,7 +106,7 @@ class LiveViewModel @Inject constructor(
         local,
     ) { device, clips, state ->
         state.copy(
-            deviceName = device?.model,
+            deviceName = device?.modelName,
             availability = device.availability(),
             clips = state.clips.copy(clips = clips, cacheLoaded = true),
         )

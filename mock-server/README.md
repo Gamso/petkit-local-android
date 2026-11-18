@@ -160,18 +160,18 @@ the commit recorded in `api/SOURCE`.
 | Id | Type | Model | Kind | Transport | Notes |
 |---|---|---|---|---|---|
 | 1001 | t3 | Pura X | litter box | http | An error and its clearing three days ago. |
-| 1002 | t4 | Pura Max | litter box | http | The owner's model; cleans every night at 03:00. |
+| 1002 | t4 | Pura Max 2 | litter box | http | The owner's model, generation 2; cleans every night at 03:00. |
 | 1003 | t5 | Purobot Max Pro 2 | litter box | mqtt | Camera; also logs cats passing by. |
 | 1004 | t6 | Purobot Ultra | litter box | mqtt | Camera, waste bags, PTZ. |
 | 1005 | t7 | Purobot Crystal Duo | litter box | mqtt | Camera. |
 | 2001 | d4 | Fresh Element Solo | feeder | http | 3 meals a day; desiccant nearly spent. |
 | 2002 | d4s | Fresh Element Gemini | feeder | http | Dual hopper; plan paused for two days. |
-| 2003 | d4h | YumShare Solo | feeder | mqtt | Camera; weekday and weekend plans; a one-off feed tomorrow. |
-| 2004 | d4sh | YumShare Dual-Hopper | feeder | mqtt | Camera; hopper 2 empty. |
+| 2003 | d4h | YumShare Solo | feeder | mqtt | Camera, generation unknown; weekday and weekend plans; a one-off feed tomorrow. |
+| 2004 | d4sh | YumShare Dual-Hopper 2 | feeder | mqtt | Camera, generation 2; hopper 2 empty. |
 | 3001 | w7h | EverSweet Ultra AI | fountain | mqtt | Camera; recognises the cats' drinks. |
 | 3002 | w5 | EverSweet 3 Pro | fountain | ble, via 2004 | Relayed over MQTT: writes go through. Last frame three hours ago. |
 | 3003 | ctw3 | EverSweet Max Cordless | fountain | ble, via 2001 | Battery. Its parent polls HTTP: writes get 409. |
-| 4001 | k3 | Pura Air K3 | purifier | ble, via 1002 | The Pura Max's K3: liquid (N60) and battery only, no actions. |
+| 4001 | k3 | Pura Air K3 | purifier | ble, via 1002 | The Pura Max 2's K3: liquid (N60) and battery only, no actions. |
 
 - **Pets:** Mochi (id 1, 4.2 kg entered, learned weight in use, has a photo) and Tigrou (id 2,
   6 kg, heavier, no photo).

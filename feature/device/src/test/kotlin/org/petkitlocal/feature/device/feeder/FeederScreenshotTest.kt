@@ -46,6 +46,14 @@ class FeederScreenshotTest(private val variant: ScreenshotVariant) {
         PreviewImages { Screen(FeederFixtures.dualPaused, DeviceFixtures.recentClips, DeviceFixtures.liveCard) }
     }
 
+    /** A YumShare Dual-Hopper 2 (app issue #81): its own name, photo and pills. */
+    @Test
+    @Config(qualifiers = "w360dp-h2800dp-xhdpi", sdk = [36])
+    fun dualHopper2() {
+        if (variant.fontScale != 1f) return
+        capture("feeder_dual_hopper_2") { PreviewImages { Screen(FeederFixtures.dualHopper2) } }
+    }
+
     @Test
     fun editor() {
         if (variant.fontScale != 1f) return

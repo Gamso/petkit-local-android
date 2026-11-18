@@ -8,6 +8,7 @@ import io.github.gamso.petkitlocal.mock.api.EntityChange
 import io.github.gamso.petkitlocal.mock.api.EntityDto
 import io.github.gamso.petkitlocal.mock.api.plainNumber
 import io.github.gamso.petkitlocal.mock.catalog.EntityDef
+import io.github.gamso.petkitlocal.mock.catalog.Generations
 import io.github.gamso.petkitlocal.mock.catalog.ModelDef
 import kotlinx.coroutines.Job
 import kotlinx.serialization.json.JsonArray
@@ -43,6 +44,15 @@ class MockDevice(
 
     /** The device relaying this accessory; null for a WiFi device or an unlinked accessory. */
     var parent: MockDevice? = null
+
+    /**
+     * Which generation of its codename this is, as the owner set it in petkit-local's panel or as
+     * learned there; null while unknown. Only a generation the server names is reported.
+     */
+    var generation: Int? = null
+
+    /** Its full product name (`model_name`): its generation's, else its codename's (`model`). */
+    val modelName: String get() = Generations.name(type, generation) ?: model.model
 
     /** The accessories this device relays, in the order the server lists them. */
     val accessories: MutableList<MockDevice> = mutableListOf()
@@ -88,6 +98,8 @@ class MockDevice(
             id = id,
             type = type,
             model = model.model,
+            modelName = modelName,
+            generation = generation?.takeIf { Generations.name(type, it) != null },
             kind = model.kind,
             online = online,
             // An accessory travels on its parent's transport (`http` when it has none).
@@ -113,6 +125,8 @@ class MockDevice(
             id = s.id,
             type = s.type,
             model = s.model,
+            modelName = s.modelName,
+            generation = s.generation,
             kind = s.kind,
             online = s.online,
             transport = s.transport,

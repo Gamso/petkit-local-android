@@ -116,6 +116,8 @@ class DaoTest {
         position = position,
         type = "t4",
         model = "Pura Max",
+        modelName = "Pura Max",
+        generation = null,
         kind = "litter_box",
         online = true,
         transport = "http",

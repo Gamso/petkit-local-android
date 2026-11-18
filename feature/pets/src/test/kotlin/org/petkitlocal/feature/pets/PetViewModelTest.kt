@@ -74,7 +74,7 @@ class PetViewModelTest {
         val state = viewModel.uiState.value
         assertEquals("Mochi", state.page?.pet?.name)
         assertEquals(3, state.page?.visitsToday)
-        assertEquals("Pura Max", state.page?.lastVisitDevice?.model)
+        assertEquals("Pura Max", state.page?.lastVisitDevice?.modelName)
         assertEquals(27, state.page?.trend?.points?.size)
         assertTrue(state.loading)
         assertFalse(state.skeleton)

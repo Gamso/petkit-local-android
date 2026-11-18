@@ -196,18 +196,32 @@ object DescriptorChecker {
         (schemaProps - dtoProps.keys).forEach { errors += "$where.$it: in the schema, missing from the DTO" }
         (dtoProps.keys - schemaProps).forEach { errors += "$where.$it: in the DTO, not in the schema" }
         schemaProps.intersect(dtoProps.keys).forEach { name ->
-            val index = dtoProps.getValue(name)
-            val propShape = shape.properties.getValue(name)
-            val element = descriptor.getElementDescriptor(index)
-            val required = name in shape.required
-            val optional = descriptor.isElementOptional(index)
-            if (required && optional) errors += "$where.$name: required in the schema, has a default in the DTO"
-            if (!required && !optional) errors += "$where.$name: optional in the schema, required in the DTO"
-            // An optional request field may be nullable in Kotlin: null means "not sent".
-            val nullableOnlyInDto = !propShape.nullable && element.isNullable && propShape !is Shape.AnyValue
-            if (required && nullableOnlyInDto) errors += "$where.$name: never null in the schema, nullable in the DTO"
-            check(propShape, element, "$where.$name", null, errors)
+            checkProperty(shape, name, descriptor, dtoProps.getValue(name), where, errors)
         }
+    }
+
+    private fun checkProperty(
+        shape: Shape.Object,
+        name: String,
+        descriptor: SerialDescriptor,
+        index: Int,
+        where: String,
+        errors: MutableList<String>,
+    ) {
+        val propShape = shape.properties.getValue(name)
+        val element = descriptor.getElementDescriptor(index)
+        val required = name in shape.required
+        val optional = descriptor.isElementOptional(index)
+        if (required && optional) errors += "$where.$name: required in the schema, has a default in the DTO"
+        if (!required && !optional) errors += "$where.$name: optional in the schema, required in the DTO"
+        // An optional request field may be nullable in Kotlin: null means "not sent".
+        val nullableOnlyInDto = !propShape.nullable && element.isNullable && propShape !is Shape.AnyValue
+        // Except a property an older server does not send: the DTO reads its absence as null.
+        val absentFromOlderServers = name in PendingContract.ABSENT_FROM_OLDER_SERVERS[shape.name].orEmpty()
+        if (required && nullableOnlyInDto && !absentFromOlderServers) {
+            errors += "$where.$name: never null in the schema, nullable in the DTO"
+        }
+        check(propShape, element, "$where.$name", null, errors)
     }
 
     private fun checkDiscriminated(

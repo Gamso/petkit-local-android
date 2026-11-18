@@ -9,66 +9,82 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 
 class DevicePhotoTest {
-    /** The server's codename and name (petkit-local `DEVICE_NAMES`) give the product's photo. */
-    @ParameterizedTest(name = "{0} {1}")
+    /**
+     * A codename PetKit sells as one product (petkit-local `DEVICE_NAMES`) gives its photo; the
+     * server reports no generation for it.
+     */
+    @ParameterizedTest(name = "{0}")
     @CsvSource(
-        "t3, Pura X, PuraX",
-        "t5, Purobot Max Pro 2, PurobotMaxPro2",
-        "t6, Purobot Ultra, PurobotUltra",
-        "t7, Purobot Crystal Duo, PurobotCrystalDuo",
-        "d4, Fresh Element Solo, FreshElementSolo",
-        "d4s, Fresh Element Gemini, FreshElementGemini",
-        "w7h, EverSweet Ultra AI, EverSweetUltraAi",
-        "w5, EverSweet 3 Pro, EverSweet3Pro",
-        "ctw2, EverSweet Solo 2, EverSweetSolo2",
-        "ctw3, EverSweet Max Cordless, EverSweetMax2",
-        "k3, Pura Air K3, PuraAir",
-        "T5, Purobot Max Pro 2, PurobotMaxPro2",
+        "t3, PuraX",
+        "t5, PurobotMaxPro2",
+        "t6, PurobotUltra",
+        "t7, PurobotCrystalDuo",
+        "d4, FreshElementSolo",
+        "d4s, FreshElementGemini",
+        "w7h, EverSweetUltraAi",
+        "w5, EverSweet3Pro",
+        "ctw2, EverSweetSolo2",
+        "ctw3, EverSweetMax2",
+        "k3, PuraAir",
+        "T5, PurobotMaxPro2",
     )
-    fun `one product per codename`(type: String, model: String, photo: DevicePhoto) {
-        assertEquals(photo, DevicePhoto.of(type, model))
+    fun `one product per codename`(type: String, photo: DevicePhoto) {
+        assertEquals(photo, DevicePhoto.of(type, generation = null))
     }
 
     /**
-     * Several generations under one codename: the one the server's name says, the first when it
-     * names none (what petkit-local calls both today), so the photo matches the name shown.
+     * Several generations under one codename (petkit-local `MODEL_GENERATIONS`): the photo of the
+     * generation the server reports.
      */
     @ParameterizedTest(name = "{0} {1}")
     @CsvSource(
-        "t4, Pura Max, PuraMax",
-        "t4, Pura Max 2, PuraMax2",
-        "d4h, YumShare Solo, YumShareSolo",
-        "d4h, YumShare Solo 2, YumShareSolo2",
-        "d4sh, YumShare Dual-Hopper, YumShareDualHopper",
-        "d4sh, YumShare Dual-Hopper 2, YumShareDualHopper2",
-        "d4sh, ' YumShare Dual-Hopper 2 ', YumShareDualHopper2",
-        "T4, Pura Max, PuraMax",
+        "t4, 1, PuraMax",
+        "t4, 2, PuraMax2",
+        "d4h, 1, YumShareSolo",
+        "d4h, 2, YumShareSolo2",
+        "d4sh, 1, YumShareDualHopper",
+        "d4sh, 2, YumShareDualHopper2",
+        "T4, 2, PuraMax2",
     )
-    fun `a generation by its name`(type: String, model: String, photo: DevicePhoto) {
-        assertEquals(photo, DevicePhoto.of(type, model))
+    fun `a generation gets its own photo`(type: String, generation: Int, photo: DevicePhoto) {
+        assertEquals(photo, DevicePhoto.of(type, generation))
     }
 
-    /** A generation the app has no photo of keeps the drawing. */
+    /**
+     * No generation (unknown to the server, or a server that predates them, which names the
+     * device by its codename alone, "Pura Max"): the first generation's photo, matching that name.
+     */
+    @ParameterizedTest(name = "{0}")
+    @CsvSource("t4, PuraMax", "d4h, YumShareSolo", "d4sh, YumShareDualHopper")
+    fun `no generation is the first`(type: String, photo: DevicePhoto) {
+        assertEquals(photo, DevicePhoto.of(type, generation = null))
+    }
+
+    /**
+     * A generation the app has no photo of keeps the drawing, never another generation's photo:
+     * a Pura Max 3, a third Solo or Dual-Hopper, a second generation of a one-product codename,
+     * and numbers no generation has.
+     */
     @ParameterizedTest(name = "{0} {1}")
-    @CsvSource("t4, Pura Max 3", "d4h, YumShare Solo 3", "d4sh, YumShare Dual-Hopper 3", "t4, Pura Max 20")
-    fun `no photo for a generation without one`(type: String, model: String) {
-        assertNull(DevicePhoto.of(type, model))
-    }
-
-    @Test
-    fun `the generation is the name's trailing number`() {
-        assertEquals(1, DevicePhoto.generationOf("Pura Max"))
-        assertEquals(2, DevicePhoto.generationOf("Pura Max 2"))
-        assertEquals(3, DevicePhoto.generationOf("Pura Max 3 "))
-        assertEquals(1, DevicePhoto.generationOf("PuraMax2"))
-        assertEquals(1, DevicePhoto.generationOf(""))
+    @CsvSource("t4, 3", "d4h, 3", "d4sh, 3", "t4, 20", "t5, 2", "w5, 2", "t4, 0", "t4, -1")
+    fun `no photo for a generation without one`(type: String, generation: Int) {
+        assertNull(DevicePhoto.of(type, generation))
     }
 
     /** Models petkit-local does not support yet, and codenames nobody knows, keep the drawing. */
-    @ParameterizedTest(name = "{0} {1}")
-    @CsvSource("w4, EverSweet", "d3, Feeder D3", "feedermini, Feeder Mini", "k2, Pura Air", "z9, Unknown", "'', ''")
-    fun `no photo for a model without one`(type: String, model: String) {
-        assertNull(DevicePhoto.of(type, model))
+    @ParameterizedTest(name = "{0}")
+    @CsvSource("w4", "d3", "feedermini", "k2", "z9", "''")
+    fun `no photo for a model without one`(type: String) {
+        assertNull(DevicePhoto.of(type, generation = null))
+        assertNull(DevicePhoto.of(type, generation = 1))
+    }
+
+    /** Every photo shipped is some codename's: none is unreachable. */
+    @Test
+    fun `every photo is chosen for some codename and generation`() {
+        val types = listOf("t3", "t4", "t5", "t6", "t7", "d4", "d4s", "d4h", "d4sh", "w7h", "w5", "ctw2", "ctw3", "k3")
+        val reached = types.flatMap { type -> (1..3).mapNotNull { DevicePhoto.of(type, it) } }.toSet()
+        assertEquals(DevicePhoto.entries.toSet(), reached)
     }
 
     /** The images are PetKit's: NOTICE names every one shipped, and every photo has its image. */

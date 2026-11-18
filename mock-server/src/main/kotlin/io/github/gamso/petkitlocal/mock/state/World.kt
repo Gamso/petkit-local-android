@@ -237,7 +237,7 @@ class World(
             throw ApiException(
                 409,
                 "accessory_unreachable",
-                "the ${parent.model.model} relaying it is not on MQTT, and an accessory is only reachable while it is",
+                "the ${parent.modelName} relaying it is not on MQTT, and an accessory is only reachable while it is",
             )
         }
     }

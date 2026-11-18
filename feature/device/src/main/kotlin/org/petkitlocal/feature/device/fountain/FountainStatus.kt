@@ -142,7 +142,7 @@ internal fun RelayFreshness(
             relay.online -> R.string.fountain_via_online
             else -> R.string.fountain_via_offline
         },
-        relay.model,
+        relay.modelName,
     )
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -150,7 +150,7 @@ internal fun RelayFreshness(
             .clip(PkTheme.shapes.chip)
             .background(colors.surface)
             .clickable(
-                onClickLabel = stringResource(R.string.device_relay_open, relay.model),
+                onClickLabel = stringResource(R.string.device_relay_open, relay.modelName),
                 role = Role.Button,
                 onClick = onOpen,
             )

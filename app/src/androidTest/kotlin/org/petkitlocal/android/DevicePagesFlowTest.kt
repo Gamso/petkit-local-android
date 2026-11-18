@@ -64,7 +64,7 @@ class DevicePagesFlowTest {
     fun aConfirmedDumpIsQueuedAndTheBoxReportsIt() {
         signIn()
         open(PURA_MAX)
-        waitFor(hasText("Pura Max"))
+        waitFor(hasText("Pura Max 2"))
         waitFor(hasContentDescription("Litter,", substring = true))
 
         // Dump Litter cannot be undone: behind More in the shared sheet, and confirmed first.
@@ -111,7 +111,7 @@ class DevicePagesFlowTest {
     fun aMealServedShowsInTheDayWithItsPortionsPerHopper() {
         signIn()
         open(DUAL_HOPPER)
-        waitFor(hasText("YumShare Dual-Hopper"))
+        waitFor(hasText("YumShare Dual-Hopper 2"))
         val list = compose.onNodeWithTag(PageTestTags.LIST)
         val meals = hasTestTag(FeederTestTags.dayFilter(FeederDayFilter.Meals))
         list.performScrollToNode(meals)
@@ -132,7 +132,7 @@ class DevicePagesFlowTest {
     fun aCatEatingAtTheCameraIsCountedInTheMealsEaten() {
         signIn()
         open(DUAL_HOPPER)
-        waitFor(hasText("YumShare Dual-Hopper"))
+        waitFor(hasText("YumShare Dual-Hopper 2"))
         val list = compose.onNodeWithTag(PageTestTags.LIST)
         list.performScrollToNode(hasTestTag(FeederTestTags.EATING))
         val eaten = hasContentDescription("Meals eaten, ", substring = true)

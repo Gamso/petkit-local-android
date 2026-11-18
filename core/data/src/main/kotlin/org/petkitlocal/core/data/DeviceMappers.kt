@@ -35,7 +35,9 @@ import org.petkitlocal.core.network.dto.EntityComponent as ApiEntityComponent
 
 /*
  * DTO -> row keeps the server's values as they are (strings, JSON text); row -> domain maps them
- * to domain types, with a fallback for any value this app does not know yet.
+ * to domain types, with a fallback for any value this app does not know yet. The one value filled
+ * in on the way in is a device's full name, which a server older than petkit-local#107 does not
+ * send: its `model` then, the name the app always showed.
  */
 
 private val stringList = ListSerializer(String.serializer())
@@ -46,6 +48,8 @@ internal fun DeviceSummaryDto.toRow(position: Int, serial: String?) = DeviceRow(
     position = position,
     type = type,
     model = model,
+    modelName = modelName ?: model,
+    generation = generation,
     kind = kind,
     online = online,
     transport = transport,
@@ -64,6 +68,8 @@ internal fun DeviceDetailDto.toRow(position: Int) = DeviceRow(
     position = position,
     type = type,
     model = model,
+    modelName = modelName ?: model,
+    generation = generation,
     kind = kind,
     online = online,
     transport = transport,
@@ -117,7 +123,8 @@ internal fun DeviceDetailDto.toDetailRows() = DeviceDetailRows(
 internal fun DeviceWithDetails.toDomain() = Device(
     id = device.id,
     type = device.type,
-    model = device.model,
+    modelName = device.modelName,
+    generation = device.generation,
     family = deviceFamily(device.kind),
     online = device.online,
     transport = when (device.transport) {

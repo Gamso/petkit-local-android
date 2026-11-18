@@ -67,7 +67,7 @@ class HistoryFlowTest {
         compose.onNode(seeAll).performSemanticsAction(SemanticsActions.OnClick)
 
         waitFor(hasTestTag(HistoryTestTags.SCREEN))
-        waitFor(hasContentDescription("Show the history of: Pura Max"))
+        waitFor(hasContentDescription("Show the history of: Pura Max 2"))
     }
 
     @Test

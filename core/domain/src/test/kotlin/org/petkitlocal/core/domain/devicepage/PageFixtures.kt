@@ -34,7 +34,7 @@ object PageFixtures {
     ) = Device(
         id = id,
         type = type,
-        model = "Model $id",
+        modelName = "Model $id",
         family = family,
         online = online,
         transport = DeviceTransport.Http,

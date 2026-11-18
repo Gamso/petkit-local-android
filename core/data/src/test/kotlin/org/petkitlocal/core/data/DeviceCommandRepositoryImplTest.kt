@@ -46,7 +46,7 @@ class DeviceCommandRepositoryImplTest {
             .build()
         repository = DeviceCommandRepositoryImpl(api, db.deviceDao())
         db.deviceDao().replaceAll(
-            listOf(DeviceRow(3001, 0, "w7h", "EverSweet Ultra AI", "fountain", true, "mqtt", null, null, true, null)),
+            listOf(row(3001, "w7h", "EverSweet Ultra AI", "fountain", "mqtt", isCamera = true)),
             mapOf(
                 3001L to DeviceDetailRows(
                     entities = listOf(
@@ -163,10 +163,10 @@ class DeviceCommandRepositoryImplTest {
     @Test
     fun `an accessory out of reach is refused with the name of the device relaying it`() = runTest {
         db.deviceDao().upsertSummary(
-            DeviceRow(2001, 0, "d4", "Fresh Element Solo", "feeder", true, "http", null, null, false, null),
+            row(2001, "d4", "Fresh Element Solo", "feeder", "http"),
         )
         db.deviceDao().upsertSummary(
-            DeviceRow(3003, 0, "ctw3", "EverSweet Max Cordless", "fountain", true, "http", null, null, false, null)
+            row(3003, "ctw3", "EverSweet Max Cordless", "fountain", "http")
                 .copy(connection = "ble", parentId = 2001),
         )
         val refusal = """{"error":"accessory_unreachable","message":"the Fresh Element Solo relaying it is off MQTT"}"""
@@ -200,6 +200,9 @@ class DeviceCommandRepositoryImplTest {
         .addHeader("Content-Type", "application/json")
         .body(body)
         .build()
+
+    private fun row(id: Long, type: String, name: String, kind: String, transport: String, isCamera: Boolean = false) =
+        DeviceRow(id, 0, type, name, name, null, kind, true, transport, null, null, isCamera, null)
 
     private fun entity(key: String, component: String, valueJson: String, display: String? = null) = EntityRow(
         deviceId = 3001,

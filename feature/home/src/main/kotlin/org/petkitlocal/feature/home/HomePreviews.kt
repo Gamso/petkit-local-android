@@ -21,8 +21,8 @@ import org.petkitlocal.core.domain.model.Pet
 
 // The IDE previews of Home. The screenshot tests (src/test) render the whole mock household.
 
-private fun previewDevice(id: Long, model: String, family: DeviceFamily) =
-    Device(id, "x", model, family, online = true, DeviceTransport.Http, null, null, isCamera = false)
+private fun previewDevice(id: Long, modelName: String, family: DeviceFamily) =
+    Device(id, "x", modelName, family, online = true, DeviceTransport.Http, null, null, isCamera = false)
 
 private val previewOverview = HomeOverview(
     devices = listOf(

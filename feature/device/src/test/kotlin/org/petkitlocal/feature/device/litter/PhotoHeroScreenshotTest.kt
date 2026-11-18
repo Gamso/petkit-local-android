@@ -90,7 +90,7 @@ class PhotoHeroScreenshotTest(private val variant: ScreenshotVariant) {
         capture("photo_hero_none") {
             Hero(
                 PkTheme.colors.heroLitter,
-                DevicePhoto.of("t4", "Pura Max 3"),
+                DevicePhoto.of("t4", generation = 3),
                 listOf(
                     hotspot(DevicePart.Litter, PartReading.Percent(85)),
                     hotspot(DevicePart.WasteBin, PartReading.Condition(PartCondition.Ok)),

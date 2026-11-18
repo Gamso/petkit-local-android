@@ -19,7 +19,7 @@ import org.petkitlocal.core.ui.rememberServerLabels
 
 /** The product photo [device]'s page shows as its hero, or null to keep our drawing. */
 internal fun heroPhoto(device: Device): DevicePhoto? =
-    DevicePhoto.of(device.type, device.model)?.takeIf(PhotoSpots::placesParts)
+    DevicePhoto.of(device.type, device.generation)?.takeIf(PhotoSpots::placesParts)
 
 /**
  * A device page's hero with the model's photo (issue #69, layout A): the photo fills the hero,

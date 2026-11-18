@@ -81,7 +81,7 @@ class FountainFlowTest {
     fun aBluetoothFountainChangesModeAndTakesAConfirmedFilterReset() {
         signIn()
         open(EVERSWEET_3_PRO)
-        waitFor(hasTestTag(DeviceTestTags.RELAY) and hasText("via YumShare Dual-Hopper (online)", substring = true))
+        waitFor(hasTestTag(DeviceTestTags.RELAY) and hasText("via YumShare Dual-Hopper 2 (online)", substring = true))
         waitFor(hasContentDescription("Water level, OK"))
 
         // Its mode, normal, is the bottom bar; smart is sent through the relay, and selected once

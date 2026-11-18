@@ -206,7 +206,7 @@ object Household {
     fun device(
         id: Long,
         type: String,
-        model: String,
+        modelName: String,
         family: DeviceFamily,
         vararg entities: Entity,
         online: Boolean = true,
@@ -216,10 +216,11 @@ object Household {
         connection: DeviceConnection = DeviceConnection.Wifi,
         parentId: Long? = null,
         accessories: List<AccessoryRef> = emptyList(),
+        generation: Int? = null,
     ) = Device(
         id = id,
         type = type,
-        model = model,
+        modelName = modelName,
         family = family,
         online = online,
         transport = transport,
@@ -231,6 +232,7 @@ object Household {
         connection = connection,
         parentId = parentId,
         accessories = accessories,
+        generation = generation,
     )
 
     fun sensor(

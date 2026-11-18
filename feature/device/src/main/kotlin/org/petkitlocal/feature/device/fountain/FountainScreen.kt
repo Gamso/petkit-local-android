@@ -214,7 +214,7 @@ private fun FountainTop(
 ) {
     PageTop(PkTheme.colors.heroFountain) {
         DeviceHeader(
-            title = page.device.model,
+            title = page.device.modelName,
             onBack = navigation.onBack,
             onOpenSettings = { navigation.onOpenSettings(page.device.id) },
         )

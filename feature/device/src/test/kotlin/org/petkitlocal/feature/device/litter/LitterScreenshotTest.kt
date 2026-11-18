@@ -76,6 +76,16 @@ class LitterScreenshotTest(private val variant: ScreenshotVariant) {
         }
     }
 
+    /**
+     * A Pura Max 2 with its Pura Air (app issue #81): its own name, its own photo, and its pills
+     * where that photo has its parts, the N60 on the left of the box.
+     */
+    @Test
+    fun puraMax2() {
+        if (variant.fontScale != 1f) return
+        capture("litter_pura_max_2") { PreviewImages { Screen(LitterFixtures.puraMax2WithPuraAir) } }
+    }
+
     @Test
     fun hotspot() {
         if (variant.fontScale != 1f) return
