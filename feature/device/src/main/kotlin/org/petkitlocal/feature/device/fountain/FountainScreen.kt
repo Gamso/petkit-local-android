@@ -18,10 +18,12 @@ import kotlinx.coroutines.delay
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.devicepage.DevicePart
 import org.petkitlocal.core.domain.fountain.FountainPage
+import org.petkitlocal.core.ui.LiveCardState
 import org.petkitlocal.core.ui.rememberServerLabels
 import org.petkitlocal.feature.device.DeviceNavigation
 import org.petkitlocal.feature.device.R
 import org.petkitlocal.feature.device.common.ActivityCard
+import org.petkitlocal.feature.device.common.CameraLiveCard
 import org.petkitlocal.feature.device.common.DayChartCard
 import org.petkitlocal.feature.device.common.DayDot
 import org.petkitlocal.feature.device.common.DeviceHeader
@@ -30,6 +32,7 @@ import org.petkitlocal.feature.device.common.DeviceTestTags
 import org.petkitlocal.feature.device.common.RecentClipsUi
 import org.petkitlocal.feature.device.common.UntimedWords
 import org.petkitlocal.feature.device.common.recentClips
+import org.petkitlocal.feature.device.common.rememberLiveCard
 import org.petkitlocal.feature.device.common.rememberRecentClips
 import org.petkitlocal.feature.device.litter.DeviceHero
 import org.petkitlocal.feature.device.litter.DevicePageScaffold
@@ -39,7 +42,6 @@ import org.petkitlocal.feature.device.litter.PageTop
 import org.petkitlocal.feature.device.litter.RefreshBanner
 import org.petkitlocal.feature.device.litter.gutter
 import org.petkitlocal.feature.device.litter.missingPage
-import org.petkitlocal.feature.device.liveOf
 
 /** What the user can do on the fountain page besides its commands, one callback per intent. */
 data class FountainCallbacks(
@@ -66,6 +68,7 @@ internal fun FountainRoute(navigation: DeviceNavigation, viewModel: FountainView
         uiState = uiState,
         navigation = navigation,
         clips = clips,
+        live = rememberLiveCard(),
         callbacks = FountainCallbacks(
             onRefresh = {
                 viewModel.onRefresh()
@@ -89,7 +92,7 @@ private const val TICK_MS = 60_000L
 /**
  * The fountain page: header with the settings gear; under it the battery and the features that
  * are on, and for a Bluetooth fountain when it was seen and through which device (online or not);
- * the hero with the parts the model has, the live status line, today against yesterday, the
+ * a camera's live card; the hero with the parts the model has, the live status line, today against yesterday, the
  * drinks' 24-hour chart and the day's activity on a fountain that records them, a camera's recent
  * clips, and the action sheet every device screen shares. When the server lets the fountain's
  * mode be set, the sheet's collapsed row is the mode selector, every action behind More.
@@ -103,6 +106,8 @@ internal fun FountainScreen(
     initiallyExpanded: Boolean = false,
     /** A camera's recent clips; null shows none. */
     clips: RecentClipsUi? = null,
+    /** What a camera's live card shows. */
+    live: LiveCardState = LiveCardState(),
 ) {
     val page = uiState.page
     val tint = PkTheme.colors.heroFountain
@@ -129,7 +134,7 @@ internal fun FountainScreen(
         if (page == null) {
             missingPage(uiState, tint, navigation.onBack, callbacks.onRefresh)
         } else {
-            fountainContent(page, uiState, navigation, callbacks)
+            fountainContent(page, uiState, navigation, callbacks, live)
             recentClips(page.device, clips, Modifier.gutter())
         }
     }
@@ -148,8 +153,9 @@ private fun LazyListScope.fountainContent(
     uiState: FountainUiState,
     navigation: DeviceNavigation,
     callbacks: FountainCallbacks,
+    live: LiveCardState,
 ) {
-    item(key = "top") { FountainTop(page, uiState.now, navigation, callbacks.onHotspot) }
+    item(key = "top") { FountainTop(page, uiState.now, navigation, live, callbacks.onHotspot) }
     item(key = "status") {
         Column(Modifier.gutter(), verticalArrangement = Arrangement.spacedBy(PkTheme.spacing.xs)) {
             DeviceStatusLine(
@@ -195,13 +201,14 @@ private fun LazyListScope.fountainContent(
 
 /**
  * The page's top, on its tint: the header, the battery and the features that are on, a Bluetooth
- * fountain's freshness through its relay, and the hero.
+ * fountain's freshness through its relay, a camera's live card, and the hero.
  */
 @Composable
 private fun FountainTop(
     page: FountainPage,
     now: Instant,
     navigation: DeviceNavigation,
+    live: LiveCardState,
     onHotspot: (DevicePart?) -> Unit,
 ) {
     PageTop(PkTheme.colors.heroFountain) {
@@ -209,7 +216,6 @@ private fun FountainTop(
             title = page.device.model,
             onBack = navigation.onBack,
             onOpenSettings = { navigation.onOpenSettings(page.device.id) },
-            onOpenLive = navigation.liveOf(page.device),
         )
         FountainStatusChips(page.battery, page.modes, Modifier.padding(top = PkTheme.spacing.xs))
         page.relay?.let { relay ->
@@ -221,6 +227,7 @@ private fun FountainTop(
                 modifier = Modifier.padding(top = PkTheme.spacing.xs),
             )
         }
+        CameraLiveCard(page.device, live, navigation, Modifier.padding(top = PkTheme.spacing.xs))
         DeviceHero(
             hotspots = page.hotspots,
             anchors = ::fountainAnchor,

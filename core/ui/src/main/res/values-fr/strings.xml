@@ -11,4 +11,11 @@
     <string name="recent_clips_today">Aujourd’hui, %1$s</string>
     <string name="recent_clips_yesterday">Hier, %1$s</string>
     <string name="recent_clips_on_day">%1$s, %2$s</string>
+
+    <string name="live_card_watch">Voir le direct</string>
+    <string name="live_card_still_today">Image de %1$s</string>
+    <string name="live_card_still_yesterday">Image d’hier, %1$s</string>
+    <string name="live_card_still_on_day">Image du %1$s, %2$s</string>
+    <string name="live_card_description">Voir %1$s en direct</string>
+    <string name="live_card_description_still">Voir %1$s en direct. %2$s</string>
 </resources>

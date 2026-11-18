@@ -121,6 +121,9 @@ class TimelineRepositoryImpl @Inject constructor(
     override fun observeRecentClips(deviceId: Long, limit: Int): Flow<List<TimelineItem>> =
         dao.observeRecentClips(deviceId, limit).map { rows -> rows.toDomain() }
 
+    override fun observeNewestWithMedia(deviceId: Long, limit: Int): Flow<List<TimelineItem>> =
+        dao.observeNewestWithMedia(deviceId, limit).map { rows -> rows.toDomain() }
+
     override suspend fun refreshRecentClips(deviceId: Long, count: Int): Outcome<Unit> {
         val items = mutableListOf<TimelineItemDto>()
         var cursor: String? = null

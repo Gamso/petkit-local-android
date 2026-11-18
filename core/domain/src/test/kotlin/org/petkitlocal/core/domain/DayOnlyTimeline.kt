@@ -22,4 +22,7 @@ abstract class DayOnlyTimeline : TimelineRepository {
 
     override suspend fun refreshRecentClips(deviceId: Long, count: Int): Outcome<Unit> =
         error("Recent clips are not read here")
+
+    override fun observeNewestWithMedia(deviceId: Long, limit: Int): Flow<List<TimelineItem>> =
+        error("A camera's still is not read here")
 }

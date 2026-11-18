@@ -25,7 +25,10 @@ import org.junit.runner.RunWith
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.feeder.FeederDayFilter
 import org.petkitlocal.core.testing.Household
+import org.petkitlocal.core.ui.LiveCardState
+import org.petkitlocal.core.ui.LiveCardTestTags
 import org.petkitlocal.core.ui.formatTimeOfDay
+import org.petkitlocal.feature.device.DeviceFixtures
 import org.petkitlocal.feature.device.DeviceNavigation
 import org.petkitlocal.feature.device.common.ActivityTestTags
 import org.petkitlocal.feature.device.common.DeviceTestTags
@@ -58,15 +61,14 @@ class FeederScreenTest {
         commands = PageCommandCallbacks(onAction = { calls += "action:${it.key}" }),
     )
 
-    private fun show(state: FeederUiState) {
-        compose.setContent {
-            PkTheme { FeederScreen(state, navigation, callbacks) }
-        }
+    private fun show(state: FeederUiState, live: LiveCardState = LiveCardState()) {
+        compose.setContent { PkTheme { FeederScreen(state, navigation, callbacks, live = live) } }
     }
 
     private val navigation = DeviceNavigation(
         onOpenHistory = { calls += "history:$it" },
         onOpenClip = { calls += "clip:${it.kind}" },
+        onOpenLive = { calls += "live:$it" },
     )
 
     private fun time(hour: Int, minute: Int) =
@@ -116,6 +118,23 @@ class FeederScreenTest {
         compose.onNodeWithText("See all in History").performClick()
 
         assertEquals(listOf("history:2001"), calls)
+    }
+
+    @Test
+    fun `a camera feeder's live card leads to its live video`() {
+        show(FeederFixtures.dualPaused, live = DeviceFixtures.liveCard)
+
+        compose.onNodeWithTag(LiveCardTestTags.CARD)
+            .assertContentDescriptionEquals("Watch YumShare Dual-Hopper live. Still from ${time(5, 10)}")
+            .performClick()
+        compose.onNodeWithContentDescription("Live video").assertDoesNotExist()
+        assertEquals(listOf("live:2004"), calls)
+    }
+
+    @Test
+    fun `a feeder without a camera has no live card`() {
+        show(FeederFixtures.single, live = DeviceFixtures.liveCard)
+        compose.onNodeWithTag(LiveCardTestTags.CARD).assertDoesNotExist()
     }
 
     @Test

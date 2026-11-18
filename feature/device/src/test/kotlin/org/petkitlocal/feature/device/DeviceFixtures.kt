@@ -15,7 +15,9 @@ import org.petkitlocal.core.domain.model.EntityCategory
 import org.petkitlocal.core.domain.model.EntityComponent
 import org.petkitlocal.core.domain.model.EntityValue
 import org.petkitlocal.core.domain.repository.CommandDelivery
+import org.petkitlocal.core.domain.video.LatestStill
 import org.petkitlocal.core.testing.Household
+import org.petkitlocal.core.ui.LiveCardState
 import org.petkitlocal.core.ui.RecentClipsState
 import org.petkitlocal.feature.device.common.CommandFeedback
 import org.petkitlocal.feature.device.common.CommandResult
@@ -38,6 +40,15 @@ object DeviceFixtures {
             today = Household.today,
         ),
     )
+
+    /** A camera's live card with the still of its newest episode, this morning at 5:10. */
+    val liveCard = Household.cameraClipItems.first().let { item ->
+        LiveCardState(
+            LatestStill(item.media!!.files.first().thumbnailUrl!!, item.shownAt),
+            zone = Household.zone,
+            today = Household.today,
+        )
+    }
 
     val flush = DeviceAction("fountain_flush", "Drain & Flush", destructive = false)
     val refill = DeviceAction("fountain_refill", "Refill", destructive = false)

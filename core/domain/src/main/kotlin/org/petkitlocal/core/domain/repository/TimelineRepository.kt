@@ -37,6 +37,12 @@ interface TimelineRepository {
     fun observeRecentClips(deviceId: Long, limit: Int): Flow<List<TimelineItem>>
 
     /**
+     * The cached cards of [deviceId] that hold a photo or a video, newest first, whatever day they
+     * are filed under, at most [limit]. [refreshRecentClips] brings the newest from the server.
+     */
+    fun observeNewestWithMedia(deviceId: Long, limit: Int): Flow<List<TimelineItem>>
+
+    /**
      * Fetches [deviceId]'s newest cards, every day together, page after page until [count] of them
      * hold a clip or the device has no more (within a bound), and makes the cache match the server
      * over the range those pages cover.

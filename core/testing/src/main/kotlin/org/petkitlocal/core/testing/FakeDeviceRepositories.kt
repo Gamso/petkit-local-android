@@ -125,6 +125,9 @@ class FakeTimelineRepository :
     /** The cached cards holding a clip, by device, newest first. */
     val clips = MutableStateFlow<Map<Long, List<TimelineItem>>>(emptyMap())
 
+    /** The cached cards holding a photo or a video, by device, newest first. */
+    val withMedia = MutableStateFlow<Map<Long, List<TimelineItem>>>(emptyMap())
+
     /** Every device whose recent clips were refreshed, in order. */
     val refreshedClips = mutableListOf<Long>()
 
@@ -150,6 +153,9 @@ class FakeTimelineRepository :
 
     override fun observeRecentClips(deviceId: Long, limit: Int): Flow<List<TimelineItem>> =
         clips.map { it[deviceId].orEmpty().take(limit) }
+
+    override fun observeNewestWithMedia(deviceId: Long, limit: Int): Flow<List<TimelineItem>> =
+        withMedia.map { it[deviceId].orEmpty().take(limit) }
 
     override suspend fun refreshRecentClips(deviceId: Long, count: Int): Outcome<Unit> {
         refreshedClips += deviceId

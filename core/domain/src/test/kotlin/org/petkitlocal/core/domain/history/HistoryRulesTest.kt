@@ -155,6 +155,8 @@ class HistoryRulesTest {
         override fun observeRecentClips(deviceId: Long, limit: Int) = error("not used")
 
         override suspend fun refreshRecentClips(deviceId: Long, count: Int): Outcome<Unit> = error("not used")
+
+        override fun observeNewestWithMedia(deviceId: Long, limit: Int) = error("not used")
     }
 
     private class StaticDevices(private val devices: List<Device>) : DeviceRepository {

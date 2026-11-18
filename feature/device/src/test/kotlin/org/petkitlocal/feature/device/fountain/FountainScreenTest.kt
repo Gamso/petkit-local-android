@@ -3,6 +3,7 @@ package org.petkitlocal.feature.device.fountain
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
@@ -28,6 +29,9 @@ import org.junit.runner.RunWith
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.core.domain.devicepage.DevicePart
+import org.petkitlocal.core.ui.LiveCardState
+import org.petkitlocal.core.ui.LiveCardTestTags
+import org.petkitlocal.feature.device.DeviceFixtures
 import org.petkitlocal.feature.device.DeviceNavigation
 import org.petkitlocal.feature.device.common.ActivityTestTags
 import org.petkitlocal.feature.device.common.CONFIRM_ARM_MS
@@ -53,6 +57,7 @@ class FountainScreenTest {
         onOpenSettings = { calls += "settings:$it" },
         onOpenHistory = { calls += "history" },
         onOpenDevice = { calls += "device:$it" },
+        onOpenLive = { calls += "live:$it" },
     )
 
     private val callbacks = FountainCallbacks(
@@ -67,12 +72,29 @@ class FountainScreenTest {
         ),
     )
 
-    private fun show(state: FountainUiState) {
-        compose.setContent { PkTheme { FountainScreen(state, navigation, callbacks) } }
+    private fun show(state: FountainUiState, live: LiveCardState = LiveCardState()) {
+        compose.setContent { PkTheme { FountainScreen(state, navigation, callbacks, live = live) } }
     }
 
     private fun scrollTo(text: String) {
         compose.onNodeWithTag(PageTestTags.LIST).performScrollToNode(hasText(text, substring = true))
+    }
+
+    @Test
+    fun `a camera fountain's live card leads to its live video, even before any still`() {
+        show(FountainFixtures.content, live = DeviceFixtures.liveCard.copy(still = null))
+
+        compose.onNodeWithTag(LiveCardTestTags.CARD)
+            .assertContentDescriptionEquals("Watch EverSweet Ultra AI live")
+            .performClick()
+        compose.onNodeWithContentDescription("Live video").assertDoesNotExist()
+        assertEquals(listOf("live:3001"), calls)
+    }
+
+    @Test
+    fun `a Bluetooth fountain has no live card`() {
+        show(FountainFixtures.bluetooth, live = DeviceFixtures.liveCard)
+        compose.onNodeWithTag(LiveCardTestTags.CARD).assertDoesNotExist()
     }
 
     @Test

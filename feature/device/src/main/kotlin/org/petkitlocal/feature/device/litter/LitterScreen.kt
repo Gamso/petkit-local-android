@@ -14,16 +14,18 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.devicepage.DevicePart
 import org.petkitlocal.core.domain.litter.LitterBoxPage
+import org.petkitlocal.core.ui.LiveCardState
 import org.petkitlocal.core.ui.rememberServerLabels
 import org.petkitlocal.feature.device.DeviceNavigation
 import org.petkitlocal.feature.device.common.ActivityCard
+import org.petkitlocal.feature.device.common.CameraLiveCard
 import org.petkitlocal.feature.device.common.DeviceHeader
 import org.petkitlocal.feature.device.common.DeviceStatusLine
 import org.petkitlocal.feature.device.common.DeviceTestTags
 import org.petkitlocal.feature.device.common.RecentClipsUi
 import org.petkitlocal.feature.device.common.recentClips
+import org.petkitlocal.feature.device.common.rememberLiveCard
 import org.petkitlocal.feature.device.common.rememberRecentClips
-import org.petkitlocal.feature.device.liveOf
 
 /** What the user can do on the litter box page besides its commands, one callback per intent. */
 data class LitterCallbacks(
@@ -42,6 +44,7 @@ internal fun LitterRoute(navigation: DeviceNavigation, viewModel: LitterViewMode
         uiState = uiState,
         navigation = navigation,
         clips = clips,
+        live = rememberLiveCard(),
         callbacks = LitterCallbacks(
             onRefresh = {
                 viewModel.onRefresh()
@@ -61,9 +64,10 @@ internal fun LitterRoute(navigation: DeviceNavigation, viewModel: LitterViewMode
 }
 
 /**
- * The litter box page (SPEC.md §5.3): header with the mode chips and the settings gear, the hero
- * with its hotspots, the live status line, today against yesterday, the 24-hour chart, the day's
- * activity, a camera's recent clips, and the action sheet every device screen shares.
+ * The litter box page (SPEC.md §5.3): header with the mode chips and the settings gear, a
+ * camera's live card, the hero with its hotspots, the live status line, today against yesterday,
+ * the 24-hour chart, the day's activity, a camera's recent clips, and the action sheet every
+ * device screen shares.
  */
 @Composable
 internal fun LitterScreen(
@@ -74,6 +78,8 @@ internal fun LitterScreen(
     initiallyExpanded: Boolean = false,
     /** A camera's recent clips; null shows none. */
     clips: RecentClipsUi? = null,
+    /** What a camera's live card shows. */
+    live: LiveCardState = LiveCardState(),
 ) {
     val page = uiState.page
     val tint = PkTheme.colors.heroLitter
@@ -90,7 +96,7 @@ internal fun LitterScreen(
         if (page == null) {
             missingPage(uiState, tint, navigation.onBack, callbacks.onRefresh)
         } else {
-            litterContent(page, uiState, navigation, callbacks)
+            litterContent(page, uiState, navigation, callbacks, live)
             recentClips(page.device, clips, Modifier.gutter())
         }
     }
@@ -114,6 +120,7 @@ private fun LazyListScope.litterContent(
     uiState: LitterUiState,
     navigation: DeviceNavigation,
     callbacks: LitterCallbacks,
+    live: LiveCardState,
 ) {
     item(key = "top") {
         PageTop(PkTheme.colors.heroLitter) {
@@ -121,9 +128,9 @@ private fun LazyListScope.litterContent(
                 title = page.device.model,
                 onBack = navigation.onBack,
                 onOpenSettings = { navigation.onOpenSettings(page.device.id) },
-                onOpenLive = navigation.liveOf(page.device),
             )
             ModeChips(page.modes, uiState.commands.sending, callbacks.onModeToggle)
+            CameraLiveCard(page.device, live, navigation, Modifier.padding(top = PkTheme.spacing.xs))
             DeviceHero(
                 hotspots = page.hotspots,
                 anchors = ::litterAnchor,

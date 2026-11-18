@@ -26,6 +26,7 @@ import org.petkitlocal.core.e2e.MockOnly
 import org.petkitlocal.core.e2e.MockServer
 import org.petkitlocal.core.e2e.TestServer
 import org.petkitlocal.core.e2e.TestServerRule
+import org.petkitlocal.core.ui.LiveCardTestTags
 import org.petkitlocal.core.ui.RecentClipsTestTags
 import org.petkitlocal.feature.auth.SignInTestTags
 import org.petkitlocal.feature.device.common.DeviceTestTags
@@ -79,7 +80,7 @@ class RecentClipsFlowTest {
     fun aClipOpenedUnderTheLiveVideoStopsItUntilItIsClosed() {
         signIn()
         openDevice(PUROBOT)
-        compose.onNodeWithContentDescription("Live video").performClick()
+        compose.onNodeWithTag(LiveCardTestTags.CARD).performClick()
         waitFor(hasTestTag(LiveTestTags.BADGE))
         waitUntil("one live socket") { mockCount("live_sockets") == 1 }
 

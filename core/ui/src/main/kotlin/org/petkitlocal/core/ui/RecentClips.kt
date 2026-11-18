@@ -182,7 +182,7 @@ private fun whenLabel(at: Instant, today: LocalDate, zone: ZoneId, locale: Local
 }
 
 /** A day as the locale writes it without its year: `Nov 12`, `12 nov.`. */
-private fun formatMonthDay(day: LocalDate, locale: Locale): String =
+internal fun formatMonthDay(day: LocalDate, locale: Locale): String =
     DateTimeFormatter.ofPattern(DateFormat.getBestDateTimePattern(locale, "MMMd"), locale).format(day)
 
 /** Grey tiles where the clips will be: static, so screenshots are stable. */
