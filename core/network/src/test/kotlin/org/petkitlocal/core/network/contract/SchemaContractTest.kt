@@ -203,6 +203,17 @@ class SchemaContractTest {
     }
 
     @Test
+    fun `what older servers may leave out is still required and never null in the document`() {
+        PendingContract.ABSENT_FROM_OLDER_SERVERS.forEach { (schema, properties) ->
+            val shape = schemaShape(schema) as Shape.Object
+            properties.forEach { property ->
+                assertTrue(property in shape.required) { "$schema.$property is no longer required" }
+                assertTrue(shape.properties[property]?.nullable == false) { "$schema.$property may be null now" }
+            }
+        }
+    }
+
+    @Test
     fun `known enum values are exactly the schema's`() {
         fun enumOf(schema: String, property: String? = null): Set<String> {
             var node = spec.schemas.getValue(schema)

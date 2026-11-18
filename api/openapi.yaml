@@ -1283,12 +1283,31 @@ components:
 
     DeviceSummary:
       type: object
-      required: [id, type, model, kind, online, transport, last_seen, firmware, is_camera,
-                 connection, parent_id, accessories]
+      required: [id, type, model, model_name, generation, kind, online, transport, last_seen,
+                 firmware, is_camera, connection, parent_id, accessories]
       properties:
         id: { type: integer }
         type: { type: string, description: "Codename, e.g. `t5`, `d4sh`, `w5`, `k3`." }
-        model: { type: string, description: "Commercial name; `Unknown` for an unlisted codename." }
+        model:
+          type: string
+          description: |
+            The codename's commercial name, whatever the generation (`Pura Max` for every
+            `t4`); `Unknown` for an unlisted codename. Unchanged for compatibility: name
+            the device by `model_name`.
+        model_name:
+          type: string
+          description: |
+            The full product name, generation included: `Pura Max 2`, `YumShare
+            Dual-Hopper 2`. Equal to `model` while the generation is unknown, and for
+            every codename sold in one generation only.
+        generation:
+          type: [integer, "null"]
+          description: |
+            Which generation of its codename this is (2 for a Pura Max 2), as the owner
+            set it in the panel or as learned from PetKit's `typeCode` (proxy mode) or
+            the device's own report; null while unknown, for a codename sold in one
+            generation only, and for an accessory. The same number PetKit's app keys its
+            device pictures on (`t4_2_…`).
         kind:
           type: string
           enum: [litter_box, feeder, fountain, purifier, other]

@@ -88,6 +88,8 @@ class MockDevice(
             id = id,
             type = type,
             model = model.model,
+            modelName = model.model,
+            generation = null,
             kind = model.kind,
             online = online,
             // An accessory travels on its parent's transport (`http` when it has none).
@@ -113,6 +115,8 @@ class MockDevice(
             id = s.id,
             type = s.type,
             model = s.model,
+            modelName = s.modelName,
+            generation = s.generation,
             kind = s.kind,
             online = s.online,
             transport = s.transport,

@@ -58,8 +58,22 @@ data class DeviceSummaryDto(
     @SerialName("id") val id: Long,
     /** Codename, e.g. `t5`, `d4sh`. */
     @SerialName("type") val type: String,
-    /** Commercial name; `Unknown` for an unlisted codename. */
+    /**
+     * The codename's commercial name, whatever the generation (`Pura Max` for every `t4`);
+     * `Unknown` for an unlisted codename. Name the device by [modelName].
+     */
     @SerialName("model") val model: String,
+    /**
+     * The full product name, generation included (`Pura Max 2`); [model] while the generation is
+     * unknown. Required by the contract, but a server older than petkit-local#107 does not send
+     * it: null then, and the app names the device by [model].
+     */
+    @SerialName("model_name") val modelName: String?,
+    /**
+     * Which generation of its codename this is (2 for a Pura Max 2); null while unknown, for a
+     * codename sold in one generation only, for an accessory, and from a server that predates it.
+     */
+    @SerialName("generation") val generation: Int?,
     /** One of [DeviceKind.KNOWN]. */
     @SerialName("kind") val kind: String,
     @SerialName("online") val online: Boolean,
@@ -83,6 +97,9 @@ data class DeviceDetailDto(
     @SerialName("id") val id: Long,
     @SerialName("type") val type: String,
     @SerialName("model") val model: String,
+    /** As in [DeviceSummaryDto.modelName]: null from a server that predates it. */
+    @SerialName("model_name") val modelName: String?,
+    @SerialName("generation") val generation: Int?,
     @SerialName("kind") val kind: String,
     @SerialName("online") val online: Boolean,
     @SerialName("transport") val transport: String,

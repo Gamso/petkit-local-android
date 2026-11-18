@@ -20,4 +20,18 @@ object PendingContract {
     val SCHEMAS = setOf(
         "PushRegistrationRequest",
     )
+
+    /**
+     * Properties the document requires and never sends null, by schema, that a server released
+     * before them does not send at all. Their DTO reads them nullable (absent is null under
+     * `explicitNulls = false`) and the app falls back, so it keeps working against such a server.
+     * The checks accept exactly these, and fail when one is no longer required and non-null.
+     *
+     * `model_name` (petkit-local#107): the full product name; without it the app names the
+     * device by `model`, as it always did.
+     */
+    val ABSENT_FROM_OLDER_SERVERS: Map<String, Set<String>> = mapOf(
+        "DeviceSummary" to setOf("model_name"),
+        "DeviceDetail" to setOf("model_name"),
+    )
 }

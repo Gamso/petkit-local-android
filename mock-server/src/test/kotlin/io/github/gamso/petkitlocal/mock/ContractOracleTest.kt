@@ -7,7 +7,8 @@ import org.junit.jupiter.api.Test
 /** The oracle itself: it must reject what the spec does not allow, or the other tests prove nothing. */
 class ContractOracleTest {
     private val summary =
-        """{"id":1,"type":"t4","model":"Pura Max","kind":"litter_box","online":true,"transport":"http",""" +
+        """{"id":1,"type":"t4","model":"Pura Max","model_name":"Pura Max","generation":null,""" +
+            """"kind":"litter_box","online":true,"transport":"http",""" +
             """"last_seen":null,"firmware":null,"is_camera":false,"connection":"wifi","parent_id":null,"accessories":[]}"""
 
     private fun check(
