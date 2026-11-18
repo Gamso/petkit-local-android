@@ -1,3 +1,17 @@
+// Without this block the plugins applied here (kotlin-dsl and its Kotlin dependencies) resolve from
+// the Gradle Plugin Portal alone, which redirects to Maven Central: on CI that answers 429 and the
+// build dies before anything compiles. Same order as the root build: the mirror first.
+pluginManagement {
+    repositories {
+        maven {
+            name = "MavenCentralGoogleMirror"
+            url = uri("https://maven-central.storage-download.googleapis.com/maven2/")
+        }
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+
 dependencyResolutionManagement {
     repositories {
         google {
