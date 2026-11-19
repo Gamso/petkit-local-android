@@ -80,8 +80,9 @@ class PetsFlowTest {
     fun seeAllOpensTheListAndACardOpensThatPet() {
         signIn()
         waitFor(hasTestTag(HomeTestTags.device(FIRST_CARD)))
+        // The pets section loads apart from the device cards: it may not be in the list yet.
         val seeAll = hasText("See all")
-        compose.onNodeWithTag(HomeTestTags.LIST).performScrollToNode(seeAll)
+        scrollUntilShown(seeAll, list = HomeTestTags.LIST)
         compose.onNode(seeAll).performClick()
 
         waitFor(hasTestTag(PetsTestTags.LIST_SCREEN))
@@ -102,10 +103,10 @@ class PetsFlowTest {
         compose.waitUntilDoesNotExist(hasTestTag(SignInTestTags.SCREEN), TIMEOUT_MS)
     }
 
-    /** Scrolls the pet page until [matcher] shows up, as the server's answers arrive. */
-    private fun scrollUntilShown(matcher: SemanticsMatcher) {
+    /** Scrolls [list] (the pet page unless told) until [matcher] shows up, as the server's answers arrive. */
+    private fun scrollUntilShown(matcher: SemanticsMatcher, list: String = PetsTestTags.PAGE) {
         compose.waitUntil(TIMEOUT_MS) {
-            runCatching { compose.onNodeWithTag(PetsTestTags.PAGE).performScrollToNode(matcher) }.isSuccess
+            runCatching { compose.onNodeWithTag(list).performScrollToNode(matcher) }.isSuccess
         }
     }
 
