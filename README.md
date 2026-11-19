@@ -12,8 +12,35 @@ Start with:
 - [docs/DESIGN.md](docs/DESIGN.md) — design tokens and components.
 - [docs/ROADMAP.md](docs/ROADMAP.md) — milestones M0–M5.
 - [docs/adr/](docs/adr/) — the decisions that are hard to undo.
+- [docs/RELEASING.md](docs/RELEASING.md) — versions, the release key, cutting a release.
 
 Languages: English and French.
+
+## Installing and updating
+
+The app is not on Google Play. Each [release](https://github.com/Gamso/petkit-local-android/releases)
+carries a signed APK, `petkit-local-<version>.apk`. It needs Android 10 or later.
+
+1. On the phone, open the latest release and download `petkit-local-<version>.apk`.
+2. Open the download. The first time, Android asks to allow the app you opened it from (the
+   browser or the file manager) to install unknown apps: allow it (Settings, Apps, Special app
+   access, Install unknown apps), go back, and install.
+3. Open the app and sign in to your petkit-local server.
+
+**Updating**: download the newer APK and install it the same way, over the installed app. It keeps
+its data (server, sign-in, settings) because every release is signed with the same key. Android
+refuses an APK signed with another key, such as a build of your own or a CI build: the installed app
+would have to be uninstalled first, which deletes its data. To hear of new releases, watch the
+repository (Watch, Custom, Releases).
+
+**Checking a download**: next to each APK is its `.sha256`, and the release notes give the APK's
+SHA-256 and the signing certificate's. The certificate is the same for every release; an APK
+signed with another one is not from this project.
+
+```sh
+sha256sum -c petkit-local-0.1.0.apk.sha256               # Windows: certutil -hashfile petkit-local-0.1.0.apk SHA256
+apksigner verify --print-certs petkit-local-0.1.0.apk    # Android SDK build-tools: "certificate SHA-256 digest"
+```
 
 ## Building
 
@@ -26,13 +53,17 @@ Java 17 bytecode. Gradle installs the SDK platform it needs if it is missing. Al
 
 ```sh
 ./gradlew assembleDebug                  # app/build/outputs/apk/debug/
-./gradlew assembleRelease                # R8; signed with the debug key until release signing exists
+./gradlew assembleRelease                # R8; signed with the debug key, version 0.1.0-dev
 ./gradlew assembleDebug assembleRelease check   # everything CI checks
 ```
 
 `check` runs ktlint, detekt, Android lint, the module dependency rule (`checkModuleRules`), the
 French translation check (`checkTranslations`), all host tests and the screenshot comparison.
 `./gradlew ktlintFormat` fixes formatting.
+
+Every build but a release is version `0.1.0-dev`, code 1. A release takes its version from its tag
+(`-PappVersion=0.1.0` for `v0.1.0`, code 100) and is built, signed and published by
+`.github/workflows/release.yml`: see [docs/RELEASING.md](docs/RELEASING.md).
 
 ## Tests
 
@@ -138,9 +169,6 @@ Robolectric renders the same pixels on Linux and Windows here, so they can be re
 either. The screenshots render on SDK 36 rather than the target SDK 37, whose Robolectric
 graphics still capture some images blank (see `ComponentScreenshotTest`); every other
 Robolectric test runs on SDK 37.
-
-Distributed as signed APKs on [GitHub releases](https://github.com/Gamso/petkit-local-android/releases).
-Requires Android 10 or later.
 
 This project is not affiliated with, endorsed by or connected to PetKit. "PetKit" is a trademark
 of its owner and is used here only to say which devices the app works with.
