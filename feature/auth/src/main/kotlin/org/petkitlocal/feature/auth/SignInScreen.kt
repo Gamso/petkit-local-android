@@ -49,6 +49,7 @@ internal class SignInActions(
     val onSubmit: () -> Unit = {},
     val onAllowLocalNetwork: () -> Unit = {},
     val onOpenAppSettings: () -> Unit = {},
+    val onTrustCertificate: () -> Unit = {},
 )
 
 /** Where the screen puts the cursor when a field's error is shown. */
@@ -89,6 +90,7 @@ internal fun SignInRoute(viewModel: SignInViewModel = hiltViewModel()) {
             onSubmit = viewModel::onSubmit,
             onAllowLocalNetwork = viewModel::onAllowLocalNetworkClick,
             onOpenAppSettings = { openAppSettings(context) },
+            onTrustCertificate = viewModel::onTrustCertificate,
         ),
         focus = focus,
     )
@@ -177,6 +179,9 @@ private fun SignInContent(uiState: SignInUiState, actions: SignInActions, focus:
                 modifier = Modifier.testTag(SignInTestTags.ERROR),
             )
         }
+        (uiState.failure as? SignInFailure.Certificate)?.let {
+            CertificateNotice(it.problem, actions.onTrustCertificate)
+        }
         generalErrorMessage(uiState.failure)?.let { ErrorCard(it) }
         PkButton(
             text = submitLabel(uiState),
@@ -198,6 +203,13 @@ object SignInTestTags {
     const val ERROR = "sign_in_error"
     const val SESSION_ENDED = "sign_in_session_ended"
     const val LOCAL_NETWORK = "sign_in_local_network"
+    const val CERTIFICATE = "sign_in_certificate"
+    const val CERTIFICATE_DETAILS = "sign_in_certificate_details"
+    const val CERTIFICATE_FINGERPRINT = "sign_in_certificate_fingerprint"
+    const val CERTIFICATE_PINNED_FINGERPRINT = "sign_in_certificate_pinned_fingerprint"
+    const val TRUST_CERTIFICATE = "sign_in_trust_certificate"
+    const val CERTIFICATE_CHANGE = "certificate_change"
+    const val CERTIFICATE_NOT_NOW = "certificate_change_not_now"
 }
 
 @PkPreviews

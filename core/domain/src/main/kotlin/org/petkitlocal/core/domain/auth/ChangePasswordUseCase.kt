@@ -71,7 +71,7 @@ class ChangePasswordUseCase @Inject constructor(private val repository: AuthRepo
 
         is DomainError.Validation -> ChangePasswordFailure.Rejected(error.message)
 
-        is DomainError.Network -> ChangePasswordFailure.Unreachable
+        is DomainError.Network, is DomainError.Certificate -> ChangePasswordFailure.Unreachable
 
         is DomainError.SessionEnded -> ChangePasswordFailure.SessionEnded
 

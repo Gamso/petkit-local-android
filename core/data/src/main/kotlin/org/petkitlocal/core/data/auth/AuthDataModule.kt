@@ -6,6 +6,7 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import dagger.multibindings.IntoSet
 import dagger.multibindings.Multibinds
 import javax.inject.Qualifier
 import javax.inject.Singleton
@@ -15,10 +16,12 @@ import kotlinx.coroutines.SupervisorJob
 import org.petkitlocal.core.domain.auth.AuthRepository
 import org.petkitlocal.core.domain.auth.PhoneNameProvider
 import org.petkitlocal.core.domain.auth.ServerScopedCache
+import org.petkitlocal.core.domain.auth.ServerTrustRepository
 import org.petkitlocal.core.domain.auth.SessionScopedCache
 import org.petkitlocal.core.network.ServerAddressProvider
 import org.petkitlocal.core.network.auth.SessionEndListener
 import org.petkitlocal.core.network.auth.SessionTokenProvider
+import org.petkitlocal.core.network.tls.CertificatePinStore
 
 /** The scope session work runs in: it outlives every screen, as the session does. */
 @Qualifier
@@ -39,6 +42,17 @@ abstract class AuthDataModule {
 
     @Binds
     abstract fun sessionEndListener(impl: AuthRepositoryImpl): SessionEndListener
+
+    @Binds
+    abstract fun serverTrustRepository(impl: CertificateTrust): ServerTrustRepository
+
+    @Binds
+    abstract fun certificatePinStore(impl: CertificateTrust): CertificatePinStore
+
+    /** The pinned certificate is for one server: a sign-in to another one forgets it. */
+    @Binds
+    @IntoSet
+    abstract fun pinnedCertificate(impl: CertificateTrust): ServerScopedCache
 
     /**
      * Every cache kept for the session. Empty until a cache registers itself with

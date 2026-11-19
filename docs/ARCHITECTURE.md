@@ -11,10 +11,11 @@ per feature. Decisions that are hard to undo are recorded as ADRs in `docs/adr/`
 | UI | Jetpack Compose, Material 3 with a custom theme | Declarative UI, previews, screenshot tests |
 | DI | Hilt | Compile-time graph, ViewModel and WorkManager integration |
 | HTTP | Retrofit + OkHttp + kotlinx.serialization | Mature; OkHttp also gives the WebSocket client |
+| TLS trust | The platform's trust (system and user CAs, `network_security_config.xml`) plus one owner-pinned leaf certificate, in the shared client's trust manager | A home server with a self-signed certificate, without ever turning checks off (SPEC.md §8) |
 | Live updates | OkHttp WebSocket | Same client, same auth interceptor |
 | Local cache | Room | Last known devices, pets and timeline pages for offline display |
 | Preferences | DataStore | Server address, notification state (the language and the theme are the phone's) |
-| Secret storage | Android Keystore (AES-GCM key) encrypting the session token in DataStore | No deprecated crypto library |
+| Secret storage | Android Keystore (AES-GCM key) encrypting the session token, and the pinned certificate, in DataStore | No deprecated crypto library |
 | Images | Coil 3 with the shared OkHttp client | Media and thumbnails need the `Authorization` header |
 | Video | Media3 ExoPlayer: HLS natively; fMP4-over-WebSocket through a custom `DataSource` | One player, two transports |
 | Charts | Compose `Canvas` | Few, simple charts; no charting dependency |
@@ -92,6 +93,15 @@ in CI fails the build if a feature imports a data-layer package.
     a server change breaks a test, not the app.
   - **Auth**: an `AuthInterceptor` adds `Authorization: Bearer`. A 401 `invalid_token` or WebSocket close code `4401` emits
     `SessionEnded`, which clears the token and routes to sign-in.
+  - **TLS** (SPEC.md §8): every client is built on the one OkHttp client (Retrofit, Coil, Media3's
+    data sources, the WebSockets), whose `ServerTrust` holds a `PinningTrustManager`: the
+    platform's trust first, then the one certificate the owner pinned, for its host and port only,
+    and only if it names the host. A refusal is a `CertificateRefusedException` in the handshake's
+    causes, mapped to `DomainError.Certificate` (untrusted, changed, wrong host, out of date).
+    The pin lives in the session store (`CertificateTrust`, core:data); changing it resets the
+    trust (a new TLS context, the connection pool emptied), so nothing made under the old one is
+    reused. A changed certificate refused while signed in is also kept for the app shell, which
+    asks the owner about it over whatever screen is showing.
 - **Repositories**: single source of truth in Room for devices, pets and timeline pages.
   - REST refreshes write to Room.
   - WebSocket messages patch Room (`hello` replaces, `state` patches entity values, `timeline` upserts by id with

@@ -66,7 +66,7 @@ emulator that it downloads, creates and boots by itself (hardware acceleration n
 Linux, WHPX or the Android Emulator hypervisor driver on Windows).
 
 ```sh
-docker compose -f e2e/docker-compose.yml up --build   # the mock on port 8097; leave it running
+docker compose -f e2e/docker-compose.yml up --build   # the mock on 8097 (and HTTPS on 8443); leave it running
 ./gradlew :app:pixel6Api37DebugAndroidTest            # API 37, Automated Test Device image, as CI
 ./gradlew :app:pixel6Api29DebugAndroidTest            # API 29, the minimum SDK (nightly in CI)
 ./gradlew :app:connectedDebugAndroidTest              # or on an emulator or phone you started
@@ -75,7 +75,9 @@ docker compose -f e2e/docker-compose.yml up --build   # the mock on port 8097; l
 Reports: `app/build/reports/androidTests/`. The tests look for the mock at
 `http://10.0.2.2:8097`; point them elsewhere with
 `-Pandroid.testInstrumentationRunnerArguments.petkitServerUrl=http://10.0.2.2:<port>` (the older
-`petkitMockUrl` still works). Shared helpers for these tests (the server's address and password,
+`petkitMockUrl` still works). The certificate-trust tests use the mock's HTTPS port,
+`https://10.0.2.2:8443` (`petkitServerTlsUrl` to change it), whose self-signed certificate the
+mock makes at start. Shared helpers for these tests (the server's address and password,
 the mock's control API, a signed-in API client, a rule that resets the server before each test)
 are in `core/e2e`; a module uses them with `androidTestImplementation(projects.core.e2e)`.
 

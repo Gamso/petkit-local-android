@@ -3,7 +3,13 @@
 
 package org.petkitlocal.feature.auth
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureRoboImage
 import kotlin.time.Duration.Companion.seconds
@@ -13,6 +19,7 @@ import org.junit.runner.RunWith
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.SessionEndReason
 import org.petkitlocal.core.domain.auth.SignInFailure
+import org.petkitlocal.core.testing.FakeServerTrustRepository
 import org.petkitlocal.core.testing.ScreenshotVariant
 import org.robolectric.ParameterizedRobolectricTestRunner
 import org.robolectric.annotation.Config
@@ -21,8 +28,9 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * The sign-in screen in light/dark x EN/FR: the form as it starts (phone name folded), with the
  * phone name open, and with what goes wrong (an empty password pressed, an ended session, a
- * plain-HTTP warning, a wrong password counting down, a server error, local network access).
- * The busiest state is also taken at 130 % font scale, where the screen no longer fits and
+ * plain-HTTP warning, a wrong password counting down, a server error, local network access, a
+ * refused certificate: untrusted, changed, for another host), and the changed-certificate
+ * dialog. The busiest states are also taken at 130 % font scale, where the screen no longer fits and
  * scrolls from the top instead of being centred. SDK 36 for the reason given in
  * core:designsystem's ComponentScreenshotTest.
  */
@@ -106,7 +114,54 @@ class SignInScreenshotTest(private val variant: ScreenshotVariant) {
         )
     }
 
-    /** Every state at 100 %; only [errors] at 130 % too. */
+    @Test
+    fun untrustedCertificate() = capture("sign_in_certificate_untrusted", largeFontToo = true) {
+        SignInScreen(
+            SignInUiState(
+                address = "https://petkit.home.lan",
+                password = "secret",
+                phoneName = "Google Pixel 8",
+                failure = SignInFailure.Certificate(FakeServerTrustRepository.UNTRUSTED),
+            ),
+            SignInActions(),
+        )
+    }
+
+    @Test
+    fun changedCertificate() = capture("sign_in_certificate_changed") {
+        SignInScreen(
+            SignInUiState(
+                address = "https://petkit.home.lan",
+                password = "secret",
+                phoneName = "Google Pixel 8",
+                failure = SignInFailure.Certificate(FakeServerTrustRepository.CHANGED),
+            ),
+            SignInActions(),
+        )
+    }
+
+    @Test
+    fun certificateForAnotherHost() = capture("sign_in_certificate_wrong_host") {
+        SignInScreen(
+            SignInUiState(
+                address = "https://192.168.1.20",
+                password = "secret",
+                phoneName = "Google Pixel 8",
+                failure = SignInFailure.Certificate(FakeServerTrustRepository.WRONG_HOST),
+            ),
+            SignInActions(),
+        )
+    }
+
+    /** The question asked over the signed-in app, as its dialog shows it (without the window's scrim). */
+    @Test
+    fun certificateChange() = capture("certificate_change", largeFontToo = true) {
+        Box(Modifier.fillMaxSize().background(PkTheme.colors.background).padding(24.dp)) {
+            CertificateChangeContent(FakeServerTrustRepository.CHANGED, onTrust = {}, onNotNow = {})
+        }
+    }
+
+    /** Every state at 100 %; only the busiest ones at 130 % too. */
     private fun capture(name: String, largeFontToo: Boolean = false, content: @Composable () -> Unit) {
         assumeTrue(largeFontToo || variant.fontScale == 1f)
         captureRoboImage(

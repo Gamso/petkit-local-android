@@ -44,6 +44,26 @@
     <string name="auth_error_local_network_denied">Local network access was refused, so the app cannot reach a server on your home network. Allow it in this app\'s Android settings, or use an HTTPS address reachable from the internet.</string>
     <string name="auth_open_app_settings">Open Android settings</string>
 
+    <!-- A server certificate the app refused (SPEC.md §8): why, what to check, and the trust offer. -->
+    <string name="auth_certificate_untrusted">This server\'s certificate is not signed by an authority this phone trusts.</string>
+    <string name="auth_certificate_untrusted_help">If your server uses a self-signed certificate or your own authority, check that this fingerprint is your server\'s, then trust it. Nothing was sent to the server.</string>
+    <string name="auth_certificate_changed">This server\'s certificate has changed since you trusted it.</string>
+    <string name="auth_certificate_changed_help">A renewal does this, and so would someone intercepting the connection. Compare the new fingerprint with your server\'s before trusting it. Nothing was sent to the server.</string>
+    <string name="auth_certificate_wrong_host">This certificate is not for %1$s, so the connection was refused. Use the address the certificate names, or fix the certificate on the server.</string>
+    <string name="auth_certificate_not_valid_now">This certificate has expired or is not valid yet, so the connection was refused. Renew it on the server, or check the phone\'s date.</string>
+    <string name="auth_certificate_server">Server</string>
+    <string name="auth_certificate_subject">Subject</string>
+    <string name="auth_certificate_validity">Valid</string>
+    <string name="auth_certificate_validity_range">%1$s to %2$s</string>
+    <string name="auth_certificate_fingerprint">SHA-256 fingerprint</string>
+    <string name="auth_certificate_new_fingerprint">New SHA-256 fingerprint</string>
+    <string name="auth_certificate_pinned_fingerprint">Trusted until now (SHA-256)</string>
+    <string name="auth_certificate_trust">Trust this certificate</string>
+    <string name="auth_certificate_trust_new">Trust the new certificate</string>
+    <string name="auth_certificate_change_title">Server certificate changed</string>
+    <string name="auth_certificate_change_message">%1$s presented another certificate than the one you trusted, so the app refused to connect. A renewal does this, and so would someone intercepting the connection: compare the fingerprints with your server\'s before trusting it.</string>
+    <string name="auth_certificate_not_now">Not now</string>
+
     <string name="auth_session_ended">You were signed out: this phone\'s session was revoked in the panel, the password was changed, or it went unused for 90 days.</string>
     <string name="auth_session_ended_password_removed">You were signed out: the password was removed in the panel. Set a new one there to sign in again.</string>
 

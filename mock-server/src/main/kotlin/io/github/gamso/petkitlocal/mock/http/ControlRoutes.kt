@@ -20,6 +20,7 @@ import io.github.gamso.petkitlocal.mock.state.playEating
 import io.github.gamso.petkitlocal.mock.state.playFeed
 import io.github.gamso.petkitlocal.mock.state.playVisit
 import io.github.gamso.petkitlocal.mock.state.raiseError
+import io.github.gamso.petkitlocal.mock.tls.MockTls
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
@@ -118,6 +119,8 @@ private val CONTROL_ROUTES =
         "POST   /mock/talk/close                      {code?, reason?}  close every talk socket (1001; 1000, 1009, 4401...)",
         "POST   /mock/scenario/tick                   roll one scenario event now",
         "PUT    /mock/scenario                        {interval_sec}  0 stops it",
+        "GET    /mock/tls                             the HTTPS port's certificate now, and every one's SHA-256",
+        "PUT    /mock/tls                             {certificate}  primary | renewed | wrong-host",
     )
 
 fun Route.controlRoutes(
@@ -149,6 +152,34 @@ fun Route.controlRoutes(
         deviceControl(world)
         sessionControl(world)
         harnessControl(world, scenario)
+        tlsControl(world)
+    }
+}
+
+/** The HTTPS port's certificate (`--tls-port`): which one it presents, and switching it. */
+private fun Route.tlsControl(world: World) {
+    fun tls(): MockTls = world.tls ?: throw ApiException(404, "tls_off", "the mock has no HTTPS port; start it with --tls-port")
+
+    fun describe(tls: MockTls) =
+        buildJsonObject {
+            put("certificate", tls.current.key)
+            put("sha256", tls.sha256(tls.current))
+            put(
+                "certificates",
+                buildJsonObject { MockTls.Certificate.entries.forEach { put(it.key, tls.sha256(it)) } },
+            )
+        }
+    get("/tls") {
+        call.ok(describe(tls()))
+    }
+    put("/tls") {
+        val tls = tls()
+        val key = call.jsonBody().str("certificate")
+        val which =
+            key?.let(MockTls.Certificate::of)
+                ?: throw ApiException(400, "bad_request", "certificate is one of ${MockTls.Certificate.entries.map { it.key }}")
+        tls.use(which)
+        call.ok(describe(tls))
     }
 }
 

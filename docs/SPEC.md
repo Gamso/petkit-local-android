@@ -61,7 +61,15 @@ screen).
   - unreachable server;
   - local network access refused. From Android 17, reaching a server on the LAN needs the
     `ACCESS_LOCAL_NETWORK` runtime permission; without it packets are silently dropped. The app
-    asks for it, with its reason, before probing a LAN address.
+    asks for it, with its reason, before probing a LAN address;
+  - the server's certificate refused (section 8). The screen shows the host, the certificate's
+    subject, its validity dates and its SHA-256 fingerprint, and says why:
+    - not signed by an authority the phone trusts (a self-signed certificate, a home CA not
+      installed on the phone): it offers **Trust this certificate**, which pins it for this
+      address and signs in again;
+    - another certificate than the one pinned for this address: the new fingerprint next to the
+      old one, and **Trust the new certificate**;
+    - not for this host, or expired or not yet valid: refused, with nothing to trust.
 
 ### 2 · Home
 - Title (the household; single, not switchable in v1), notification bell, alert banners for
@@ -251,7 +259,21 @@ screen).
 ## 8. Security
 
 - The session token is stored encrypted (Android Keystore); the password is never stored.
-- HTTPS required off the LAN; no certificate pinning (the user's proxy or Cloudflare terminate TLS).
+- HTTPS required off the LAN. The app trusts the system's CAs and the user's (a home CA
+  installed in Android's settings), plus **at most one certificate the owner pinned explicitly**
+  for their server, from the sign-in screen (section 5.1):
+  - the pin is that leaf certificate, for that server's address (host and port), in addition to
+    the CAs, never in place of them; it covers every connection to the server (the API, media,
+    `/ws`, live video, talk, HLS and the notification socket), which share one HTTP client;
+  - the certificate must still name the host: one that does not is refused, pinned or not, and
+    never offered;
+  - it is stored with the session (encrypted like the token), and forgotten when the session ends
+    (signed out, or ended by the server) and when the app signs in to another server;
+  - a different certificate later (a renewal, or someone in the middle) is refused and never
+    accepted silently: wherever the app is, it shows the new fingerprint next to the pinned one
+    and asks again (**Trust the new certificate** or **Not now**).
+- There is no switch that turns certificate checks off: accepting any certificate would hand the
+  session token to whoever answers on the network.
 - The token travels only in the `Authorization` header, never in a URL (media and video included).
 - Screenshots of the video screen are allowed (it is the user's own camera).
 

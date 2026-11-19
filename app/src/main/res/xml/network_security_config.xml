@@ -2,11 +2,17 @@
 <!-- petkit-local on a home network usually listens on plain HTTP (SPEC.md §3), and a network
      security config cannot name "any private address". So cleartext is allowed here, and the app
      itself refuses plain HTTP to anything but a private LAN host (ServerAddresses, core:domain),
-     before a single request is made. -->
+     before a single request is made.
+
+     HTTPS trusts the system's CAs and the user's (a home CA installed in Android's settings).
+     A self-signed certificate is trusted only once the owner has pinned it from the sign-in
+     screen, in the app's own trust manager (core:network PinningTrustManager, SPEC.md §8). -->
 <network-security-config xmlns:tools="http://schemas.android.com/tools">
     <base-config cleartextTrafficPermitted="true" tools:ignore="InsecureBaseConfiguration">
         <trust-anchors>
             <certificates src="system" />
+            <!-- On purpose (issue #88): an owner's home CA, installed by the owner. -->
+            <certificates src="user" tools:ignore="AcceptsUserCertificates" />
         </trust-anchors>
     </base-config>
 </network-security-config>

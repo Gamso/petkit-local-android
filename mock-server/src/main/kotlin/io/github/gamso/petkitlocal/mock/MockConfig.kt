@@ -37,6 +37,13 @@ data class MockConfig(
     val timezone: ZoneId = ZoneId.of("Europe/Paris"),
     /** `server_version` in `/info`. */
     val serverVersion: String = "mock-0.1.0",
+    /**
+     * A second port serving the same API over HTTPS with a self-signed certificate (0: none), as a
+     * petkit-local behind a reverse proxy with its own certificate would (`tls/MockTls.kt`).
+     */
+    val tlsPort: Int = 0,
+    /** The names and addresses the certificate is for: what the app connects to. */
+    val tlsNames: List<String> = listOf("localhost", "127.0.0.1", "10.0.2.2"),
 ) {
     companion object {
         private const val ENV_PREFIX = "PETKIT_MOCK_"
@@ -85,6 +92,8 @@ data class MockConfig(
                     "ws-queue-limit",
                     "timezone",
                     "server-version",
+                    "tls-port",
+                    "tls-names",
                 )
             val unknown = values.keys - known
             require(unknown.isEmpty()) { "unknown option(s): ${unknown.sorted().joinToString()}" }
@@ -109,6 +118,14 @@ data class MockConfig(
                 wsQueueLimit = values["ws-queue-limit"]?.toInt() ?: d.wsQueueLimit,
                 timezone = values["timezone"]?.let { ZoneId.of(it) } ?: d.timezone,
                 serverVersion = values["server-version"] ?: d.serverVersion,
+                tlsPort = values["tls-port"]?.toInt() ?: d.tlsPort,
+                tlsNames =
+                    values["tls-names"]
+                        ?.split(',')
+                        ?.map { it.trim() }
+                        ?.filter { it.isNotEmpty() }
+                        ?.also { require(it.isNotEmpty()) { "tls-names needs at least one name" } }
+                        ?: d.tlsNames,
             )
         }
     }

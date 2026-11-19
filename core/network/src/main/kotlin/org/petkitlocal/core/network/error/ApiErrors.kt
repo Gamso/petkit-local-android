@@ -11,6 +11,8 @@ import org.petkitlocal.core.domain.UnauthorizedReason
 import org.petkitlocal.core.network.PetkitJson
 import org.petkitlocal.core.network.auth.AuthInterceptor
 import org.petkitlocal.core.network.dto.ErrorDto
+import org.petkitlocal.core.network.tls.certificateRefusal
+import org.petkitlocal.core.network.tls.toProblem
 import retrofit2.HttpException
 
 /** The server's `Error.error` codes this mapping tells apart (api/openapi.yaml). */
@@ -23,8 +25,9 @@ object ErrorCodes {
 
 /**
  * Runs one API call and turns every failure into a [DomainError]: a non-2xx answer by its
- * status and `Error` body, an I/O failure as [DomainError.Network], an answer that does not
- * parse as [DomainError.UnexpectedResponse]. Cancellation is rethrown, never swallowed.
+ * status and `Error` body, an I/O failure as [DomainError.Network] (or [DomainError.Certificate]
+ * when it was the server's certificate that was refused), an answer that does not parse as
+ * [DomainError.UnexpectedResponse]. Cancellation is rethrown, never swallowed.
  */
 @Suppress("TooGenericExceptionCaught") // Every failure must become a value; see the branches.
 suspend fun <T> apiCall(block: suspend () -> T): Outcome<T> = try {
@@ -34,11 +37,15 @@ suspend fun <T> apiCall(block: suspend () -> T): Outcome<T> = try {
 } catch (e: HttpException) {
     Outcome.Failure(e.toDomainError())
 } catch (e: IOException) {
-    Outcome.Failure(DomainError.Network(e.message))
+    Outcome.Failure(e.toDomainError())
 } catch (e: IllegalArgumentException) {
     // kotlinx.serialization's SerializationException: not the JSON petkit-local sends.
     Outcome.Failure(DomainError.UnexpectedResponse(e.message ?: e.javaClass.simpleName))
 }
+
+/** A failed connection: a refused certificate says why, anything else is [DomainError.Network]. */
+fun IOException.toDomainError(): DomainError =
+    certificateRefusal()?.let { DomainError.Certificate(it.toProblem()) } ?: DomainError.Network(message)
 
 fun HttpException.toDomainError(): DomainError {
     val response = response()

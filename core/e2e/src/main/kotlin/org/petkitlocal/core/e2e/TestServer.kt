@@ -25,6 +25,7 @@ import org.petkitlocal.core.network.dto.LoginRequestDto
  * | [URL_ARGUMENT] | [DEFAULT_URL] | the server's root as the emulator reaches it; [LEGACY_URL_ARGUMENT] also works |
  * | [PASSWORD_ARGUMENT] | [MOCK_PASSWORD] | the app password |
  * | [PANEL_URL_ARGUMENT] | none | the real server's panel; required with `real` |
+ * | [TLS_URL_ARGUMENT] | [DEFAULT_TLS_URL] | the mock's HTTPS port, with its self-signed certificate |
  *
  * By default that is the mock that `docker compose -f e2e/docker-compose.yml up` publishes on the
  * host, which the emulator reaches as 10.0.2.2. `scripts/real-server.sh up` starts the real one
@@ -45,6 +46,10 @@ object TestServer {
     const val PANEL_URL_ARGUMENT = "petkitServerPanelUrl"
 
     const val DEFAULT_URL = "http://10.0.2.2:8097"
+
+    /** The same mock over HTTPS (`--tls-port`), presenting a self-signed certificate ([MockServer.useCertificate]). */
+    const val TLS_URL_ARGUMENT = "petkitServerTlsUrl"
+    const val DEFAULT_TLS_URL = "https://10.0.2.2:8443"
 
     /** The mock's default password (`PETKIT_MOCK_PASSWORD`). */
     const val MOCK_PASSWORD = "demo"
@@ -69,6 +74,9 @@ object TestServer {
 
     /** What a user types in the sign-in screen's address field: [baseUrl] without its last slash. */
     val address: String get() = baseUrl.toString().removeSuffix("/")
+
+    /** The address of the mock's HTTPS port, as typed in the sign-in screen. */
+    val tlsAddress: String by lazy { (argument(TLS_URL_ARGUMENT) ?: DEFAULT_TLS_URL).removeSuffix("/") }
 
     /** The API base the app is given at sign-in: `<server>/app/v1/`. */
     val apiBaseUrl: HttpUrl by lazy { baseUrl.newBuilder().addPathSegments("app/v1/").build() }

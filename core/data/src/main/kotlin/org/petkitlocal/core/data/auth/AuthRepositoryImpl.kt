@@ -55,6 +55,8 @@ class AuthRepositoryImpl @Inject constructor(
     private val caches: Set<@JvmSuppressWildcards SessionScopedCache>,
     private val serverCaches: Set<@JvmSuppressWildcards ServerScopedCache>,
     @param:AuthCoroutineScope private val scope: CoroutineScope,
+    /** The pinned certificate, which goes with the session (and a sign-in elsewhere, as a server cache). */
+    private val certificates: CertificateTrust,
 ) : AuthRepository,
     ServerAddressProvider,
     SessionTokenProvider,
@@ -184,11 +186,23 @@ class AuthRepositoryImpl @Inject constructor(
 
     private suspend fun awaitLoadedSuspending() = loaded.await()
 
-    /** Forgets the session here, then every cache, and only then says so: no stale data shows. */
-    @Suppress("TooGenericExceptionCaught") // A cache that fails to clear must not keep the session.
+    /**
+     * Forgets the session here, with the certificate trusted for it (SPEC.md §8), then every cache,
+     * and only then says so: no stale data shows.
+     */
+    // A cache or a pin that fails to clear must not keep the session.
+    @Suppress("TooGenericExceptionCaught")
     private suspend fun clearLocally(reason: SessionEndReason?) {
         current = null
         store.clearSession(endedReason = reason?.name)
+        try {
+            certificates.forget()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (_: Exception) {
+            // Neither does a pin that fails to go: it applies to this server's host only, and the
+            // next sign-in to another server, or a trust, replaces it.
+        }
         caches.forEach { cache ->
             try {
                 cache.clear()

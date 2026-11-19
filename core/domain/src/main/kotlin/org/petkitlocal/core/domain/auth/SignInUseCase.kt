@@ -37,6 +37,12 @@ sealed interface SignInFailure {
     /** No answer: offline, DNS, TLS, timeout. */
     data class Unreachable(val detail: String?) : SignInFailure
 
+    /**
+     * The server's certificate was refused (SPEC.md §5.1). When [CertificateProblem.canTrust], the
+     * screen offers to trust it, which pins it for this server ([TrustCertificateUseCase]).
+     */
+    data class Certificate(val problem: CertificateProblem) : SignInFailure
+
     /** The server failed (5xx) or refused the request for a reason of its own. */
     data class ServerError(val status: Int?, val message: String?) : SignInFailure
 }
@@ -105,6 +111,7 @@ class SignInUseCase @Inject constructor(private val repository: AuthRepository) 
 
     private fun common(error: DomainError): SignInFailure = when (error) {
         is DomainError.Network -> SignInFailure.Unreachable(error.detail)
+        is DomainError.Certificate -> SignInFailure.Certificate(error.problem)
         is DomainError.RateLimited -> SignInFailure.LockedOut(error.retryAfter)
         is DomainError.Server -> SignInFailure.ServerError(error.status, error.message)
         else -> SignInFailure.ServerError(status = null, message = null)

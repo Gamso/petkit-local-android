@@ -1,6 +1,7 @@
 package org.petkitlocal.core.domain
 
 import kotlin.time.Duration
+import org.petkitlocal.core.domain.auth.CertificateProblem
 
 /**
  * Every way a call to the server can fail, as the rest of the app sees it. The data layer maps
@@ -10,6 +11,12 @@ import kotlin.time.Duration
 sealed interface DomainError {
     /** The server could not be reached or the connection broke: offline, DNS, TLS, timeout. */
     data class Network(val detail: String? = null) : DomainError
+
+    /**
+     * The server's TLS certificate was refused (SPEC.md §8): untrusted, changed since the owner
+     * pinned it, not for this host, or out of date. Nothing was sent.
+     */
+    data class Certificate(val problem: CertificateProblem) : DomainError
 
     /**
      * A call that checks the password was refused: sign-in, or changing the password.

@@ -29,6 +29,7 @@ import org.petkitlocal.core.domain.auth.ServerAddresses
 import org.petkitlocal.core.domain.auth.SignInFailure
 import org.petkitlocal.core.domain.auth.SignInResult
 import org.petkitlocal.core.domain.auth.SignInUseCase
+import org.petkitlocal.core.domain.auth.TrustCertificateUseCase
 
 /** What the sign-in screen shows (SPEC.md §5.1). */
 data class SignInUiState(
@@ -78,6 +79,7 @@ class SignInViewModel @Inject constructor(
     private val defaults: GetSignInDefaultsUseCase,
     observeAuthState: ObserveAuthStateUseCase,
     private val localNetwork: LocalNetworkAccess,
+    private val trustCertificate: TrustCertificateUseCase,
 ) : ViewModel() {
     private val form = MutableStateFlow(SignInUiState())
     private var countdown: Job? = null
@@ -137,6 +139,24 @@ class SignInViewModel @Inject constructor(
     fun onLocalNetworkResult(granted: Boolean) {
         form.update { it.copy(localNetworkRationale = false) }
         if (granted) onSubmit() else form.update { it.copy(failure = SignInFailure.LocalNetworkDenied) }
+    }
+
+    /**
+     * "Trust this certificate", under a refused one that may be trusted: it is pinned for the
+     * typed address, and the sign-in goes again with it (SPEC.md §5.1).
+     */
+    fun onTrustCertificate() {
+        val current = form.value
+        val problem = (current.failure as? SignInFailure.Certificate)?.problem ?: return
+        if (!problem.canTrust || current.submitting) return
+        form.update { it.copy(submitting = true) }
+        viewModelScope.launch {
+            if (trustCertificate(current.address, problem.presented)) {
+                submit(form.value)
+            } else {
+                form.update { it.copy(submitting = false) }
+            }
+        }
     }
 
     private fun submit(current: SignInUiState) {
