@@ -18,6 +18,7 @@ import io.github.gamso.petkitlocal.mock.api.UpdateState
 import io.github.gamso.petkitlocal.mock.api.UpdateTimeline
 import io.github.gamso.petkitlocal.mock.catalog.Catalog
 import io.github.gamso.petkitlocal.mock.seed.Seed
+import io.github.gamso.petkitlocal.mock.tls.MockTls
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -86,6 +87,9 @@ class World(
     val media = HashMap<String, MediaEntry>()
     val failures = mutableListOf<ForcedFailure>()
 
+    /** The HTTPS port's certificates, when it has one (`--tls-port`). */
+    val tls: MockTls? = if (config.tlsPort > 0) MockTls(config.tlsNames) else null
+
     /** Notification kinds switched off in the "panel" (control API): sent to no phone. */
     val disabledKinds = mutableSetOf<String>()
 
@@ -99,7 +103,10 @@ class World(
         reset()
     }
 
-    /** Back to the seed: devices, pets, seven days of history, the configured password, no sessions. */
+    /**
+     * Back to the seed: devices, pets, seven days of history, the configured password, no sessions,
+     * and the HTTPS port's first certificate.
+     */
     fun reset() =
         synchronized(lock) {
             scope.coroutineContext.cancelChildren()
@@ -115,6 +122,7 @@ class World(
             live.reset()
             talk.reset()
             notify.reset()
+            tls?.takeIf { it.current != MockTls.Certificate.PRIMARY }?.use(MockTls.Certificate.PRIMARY)
             random = Random(config.seed + 1)
             Seed(this, Random(config.seed)).build()
             log.info("world reset: {} devices, {} pets, {} timeline cards", devices.size, pets.size, timeline.cards.size)

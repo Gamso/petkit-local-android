@@ -24,5 +24,6 @@ COPY --from=build /src/mock-server/build/install/petkit-local-mock /opt/petkit-l
 USER mock
 # Every option is also a PETKIT_MOCK_* variable (README.md); the defaults are the real app API's.
 ENV JAVA_OPTS="-Djava.awt.headless=true -XX:MaxRAMPercentage=75"
-EXPOSE 8097
+# 8443: the HTTPS port, when PETKIT_MOCK_TLS_PORT sets it (e2e/docker-compose.yml).
+EXPOSE 8097 8443
 ENTRYPOINT ["/opt/petkit-local-mock/bin/petkit-local-mock"]

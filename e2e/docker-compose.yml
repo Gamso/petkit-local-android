@@ -17,8 +17,12 @@ services:
       dockerfile: mock-server/Dockerfile
     ports:
       - "8097:8097"
+      # The same API over HTTPS with a self-signed certificate, made at start, for the tests of
+      # the app's certificate trust (https://10.0.2.2:8443; switched through /mock/tls).
+      - "8443:8443"
     environment:
       PETKIT_MOCK_PASSWORD: demo
+      PETKIT_MOCK_TLS_PORT: "8443"
       # No scenario events: the tests see the seeded household and only what they change
       # through the control API (/mock).
       PETKIT_MOCK_SCENARIO_INTERVAL: "0"

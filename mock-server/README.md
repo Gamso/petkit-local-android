@@ -32,6 +32,9 @@ Pointing the app at it:
 - **Emulator:** `http://10.0.2.2:8097`. This is the emulator's address for the host.
 - **Phone on the LAN:** `http://<computer's IP>:8097`. The app accepts plain HTTP only for a private
   LAN address, with a warning.
+- **Over HTTPS, with a self-signed certificate:** start it with `--tls-port=8443` (and
+  `--tls-names=<computer's IP>,...` for a phone), then `https://10.0.2.2:8443`. The app shows the
+  certificate's fingerprint and asks before trusting it; the log prints the same fingerprint.
 - Sign in with `demo`.
 
 Try it with curl:
@@ -64,6 +67,8 @@ Every option can be set as a flag, `--name=value`, or as an environment variable
 | `ws-queue-limit` | `256` | Messages waiting for one `/ws` client before it is closed with 1013. |
 | `timezone` | `Europe/Paris` | Where days, meal times and one-off feeds are cut. |
 | `server-version` | `mock-0.1.0` | The `server_version` in `/info`. |
+| `tls-port` | `0` | A second port serving the same API over HTTPS, with a self-signed certificate made at start by the JDK's `keytool` (0: none). The certificate the port presents is switched through `/mock/tls`. |
+| `tls-names` | `localhost,127.0.0.1,10.0.2.2` | The names and addresses the certificate is for, comma-separated. |
 
 ## What it implements
 
@@ -274,6 +279,8 @@ Under `/mock`, no authentication, JSON in and out. It is meant for the app's end
 | `POST /mock/talk/close` | `code?` (default 1001), `reason?` | Closes every talk socket with that code (1000, 1001, 1009, 4401...). |
 | `POST /mock/scenario/tick` | | Rolls one scenario event now. |
 | `PUT /mock/scenario` | `interval_sec` | Restarts the engine at that interval; `0` stops it. |
+| `GET /mock/tls` | | The certificate the HTTPS port presents now (`certificate`, `sha256`), and every one's SHA-256 (`certificates`). 404 `tls_off` without `--tls-port`. |
+| `PUT /mock/tls` | `certificate`: `primary`, `renewed` or `wrong-host` | Presents that certificate from the next connection on, and closes the open ones: `renewed` is another certificate for the same names (a renewal), `wrong-host` one for `wrong-host.invalid` only. A reset goes back to `primary`. |
 
 ## Tests
 
