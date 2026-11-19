@@ -190,6 +190,38 @@ paths:
         A Bluetooth accessory answers here as well. A K3's entities are its
         `k3_liquid` (the cartridge level, %) and `k3_battery`; it has no actions. A
         fountain's are its pump, filter and settings, as Home Assistant shows them.
+
+        **A CTW3 (EverSweet Max Cordless / Max 2)** has the four controls PetKit's
+        app puts on its bottom bar, as these entities:
+
+        | PetKit's button | Entity | What to read, what to write |
+        |---|---|---|
+        | Pause | `ctw3_working` (switch) | `value` true = running, false = paused. `PUT {"value": false}` pauses, `true` resumes, in the current mode — allowed on battery. |
+        | Continuous | `ctw3_mode` (select) | `display` `normal` (`value` 1). `PUT {"value": "normal"}`. |
+        | Intermittent | `ctw3_mode` (select) | `display` `smart` (`value` 2). `PUT {"value": "smart"}`. |
+        | Battery mode | `ctw3_mode` + `ctw3_battery_mode` | `ctw3_mode.display` `battery` (`value` 3), and the read-only binary sensor `ctw3_battery_mode` true. Never written. |
+
+        `ctw3_mode.options` is `["normal", "smart"]` and stays so: `battery` is a
+        state the fountain enters by itself when it runs on battery, shown but never
+        offered. While it is shown, a `PUT` to `ctw3_mode` is refused with 422
+        `on_battery` and nothing is sent — PetKit's app does the same. The keys
+        `normal` and `smart` are stable; PetKit calls them Continuous and
+        Intermittent. Selecting a mode also switches the fountain on and un-pauses
+        it, as PetKit's app does. `ctw3_battery_mode` is null, and `ctw3_mode`
+        `value`/`display` null, until the fountain has reported a status. Both
+        change in `/ws` `state` messages (`EntityChange`) when the fountain is
+        unplugged or plugged back in.
+
+        Battery mode's own settings are the two sliders of PetKit's battery-mode
+        window, both in SECONDS and checked against `min`/`max` (422 `refused`
+        outside them):
+        `ctw3_energy_interval` is the working time (15–300, `step` 15) and
+        `ctw3_sleep_time` the sleep time (60–10800, `step` 60). PetKit's sliders
+        offer only multiples of `step`; another value within range is sent as is.
+        They can be written in any mode. Intermittent's are `ctw3_smart_work` and
+        `ctw3_smart_sleep`, in minutes (1–60). A settings write is refused (422
+        `refused`) until the fountain has reported its settings block once, since
+        the block is written whole.
       parameters:
         - { $ref: "#/components/parameters/DeviceId" }
       responses:
@@ -256,7 +288,9 @@ paths:
         `HH:MM` or `HH:MM:SS` for `time`, a string of at most 255 characters for
         `text`. The answer carries the entity with the value now stored; the
         device's next report confirms or overwrites it. A Bluetooth accessory's
-        setting is relayed by its parent, as an action is: sent now, or 409.
+        setting is relayed by its parent, as an action is: sent now, or 409. A
+        CTW3's `ctw3_mode` is refused with 422 `on_battery` while the fountain is on
+        battery (see `GET /devices/{id}`).
       parameters:
         - { $ref: "#/components/parameters/DeviceId" }
         - name: key
@@ -925,7 +959,7 @@ paths:
     get:
       tags: [notifications]
       operationId: openNotificationSocket
-      summary: Notifications over a WebSocket, with catch-up — no ntfy needed.
+      summary: Notifications over a WebSocket, with catch-up — no push service needed.
       description: |
         A socket for the app to keep open in the background, as a push distributor
         would. It carries notifications only, never device state (that is `/ws`), so it
@@ -958,9 +992,9 @@ paths:
         reused unless the log file itself is lost, which the next `hello` reports as
         a `gap`.
 
-        What is sent is what the ntfy topic and the UnifiedPush endpoints are sent: the
-        server's per-kind switches, one notification per event and the per-device rate
-        limit decide once for all three, then this session's `kinds`
+        What is sent is what the UnifiedPush endpoints are sent: the server's per-kind
+        switches, one notification per event and the per-device rate limit decide once
+        for both, then this session's `kinds`
         (`PUT /notifications`) choose among it. A session is owed catch-up from the
         first time it opens this socket until it ends.
 
@@ -1070,7 +1104,9 @@ components:
       description: |
         Understood and refused; nothing was changed. `error` says why:
         `confirmation_required`, `refused` (a value of the wrong type or out of
-        bounds), `not_settable`, `invalid_schedule`, `invalid_feed`.
+        bounds), `not_settable`, `invalid_schedule`, `invalid_feed`, `on_battery`
+        (a CTW3's mode, while the fountain runs on battery: plug it in, or set its
+        battery working and sleep times instead). `message` is a sentence to show.
       content:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
@@ -1369,16 +1405,18 @@ components:
           type: string
           description: |
             The full product name, generation included: `Pura Max 2`, `YumShare
-            Dual-Hopper 2`. Equal to `model` while the generation is unknown, and for
-            every codename sold in one generation only.
+            Dual-Hopper 2`, `EverSweet Max 2`. Equal to `model` while the generation is
+            unknown, and for every codename sold in one generation only.
         generation:
           type: [integer, "null"]
           description: |
             Which generation of its codename this is (2 for a Pura Max 2), as the owner
             set it in the panel or as learned from PetKit's `typeCode` (proxy mode) or
-            the device's own report; null while unknown, for a codename sold in one
-            generation only, and for an accessory. The same number PetKit's app keys its
-            device pictures on (`t4_2_…`).
+            the device's own report; null while unknown, and for a codename sold in one
+            generation only. An accessory has one too: a `ctw3` is an EverSweet Max
+            Cordless (1) or an EverSweet Max 2 (2), which today only the owner's choice
+            in the panel says -- nothing on the wire tells the two apart. The same number
+            PetKit's app keys its device pictures on (`t4_2_…`).
         kind:
           type: string
           enum: [litter_box, feeder, fountain, purifier, other]
@@ -1540,7 +1578,10 @@ components:
           description: Raw value; a boolean for `binary_sensor` and `switch`; null if unreported.
         display:
           type: [string, "null"]
-          description: The option label for an enum value, when it has one.
+          description: |
+            The option label for an enum value, when it has one. A `select` can
+            show a label that is not among its `options`: a state the device
+            enters by itself and that cannot be chosen (a CTW3's `battery`).
         unit: { type: [string, "null"] }
         device_class: { type: [string, "null"] }
         category:

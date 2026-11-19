@@ -1,5 +1,5 @@
 {
- "source": "2b080d1bca183f31288740defb238ef08e352482",
+ "source": "9e00c402df8a023eeb176e65fc5672c4451ed5bc",
  "models": {
   "t3": {
    "type": "t3",
@@ -8744,6 +8744,24 @@
      "settable": true,
      "min": null,
      "max": null,
+     "step": 1,
+     "readonly_options": {
+      "3": "battery"
+     }
+    },
+    {
+     "key": "ctw3_battery_mode",
+     "name": "Battery Mode",
+     "component": "binary_sensor",
+     "value_path": "states.batteryMode",
+     "unit": null,
+     "device_class": null,
+     "category": null,
+     "options": null,
+     "option_values": null,
+     "settable": false,
+     "min": null,
+     "max": null,
      "step": 1
     },
     {
@@ -8826,7 +8844,7 @@
      "option_values": null,
      "settable": true,
      "min": 15,
-     "max": 3600,
+     "max": 300,
      "step": 15
     },
     {
@@ -8841,12 +8859,12 @@
      "option_values": null,
      "settable": true,
      "min": 60,
-     "max": 7200,
+     "max": 10800,
      "step": 60
     },
     {
      "key": "ctw3_smart_work",
-     "name": "Smart Mode Run Time",
+     "name": "Intermittent Run Time",
      "component": "number",
      "value_path": "states.smartWorkingTime",
      "unit": "min",
@@ -8861,7 +8879,7 @@
     },
     {
      "key": "ctw3_smart_sleep",
-     "name": "Smart Mode Rest Time",
+     "name": "Intermittent Rest Time",
      "component": "number",
      "value_path": "states.smartSleepTime",
      "unit": "min",

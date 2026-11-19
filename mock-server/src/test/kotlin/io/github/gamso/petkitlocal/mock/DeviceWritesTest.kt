@@ -1,6 +1,7 @@
 package io.github.gamso.petkitlocal.mock
 
 import io.github.gamso.petkitlocal.mock.seed.Seed
+import io.ktor.http.HttpMethod
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.int
@@ -133,6 +134,77 @@ class DeviceWritesTest {
             assertEquals("accessory_unreachable", api.set(Seed.W5, "w5_light", "true").error)
             // An accessory has no network of its own to drop.
             assertEquals(400, api.client.control(io.ktor.http.HttpMethod.Post, "/devices/${Seed.W5}/offline").status)
+        }
+
+    @Test
+    fun `a CTW3 shows its battery mode, refuses a mode on it, and pauses, with PetKit's battery ranges`() =
+        mockTest { _, api ->
+            api.login()
+
+            suspend fun ctw3Entity(key: String) =
+                api
+                    .get("/devices/{id}", "/devices/${Seed.CTW3}")["device"]
+                    .arr("entities")
+                    .first { it.str("key") == key }
+                    .jsonObject
+            // Plugged in, in smart mode; then relayed over MQTT once its parent holds a session.
+            assertEquals("smart", ctw3Entity("ctw3_mode")["display"]!!.jsonPrimitive.content)
+            assertEquals(false, ctw3Entity("ctw3_battery_mode")["value"]!!.jsonPrimitive.content.toBoolean())
+            assertEquals(200, api.client.control(HttpMethod.Put, "/devices/${Seed.D4}/transport", """{"transport":"mqtt"}""").status)
+            assertEquals("mqtt", api.set(Seed.CTW3, "ctw3_mode", "\"normal\"")["delivered"].jsonPrimitive.content)
+
+            // Unplugged: mode 3 is shown as `battery`, never offered, and a mode write is refused.
+            api.client.control(HttpMethod.Put, "/devices/${Seed.CTW3}/state", """{"states.mode":3,"states.batteryMode":1}""")
+            val mode = ctw3Entity("ctw3_mode")
+            assertEquals(3, mode["value"]!!.jsonPrimitive.int)
+            assertEquals("battery", mode["display"]!!.jsonPrimitive.content)
+            assertEquals(listOf("normal", "smart"), mode["options"]!!.jsonArray.map { it.jsonPrimitive.content })
+            assertEquals(true, ctw3Entity("ctw3_battery_mode")["value"]!!.jsonPrimitive.content.toBoolean())
+            val refused = api.set(Seed.CTW3, "ctw3_mode", "\"smart\"")
+            assertEquals(422, refused.status)
+            assertEquals("on_battery", refused.error)
+            assertTrue("battery" in refused.json["message"]!!.jsonPrimitive.content)
+            assertEquals("refused", api.set(Seed.CTW3, "ctw3_mode", "\"battery\"").error)
+            assertEquals(3, ctw3Entity("ctw3_mode")["value"]!!.jsonPrimitive.int)
+
+            // Pause is allowed on battery: `ctw3_working` false is paused, true runs again.
+            val paused = api.set(Seed.CTW3, "ctw3_working", "false")["entity"].jsonObject
+            assertEquals(false, paused["value"]!!.jsonPrimitive.content.toBoolean())
+            assertEquals(
+                true,
+                api
+                    .set(Seed.CTW3, "ctw3_working", "true")["entity"]
+                    .jsonObject["value"]!!
+                    .jsonPrimitive.content
+                    .toBoolean(),
+            )
+
+            // The battery times, in seconds, within PetKit's own ranges, in any mode.
+            val work = ctw3Entity("ctw3_energy_interval")
+            assertEquals(listOf(15, 300, 15), listOf("min", "max", "step").map { work[it]!!.jsonPrimitive.int })
+            val sleep = ctw3Entity("ctw3_sleep_time")
+            assertEquals(listOf(60, 10800, 60), listOf("min", "max", "step").map { sleep[it]!!.jsonPrimitive.int })
+            assertEquals(
+                120,
+                api
+                    .set(Seed.CTW3, "ctw3_energy_interval", "120")["entity"]
+                    .jsonObject["value"]!!
+                    .jsonPrimitive.int,
+            )
+            assertEquals("refused", api.set(Seed.CTW3, "ctw3_energy_interval", "301").error)
+            assertEquals("refused", api.set(Seed.CTW3, "ctw3_sleep_time", "30").error)
+
+            // Plugged in again, its real mode shows, and a mode can be picked again, un-pausing it.
+            api.client.control(HttpMethod.Put, "/devices/${Seed.CTW3}/state", """{"states.mode":1,"states.batteryMode":0}""")
+            api.set(Seed.CTW3, "ctw3_working", "false")
+            assertEquals(
+                "smart",
+                api
+                    .set(Seed.CTW3, "ctw3_mode", "\"smart\"")["entity"]
+                    .jsonObject["display"]!!
+                    .jsonPrimitive.content,
+            )
+            assertEquals(true, ctw3Entity("ctw3_working")["value"]!!.jsonPrimitive.content.toBoolean())
         }
 
     @Test

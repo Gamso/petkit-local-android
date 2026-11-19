@@ -117,6 +117,11 @@ the commit recorded in `api/SOURCE`.
     and refused with 409 `accessory_unreachable` otherwise, never queued.
   - `delivered` is `mqtt` for a device online on MQTT, `queued` otherwise, and `local` for
     petkit-local's own settings.
+  - A CTW3's battery mode (`states.mode` 3) shows as `ctw3_mode` `display` `battery`, never among
+    its `options`, with the read-only `ctw3_battery_mode` true. A `ctw3_mode` write then gets 422
+    `on_battery` (after the relay check, as petkit-local orders them) and nothing is stored; Pause
+    (`ctw3_working`) and the battery times (`ctw3_energy_interval` 15–300 s, `ctw3_sleep_time`
+    60–10800 s) are still written. Picking a mode also powers the fountain on and un-pauses it.
 - **Feeding:** plan read, write and pause; one-off feeds with `invalid_schedule` / `invalid_feed`.
   Due meals and one-off feeds are served at their time.
 - **Timeline**
@@ -189,7 +194,7 @@ the commit recorded in `api/SOURCE`.
 | 2004 | d4sh | YumShare Dual-Hopper 2 | feeder | mqtt | Camera, generation 2; hopper 2 empty. |
 | 3001 | w7h | EverSweet Ultra AI | fountain | mqtt | Camera; recognises the cats' drinks. |
 | 3002 | w5 | EverSweet 3 Pro | fountain | ble, via 2004 | Relayed over MQTT: writes go through. Last frame three hours ago. |
-| 3003 | ctw3 | EverSweet Max Cordless | fountain | ble, via 2001 | Battery. Its parent polls HTTP: writes get 409. |
+| 3003 | ctw3 | EverSweet Max Cordless | fountain | ble, via 2001 | Battery, plugged in, smart mode. Its parent polls HTTP: writes get 409 until `PUT /mock/devices/2001/transport` puts it on MQTT. `PUT /mock/devices/3003/state {"states.mode": 3, "states.batteryMode": 1}` unplugs it. |
 | 4001 | k3 | Pura Air K3 | purifier | ble, via 1002 | The Pura Max 2's K3: liquid (N60) and battery only, no actions. |
 
 - **Pets:** Mochi (id 1, 4.2 kg entered, learned weight in use, has a photo) and Tigrou (id 2,
@@ -261,6 +266,7 @@ Under `/mock`, no authentication, JSON in and out. It is meant for the app's end
 | `POST /mock/devices/{id}/offline`, `/online` | | Sends a `device` message; an MQTT device falls back to `http` while offline. |
 | `POST /mock/devices/{id}/remove` | | Sends `device_removed`; a reset brings the device back. |
 | `PUT /mock/devices/{id}/talk` | `talk`: `available`, `needs_patcher`, `device_unreachable` or `unsupported` | Sets whether the device can be talked through, with a `device` message. |
+| `PUT /mock/devices/{id}/transport` | `transport`: `mqtt` or `http` | Moves a device (not an accessory) to that transport, with `device` messages for it and the accessories it relays: an accessory is written only through a parent on MQTT. Back online after `offline`, a device returns to its seeded transport. |
 | `PUT /mock/devices/{id}/state` | `{"<value_path>": value, ...}` | Sets raw state behind any entity, for example `{"consumables.liquid": 5}`. |
 | `POST /mock/clock/advance` | `seconds` | Moves the fake clock forward, for session expiry and lockouts. |
 | `GET /mock/sessions` | | Live sessions, with the notification `kinds` each chose. |

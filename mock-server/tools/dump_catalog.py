@@ -48,6 +48,11 @@ def model(codename: str) -> dict:
             "option_values": list(e.option_values) if e.option_values else None,
             "settable": e.is_settable,
             "min": e.min_value, "max": e.max_value, "step": e.step,
+            # A select's values it shows but never offers (a CTW3's 3, `battery`),
+            # keyed by the raw value as JSON object keys must be: strings. Only on
+            # the entities that have some.
+            **({"readonly_options": {str(v): label for v, label in e.readonly_options.items()}}
+               if getattr(e, "readonly_options", None) else {}),
         } for e in entities if e.component in VALUE_COMPONENTS],
         # Destructive last, as the real server orders them.
         "actions": sorted(({"key": e.key, "name": e.name,

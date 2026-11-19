@@ -54,6 +54,11 @@ data class EntityDef(
     val category: String? = null,
     val options: List<String>? = null,
     @SerialName("option_values") val optionValues: List<JsonPrimitive>? = null,
+    /**
+     * Raw values a select shows but never offers, keyed by the value as text, to their label: a
+     * CTW3's `3`, `battery` (`ha/discovery.py` `readonly_options`). Never among [options].
+     */
+    @SerialName("readonly_options") val readonlyOptions: Map<String, String>? = null,
     val settable: Boolean,
     val min: Double? = null,
     val max: Double? = null,
