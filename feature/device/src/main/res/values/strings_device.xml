@@ -49,6 +49,8 @@
     <string name="device_error_unexpected">The server\'s answer was not understood.</string>
     <string name="device_error_server">The server failed (%1$s).</string>
     <string name="device_error_refused">The server refused it.</string>
+    <!-- 422 on_battery: a CTW3's mode, while it runs its battery mode (Gamso/petkit-local#116). -->
+    <string name="device_error_on_battery">The fountain is on battery: it stays in battery mode until it is plugged in again. Its battery times can be set under Battery mode.</string>
     <string name="device_error_not_found">The device is no longer on the server.</string>
     <!-- A Bluetooth accessory's screen: the device relaying it, which the line opens. -->
     <string name="device_relay">Reports through %1$s</string>

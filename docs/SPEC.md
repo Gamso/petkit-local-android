@@ -201,10 +201,11 @@ screen).
   battery on the CTW3; drinking tray, clean and waste water tanks and pump on the W7H. A value the
   fountain does not report draws no pill; "missing" or "low" only when it says so.
 - Under the header, one status area: the battery's level when the fountain reports it; a chip
-  for each feature the model has and reports ON (smart mode, do not disturb, child lock), nothing
-  for one that is off or unreported; and for a Bluetooth fountain, when it last reported and
-  through which device, online or not ("Seen 2 min ago · via YumShare Dual-Hopper (online)"),
-  which opens that device. A write to it needs that device on MQTT.
+  for each feature the model has and reports ON (smart or intermittent mode, do not disturb,
+  child lock), nothing for one that is off or unreported; and for a Bluetooth fountain, when it
+  last reported and through which device, online or not
+  ("Seen 2 min ago · via YumShare Dual-Hopper (online)"), which opens that device. A write to it
+  needs that device on MQTT.
 - **Today**: on the W7H (camera, on-device recognition), drinks and their average duration
   against yesterday, each pet's drinks, and the 24-hour chart of the drinks with a pet filter. A
   Bluetooth fountain reports no drinks: its pump's running time today, as the fountain counts it
@@ -219,6 +220,17 @@ screen).
   collapsed row is the mode selector, one tile per option the server lists, in place of the
   quick actions: the selected tile is the mode the fountain reported, a tapped one shows as
   pending until its report says so, and every action is behind More. That row is not editable.
+  A W5's options are Normal and Smart, PetKit's names for that model.
+- **CTW3 bar** (EverSweet Max Cordless, Gamso/petkit-local#116), as PetKit's: **Pause**
+  (`ctw3_working`, a switch: filled while paused, the mode staying selected), **Continuous** and
+  **Intermittent** (the stable keys `normal` and `smart` of `ctw3_mode`), and **Battery mode**.
+  The battery mode is a state, never a choice: the fountain enters it by itself unplugged
+  (`ctw3_mode` shows `battery`, outside its options, and `ctw3_battery_mode` is true), so its tile
+  is filled while it lasts and no mode is selected; a tap opens its working and sleep times
+  (`ctw3_energy_interval` 15–300 s, `ctw3_sleep_time` 60–10800 s), each with the settings
+  screen's editor. On battery, Continuous and Intermittent stay enabled: a tap is sent, and the
+  server's refusal (422 `on_battery`) is said in the banner over the bar, in the app's words.
+  Pause works on battery too.
 
 ## 6. Cross-cutting behaviour
 

@@ -38,6 +38,8 @@ import org.petkitlocal.feature.device.common.CommandState
 import org.petkitlocal.feature.device.common.DeviceCommandController
 import org.petkitlocal.feature.device.generic.isUnreachable
 import org.petkitlocal.feature.device.litter.PageLoadState
+import org.petkitlocal.feature.device.settings.SettingEditorController
+import org.petkitlocal.feature.device.settings.SettingEditorState
 
 /**
  * What the fountain page shows. [page] is the cache (null until read, or when the device is gone,
@@ -61,6 +63,10 @@ data class FountainUiState(
     val openPart: DevicePart? = null,
     /** The mode option last tapped, until the fountain reports it, the write fails or it times out. */
     val requestedMode: String? = null,
+    /** The battery mode's times are open, from the bar's battery mode tile. */
+    val batteryModeOpen: Boolean = false,
+    /** The editor of one of them, over their window. */
+    val editor: SettingEditorState? = null,
     /** What "Seen 2 min ago" counts from: the page's clock, moved on every minute while shown. */
     val now: Instant = Instant.EPOCH,
 ) : PageLoadState {
@@ -81,10 +87,12 @@ data class FountainUiState(
  * shown, and refreshes when it opens. Actions, their confirmation and the mode chips go through
  * the device screens' shared [DeviceCommandController]: nothing changes on screen but its feedback
  * until the device's next report. A mode tapped on the bottom bar shows as pending, the selection
- * staying on what the fountain reported, until its report carries the new mode.
+ * staying on what the fountain reported, until its report carries the new mode. A mode tapped on
+ * battery is sent all the same: the server is the one that knows, and its refusal is the banner.
  */
 @OptIn(ExperimentalCoroutinesApi::class) // flatMapLatest
 @HiltViewModel
+@Suppress("TooManyFunctions") // One function per user intent (ARCHITECTURE.md §3).
 class FountainViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     observeFountain: ObserveFountainUseCase,
@@ -98,6 +106,7 @@ class FountainViewModel @Inject constructor(
     val deviceId: Long = checkNotNull(savedStateHandle[DEVICE_ID_KEY]) { "no $DEVICE_ID_KEY argument" }
 
     private val commands = DeviceCommandController(viewModelScope, deviceId, runAction, setEntityValue)
+    private val editor = SettingEditorController(viewModelScope, commands)
     private val day = MutableStateFlow(today())
     private val local = MutableStateFlow(FountainUiState(zone = clock.zone, now = clock.instant()))
     private var modeConfirmation: Job? = null
@@ -107,8 +116,15 @@ class FountainViewModel @Inject constructor(
         observeLiveUpdates(),
         commands.state,
         local,
-    ) { page, live, commands, state ->
-        state.copy(page = page, loaded = true, liveUnreachable = live.isUnreachable(), commands = commands)
+        editor.open,
+    ) { page, live, commands, state, editing ->
+        state.copy(
+            page = page,
+            loaded = true,
+            liveUnreachable = live.isUnreachable(),
+            commands = commands,
+            editor = editor.state(editing, page?.device),
+        )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), local.value)
 
     init {
@@ -160,6 +176,35 @@ class FountainViewModel @Inject constructor(
             }
             local.update { if (it.requestedMode == option) it.copy(requestedMode = null) else it }
         }
+    }
+
+    /**
+     * The bar's Pause: a running fountain is paused, a paused one runs again, in the mode it was
+     * in (the Pause switch is on while it runs). Sent through the shared controller, so the banner
+     * says how it went out or why not, and the tile follows the server's answer, never the tap.
+     */
+    fun onPause() {
+        val state = uiState.value
+        val pause = state.page?.modeBar?.pause ?: return
+        val entity = state.page.device.entity(pause.key) ?: return
+        commands.onWrite(entity, EntityValue.Bool(pause.paused == true))
+    }
+
+    /** The battery mode's times open ([open]) from the bar, or close; an editor open over them goes too. */
+    fun onBatteryMode(open: Boolean) {
+        if (!open) editor.onDismiss()
+        local.update { it.copy(batteryModeOpen = open) }
+    }
+
+    /** One battery time's editor opens, or ([key] null) closes, back to the battery mode's window. */
+    fun onEdit(key: String?) {
+        val entity = key?.let { uiState.value.page?.device?.entity(it) }
+        if (entity == null) editor.onDismiss() else editor.onEdit(entity)
+    }
+
+    /** The editor's value: checked first, then sent; the editor closes once the server took it. */
+    fun onSave(key: String, value: EntityValue) {
+        uiState.value.page?.device?.entity(key)?.let { editor.onSave(it, value) }
     }
 
     /** A minute has passed: "Seen 2 min ago" counts it. */

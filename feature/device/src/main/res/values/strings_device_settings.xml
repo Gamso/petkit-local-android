@@ -56,11 +56,14 @@
     <string name="device_help_fountain_time">In intermittent mode, how long the water runs.</string>
     <string name="device_help_sleep_time">In intermittent mode, how long it rests between runs.</string>
     <string name="device_help_w5_mode">Normal runs the pump all the time; smart alternates running and resting.</string>
-    <string name="device_help_ctw3_mode">Normal runs the pump all the time; smart alternates running and resting.</string>
+    <string name="device_help_ctw3_mode">Continuous runs the pump all the time; intermittent alternates running and resting. On battery, the fountain runs its battery mode instead.</string>
     <string name="device_help_w5_smart_work">In smart mode, how long the pump runs.</string>
     <string name="device_help_w5_smart_sleep">In smart mode, how long the pump rests.</string>
-    <string name="device_help_ctw3_smart_work">In smart mode, how long the pump runs.</string>
-    <string name="device_help_ctw3_smart_sleep">In smart mode, how long the pump rests.</string>
+    <string name="device_help_ctw3_smart_work">In intermittent mode, how long the pump runs.</string>
+    <string name="device_help_ctw3_smart_sleep">In intermittent mode, how long the pump rests.</string>
+    <string name="device_help_ctw3_working">Off pauses the fountain without changing its mode, on battery too.</string>
+    <string name="device_help_ctw3_energy_interval">In battery mode, how long the pump runs before it sleeps.</string>
+    <string name="device_help_ctw3_sleep_time">In battery mode, how long the pump sleeps between runs.</string>
     <string name="device_help_auto_refill">Refills the bowl from the clean water tank on its own.</string>
     <string name="device_help_auto_water_change">Drains and refills the water on a schedule.</string>
     <string name="device_help_water_change_cycle">Every how many days the water is changed.</string>

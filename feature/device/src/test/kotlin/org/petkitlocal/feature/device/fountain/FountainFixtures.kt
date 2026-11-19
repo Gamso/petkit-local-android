@@ -30,7 +30,8 @@ import org.petkitlocal.feature.device.common.CommandSubject
  * Fountains as the mock serves them (mock-server/README.md), with the entity and action keys
  * petkit-local defines: the EverSweet Ultra AI (W7H, on mains) with its drinks and its flow mode,
  * the EverSweet 3 Pro (W5) relayed by the YumShare Dual-Hopper, and an EverSweet Max Cordless
- * (CTW3, on battery) in trouble. Each has a settable mode, so each page has the mode selector.
+ * (CTW3) in trouble, then running on battery. Each has a settable mode, so each page has the mode
+ * selector; the CTW3's also has Pause and its battery mode, as PetKit's bar does.
  */
 object FountainFixtures {
     val actionsW7h = listOf(
@@ -90,8 +91,11 @@ object FountainFixtures {
         parentId = 2004,
     ).copy(lastSeen = Instant.parse("2026-11-15T05:53:00Z"))
 
-    /** A CTW3 low on water, filter and battery, its pump at rest, in smart mode, do not disturb on. */
-    val ctw3 = Household.device(
+    /**
+     * A CTW3 low on water, filter and battery, its pump at rest, plugged in, in smart mode (PetKit's
+     * Intermittent), running, do not disturb on; [mode] 3 is its battery mode, [working] false paused.
+     */
+    fun ctw3(mode: Int = 2, working: Boolean = true) = Household.device(
         3003,
         "ctw3",
         "EverSweet Max Cordless",
@@ -101,14 +105,52 @@ object FountainFixtures {
         binary("ctw3_water_lack", true, "problem", "Water Low"),
         binary("ctw3_running", false, "running", "Pump Running"),
         binary("ctw3_low_battery", true, "battery", "Low Battery"),
-        mode("ctw3_mode", "smart"),
+        switch("ctw3_working", "Working", working),
+        ctw3Mode(mode),
+        Entity("ctw3_battery_mode", "Battery Mode", EntityComponent.BinarySensor, EntityValue.Bool(mode == BATTERY)),
         switch("ctw3_dnd", "Do Not Disturb", true),
         switch("ctw3_child_lock", "Child Lock", false),
+        seconds("ctw3_energy_interval", "Battery Work Time", 60.0, 15.0..300.0, 15.0),
+        seconds("ctw3_sleep_time", "Battery Sleep Time", 600.0, 60.0..10_800.0, 60.0),
         sensor("ctw3_pump_today", EntityValue.Number(2_100.0), unit = "s", category = EntityCategory.Diagnostic),
         actions = listOf(DeviceAction("ctw3_reset_filter", "Reset Filter", true)),
         connection = DeviceConnection.Ble,
         parentId = 2001,
     ).copy(lastSeen = Instant.parse("2026-11-15T08:41:00Z"))
+
+    val ctw3 = ctw3()
+
+    /** A CTW3's mode as petkit-local renders it: 1 normal, 2 smart, 3 battery, which is no option. */
+    private fun ctw3Mode(mode: Int) = Entity(
+        "ctw3_mode",
+        "Flow Mode",
+        EntityComponent.Select,
+        EntityValue.Number(mode.toDouble()),
+        display = mapOf(1 to "normal", 2 to "smart", BATTERY to "battery")[mode],
+        options = listOf("normal", "smart"),
+        settable = true,
+    )
+
+    private const val BATTERY = 3
+
+    private fun seconds(
+        key: String,
+        name: String,
+        value: Double,
+        range: ClosedFloatingPointRange<Double>,
+        step: Double,
+    ) = Entity(
+        key,
+        name,
+        EntityComponent.Number,
+        EntityValue.Number(value),
+        unit = "s",
+        min = range.start,
+        max = range.endInclusive,
+        step = step,
+        category = EntityCategory.Config,
+        settable = true,
+    )
 
     val todayItems: List<TimelineItem> = listOf(
         item(40, 3001, at(9, 30), TimelineCategory.Drinking, pet = 2, duration = 42),
@@ -178,6 +220,37 @@ object FountainFixtures {
                 id = 1,
             ),
         ),
+    )
+
+    /** The CTW3's relay on MQTT, so its writes go through. */
+    val onlineRelay = Household.feeder.copy(transport = DeviceTransport.Mqtt)
+
+    /**
+     * The CTW3 unplugged: its battery mode filled, neither mode selected, and Continuous refused
+     * with the server's own code (422 `on_battery`), said in the banner above the bar.
+     */
+    val battery = FountainUiState(
+        page = page(ctw3(mode = BATTERY), relay = onlineRelay),
+        loaded = true,
+        zone = Household.zone,
+        now = now,
+        commands = CommandState(
+            feedback = CommandFeedback(
+                CommandSubject.Setting("ctw3_mode", "Flow Mode"),
+                CommandResult.Failed(
+                    DomainError.Validation(field = null, code = "on_battery", message = "the fountain is on battery"),
+                ),
+                id = 1,
+            ),
+        ),
+    )
+
+    /** The CTW3 paused, plugged in, in its continuous mode (`normal`). */
+    val paused = FountainUiState(
+        page = page(ctw3(mode = 1, working = false), relay = onlineRelay),
+        loaded = true,
+        zone = Household.zone,
+        now = now,
     )
 
     val sent = CommandResult.Sent(CommandDelivery.Mqtt)

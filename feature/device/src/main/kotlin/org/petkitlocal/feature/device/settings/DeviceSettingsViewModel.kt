@@ -15,14 +15,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.petkitlocal.core.domain.DomainError
-import org.petkitlocal.core.domain.Outcome
 import org.petkitlocal.core.domain.device.DeviceIdentity
 import org.petkitlocal.core.domain.device.DeviceSettingsPage
 import org.petkitlocal.core.domain.device.EntityWriteProblem
-import org.petkitlocal.core.domain.device.EntityWrites
 import org.petkitlocal.core.domain.device.ObserveDeviceSettingsUseCase
 import org.petkitlocal.core.domain.device.ObserveLiveUpdatesUseCase
 import org.petkitlocal.core.domain.device.RunDeviceActionUseCase
@@ -87,14 +84,8 @@ class DeviceSettingsViewModel @Inject constructor(
 ) : ViewModel() {
     private val deviceId: Long = checkNotNull(savedStateHandle[DEVICE_ID_KEY])
     private val commands = DeviceCommandController(viewModelScope, deviceId, runAction, setEntityValue)
+    private val editor = SettingEditorController(viewModelScope, commands)
     private val zone = clock.zone
-
-    private data class Editing(
-        val key: String,
-        val problem: EntityWriteProblem? = null,
-        val error: DomainError? = null,
-        val saving: Boolean = false,
-    )
 
     /** The device once read, wrapped so that "read, and gone" (null inside) differs from "not read yet". */
     private data class Snapshot(val page: DeviceSettingsPage?) {
@@ -105,14 +96,13 @@ class DeviceSettingsViewModel @Inject constructor(
         .map(::Snapshot)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
 
-    private val editing = MutableStateFlow<Editing?>(null)
     private val serialCopied = MutableStateFlow(false)
     private var copiedReset: Job? = null
 
     val uiState: StateFlow<DeviceSettingsUiState> = combine(
         snapshot,
         observeLiveUpdates(),
-        editing,
+        editor.open,
         commands.state,
         serialCopied,
     ) { snapshot, live, editing, commands, copied ->
@@ -125,9 +115,7 @@ class DeviceSettingsViewModel @Inject constructor(
             consumables = page?.consumables.orEmpty(),
             puraAir = page?.puraAir,
             groups = page?.groups.orEmpty(),
-            editor = editing?.let { open ->
-                device?.entity(open.key)?.let { SettingEditorState(it, open.problem, open.error, open.saving) }
-            },
+            editor = editor.state(editing, device),
             offline = live.isUnreachable(),
             commands = commands,
             zone = zone,
@@ -142,32 +130,14 @@ class DeviceSettingsViewModel @Inject constructor(
     }
 
     fun onEdit(key: String) {
-        if (current(key) != null) editing.value = Editing(key)
+        current(key)?.let(editor::onEdit)
     }
 
-    fun onDismissEditor() {
-        editing.value = null
-    }
+    fun onDismissEditor() = editor.onDismiss()
 
-    /** The editor's value: checked here first, then sent; the editor closes once it is taken. */
+    /** The editor's value: checked first, then sent; the editor closes once it is taken. */
     fun onSave(key: String, value: EntityValue) {
-        val entity = current(key) ?: return
-        if (editing.value?.saving == true) return
-        EntityWrites.problem(entity, value)?.let { problem ->
-            editing.update { it?.copy(problem = problem, error = null) }
-            return
-        }
-        editing.update { it?.copy(problem = null, error = null, saving = true) }
-        viewModelScope.launch {
-            val result = commands.write(entity, value, reportFailure = false)
-            editing.update { open ->
-                when {
-                    open?.key != key -> open
-                    result is Outcome.Failure -> open.copy(saving = false, error = result.error)
-                    else -> null
-                }
-            }
-        }
+        current(key)?.let { editor.onSave(it, value) }
     }
 
     /** A consumable's reset: sent at once, or first confirmed when the server says it cannot be undone. */

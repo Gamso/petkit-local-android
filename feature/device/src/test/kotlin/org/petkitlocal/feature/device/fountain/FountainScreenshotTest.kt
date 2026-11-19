@@ -15,6 +15,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.devicepage.DevicePart
+import org.petkitlocal.core.testing.Household
 import org.petkitlocal.core.testing.ScreenshotVariant
 import org.petkitlocal.core.ui.LiveCardState
 import org.petkitlocal.core.ui.PreviewImages
@@ -28,10 +29,12 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * The fountain page in light/dark x EN/FR, each with its mode selector at the bottom: the W7H on
- * mains with its drinks (the busiest state), a Bluetooth W5 with its relay online, a CTW3 on
- * battery in trouble with its relay offline and the server's refusal (neither has More: their one
- * button is on the filter's pill), all three also at 130 % font scale; the W7H whose drinks came
- * without durations, and the W5's filter explanation. The golden images are in src/test/screenshots.
+ * mains with its drinks (the busiest state), a Bluetooth W5 with its relay online, a CTW3 in
+ * trouble with its relay offline and the server's refusal (neither has More: their one button is
+ * on the filter's pill), the CTW3 unplugged, its battery mode filled and a mode refused with the
+ * server's `on_battery`, all four also at 130 % font scale; the W7H whose drinks came without
+ * durations, the W5's filter explanation and the CTW3's battery mode window. The golden images are
+ * in src/test/screenshots.
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -49,6 +52,20 @@ class FountainScreenshotTest(private val variant: ScreenshotVariant) {
 
     @Test
     fun trouble() = capture("fountain_trouble") { Screen(FountainFixtures.trouble) }
+
+    @Test
+    fun battery() = capture("fountain_battery") { Screen(FountainFixtures.battery) }
+
+    @Test
+    fun batteryMode() {
+        if (variant.fontScale != 1f) return
+        val page = FountainFixtures.battery.page!!
+        capture("fountain_battery_mode") {
+            Box(Modifier.background(PkTheme.colors.background).padding(16.dp)) {
+                FountainBatteryModeContent(page.device, page.modeBar!!.battery!!, Household.zone, {}, {})
+            }
+        }
+    }
 
     @Test
     fun untimed() {

@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
@@ -326,8 +327,9 @@ private fun ActionTile(
 
 /**
  * The shape every tile of the sheet's row shares: [symbol] on a [background] tile, the name under
- * it. A button by default; with [selected], one option of a group (a radio button), its name in
- * bold when selected and its [state] said to TalkBack when given.
+ * it. A button by default; with [selected], one option of a group (a radio button); with [toggled],
+ * a switch (a fountain's Pause). Its name is in bold when selected, toggled on or [emphasised],
+ * and its [state] is said to TalkBack when given.
  */
 @Composable
 internal fun SheetTile(
@@ -336,14 +338,16 @@ internal fun SheetTile(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     selected: Boolean? = null,
+    toggled: Boolean? = null,
+    emphasised: Boolean = selected == true || toggled == true,
     state: String? = null,
     symbol: @Composable () -> Unit,
 ) {
     // Inside the tile's clip, so the ripple has the tile's shape.
-    val interaction = if (selected == null) {
-        Modifier.clickable(onClick = onClick, role = Role.Button)
-    } else {
-        Modifier.selectable(selected = selected, onClick = onClick, role = Role.RadioButton)
+    val interaction = when {
+        selected != null -> Modifier.selectable(selected = selected, onClick = onClick, role = Role.RadioButton)
+        toggled != null -> Modifier.toggleable(value = toggled, role = Role.Switch, onValueChange = { onClick() })
+        else -> Modifier.clickable(onClick = onClick, role = Role.Button)
     }
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -363,7 +367,7 @@ internal fun SheetTile(
             symbol()
         }
         Spacer(Modifier.padding(top = PkTheme.spacing.xs))
-        WholeWordLabel(label, emphasised = selected == true)
+        WholeWordLabel(label, emphasised = emphasised)
     }
 }
 

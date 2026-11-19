@@ -58,10 +58,11 @@ internal fun statusText(status: DeviceStatus, labels: ServerLabels): String = wh
 
 /**
  * An option label or enum value as a sentence-case phrase: translated by its key when the app
- * knows it, else the server's text with its underscores read as spaces (`do_not_flow`).
+ * knows it (as select [entityKey] names it, when given: a CTW3's `normal` is Continuous), else
+ * the server's text with its underscores read as spaces (`do_not_flow`).
  */
-internal fun optionText(value: String, labels: ServerLabels): String =
-    labels.option(value).replace('_', ' ').replaceFirstChar { it.titlecase() }
+internal fun optionText(value: String, labels: ServerLabels, entityKey: String? = null): String =
+    labels.option(value, entityKey).replace('_', ' ').replaceFirstChar { it.titlecase() }
 
 /** How petkit-local passed a command on, in one sentence. */
 @Composable
@@ -79,7 +80,7 @@ internal fun deliveryText(delivery: CommandDelivery): String = stringResource(
  */
 @Composable
 internal fun errorText(error: DomainError): String = when (error) {
-    is DomainError.Validation -> error.message.ifBlank { stringResource(R.string.device_error_refused) }
+    is DomainError.Validation -> validationText(error)
 
     is DomainError.NotFound -> error.message.ifBlank { stringResource(R.string.device_error_not_found) }
 
@@ -99,6 +100,23 @@ internal fun errorText(error: DomainError): String = when (error) {
 
     is DomainError.UnexpectedResponse -> stringResource(R.string.device_error_unexpected)
 }
+
+/**
+ * A refusal: in the app's words for a code it has them for (the server's `message` is English),
+ * else the server's own message, else that it refused.
+ */
+@Composable
+private fun validationText(error: DomainError.Validation): String =
+    VALIDATION_TEXTS[error.code]?.let { stringResource(it) }
+        ?: error.message.ifBlank { stringResource(R.string.device_error_refused) }
+
+/**
+ * The 422 codes the app words itself, in the phone's language, rather than show the server's
+ * English `message`: `on_battery`, a CTW3's mode while it runs on battery (`api/openapi.yaml`).
+ */
+private val VALIDATION_TEXTS: Map<String, Int> = mapOf(
+    "on_battery" to R.string.device_error_on_battery,
+)
 
 /** What is wrong with a value in an editor, said next to it. */
 @Composable

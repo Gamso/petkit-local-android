@@ -5,7 +5,10 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
@@ -23,6 +26,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -40,6 +44,7 @@ import org.petkitlocal.feature.device.common.DeviceTestTags
 import org.petkitlocal.feature.device.common.QuickActionsTestTags
 import org.petkitlocal.feature.device.litter.PageCommandCallbacks
 import org.petkitlocal.feature.device.litter.PageTestTags
+import org.petkitlocal.feature.device.settings.SettingEditorState
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
@@ -63,6 +68,9 @@ class FountainScreenTest {
     private val callbacks = FountainCallbacks(
         onRefresh = { calls += "refresh" },
         onMode = { calls += "mode:$it" },
+        onPause = { calls += "pause" },
+        onBatteryMode = { calls += "battery:$it" },
+        onEdit = { calls += "edit:$it" },
         onPetFilter = { calls += "pet:$it" },
         onHotspot = { calls += "hotspot:$it" },
         commands = PageCommandCallbacks(
@@ -187,7 +195,7 @@ class FountainScreenTest {
         normal.assertIsSelected().assert(hasText("Normal"))
         smart.assertIsNotSelected().assert(hasText("Smart"))
         compose.onNodeWithTag(
-            FountainTestTags.MODE_BAR,
+            FountainTestTags.MODE_OPTIONS,
         ).assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.SelectableGroup))
         // Every feature is off on this W5: no chip, and smart mode is on the bar, not a chip.
         compose.onNodeWithText("Smart mode", substring = true, useUnmergedTree = true).assertDoesNotExist()
@@ -223,6 +231,127 @@ class FountainScreenTest {
 
         compose.onNodeWithTag(FountainTestTags.mode("normal")).performClick()
         assertEquals(emptyList<String>(), calls)
+    }
+
+    @Test
+    fun `a CTW3's bar is PetKit's - Pause, Continuous, Intermittent, then its battery mode`() {
+        show(FountainFixtures.paused.copy(page = FountainFixtures.page(FountainFixtures.ctw3)))
+
+        val tiles = listOf(FountainTestTags.PAUSE, FountainTestTags.mode("normal"))
+            .plus(listOf(FountainTestTags.mode("smart"), FountainTestTags.BATTERY_MODE))
+            .map { compose.onNodeWithTag(it).fetchSemanticsNode() }
+        assertEquals(tiles.sortedBy { it.boundsInRoot.left }, tiles)
+        compose.onNodeWithTag(FountainTestTags.PAUSE).assert(hasText("Pause")).assertIsOff()
+        compose.onNodeWithTag(FountainTestTags.mode("normal")).assert(hasText("Continuous")).assertIsNotSelected()
+        compose.onNodeWithTag(FountainTestTags.mode("smart")).assert(hasText("Intermittent")).assertIsSelected()
+        compose.onNodeWithTag(FountainTestTags.BATTERY_MODE)
+            .assert(hasText("Battery mode"))
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Plugged in"))
+            .assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.Selected))
+
+        compose.onNodeWithTag(FountainTestTags.PAUSE).performClick()
+        compose.onNodeWithTag(FountainTestTags.mode("normal")).performClick()
+        compose.onNodeWithTag(FountainTestTags.BATTERY_MODE).performClick()
+        assertEquals(listOf("pause", "mode:normal", "battery:true"), calls)
+    }
+
+    @Test
+    @Config(qualifiers = "fr")
+    fun `in French, the CTW3's bar says Pause, Continu, Intermittent and Mode batterie`() {
+        show(FountainFixtures.battery)
+
+        compose.onNodeWithTag(FountainTestTags.PAUSE).assert(hasText("Pause"))
+        compose.onNodeWithTag(FountainTestTags.mode("normal")).assert(hasText("Continu"))
+        compose.onNodeWithTag(FountainTestTags.mode("smart")).assert(hasText("Intermittent"))
+        compose.onNodeWithTag(FountainTestTags.BATTERY_MODE).assert(hasText("Mode batterie"))
+        compose.onNodeWithText("La fontaine est sur batterie", substring = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun `paused, the Pause tile is on and the mode stays the one reported`() {
+        show(FountainFixtures.paused)
+
+        compose.onNodeWithTag(FountainTestTags.PAUSE).assertIsOn()
+        compose.onNodeWithTag(FountainTestTags.mode("normal")).assertIsSelected()
+        compose.onNodeWithTag(FountainTestTags.PAUSE).performClick()
+        assertEquals(listOf("pause"), calls)
+    }
+
+    @Test
+    fun `while Pause is on its way it says so, and a second tap sends nothing`() {
+        show(FountainFixtures.paused.copy(commands = CommandState(sending = setOf("ctw3_working"))))
+
+        compose.onNodeWithTag(FountainTestTags.PAUSE)
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, WAITING))
+            .performClick()
+        assertEquals(emptyList<String>(), calls)
+    }
+
+    @Test
+    fun `on battery, its tile is filled, no mode is selected, and both modes still take a tap`() {
+        show(FountainFixtures.battery.copy(commands = CommandState()))
+
+        compose.onNodeWithTag(FountainTestTags.BATTERY_MODE)
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "On battery now"))
+        listOf("normal", "smart").forEach { option ->
+            compose.onNodeWithTag(FountainTestTags.mode(option)).assertIsNotSelected().assertIsEnabled()
+        }
+        compose.onNodeWithTag(FountainTestTags.PAUSE).assertIsEnabled().assertIsOff()
+
+        // Never greyed out (AGENTS.md): the tap goes to the server, whose refusal says why.
+        compose.onNodeWithTag(FountainTestTags.mode("normal")).performClick()
+        compose.onNodeWithTag(FountainTestTags.mode("smart")).performClick()
+        assertEquals(listOf("mode:normal", "mode:smart"), calls)
+    }
+
+    @Test
+    fun `a mode refused on battery says why in the banner over the bar, in the app's words`() {
+        show(FountainFixtures.battery)
+
+        compose.onNodeWithTag(DeviceTestTags.FEEDBACK)
+            .assert(hasText("Flow Mode", substring = true))
+            .assert(
+                hasText(
+                    "The fountain is on battery: it stays in battery mode until it is plugged in again. " +
+                        "Its battery times can be set under Battery mode.",
+                ),
+            )
+        val banner = compose.onNodeWithTag(DeviceTestTags.FEEDBACK).fetchSemanticsNode().boundsInRoot
+        val bar = compose.onNodeWithTag(FountainTestTags.MODE_BAR).fetchSemanticsNode().boundsInRoot
+        assertTrue(banner.bottom <= bar.top)
+    }
+
+    @Test
+    fun `the battery mode's window lists its times, each opening its editor`() {
+        show(FountainFixtures.battery.copy(batteryModeOpen = true, commands = CommandState()))
+
+        val window = hasAnyAncestor(hasTestTag(FountainTestTags.BATTERY_MODE_DIALOG))
+        compose.onNode(hasText("The fountain is on battery now.") and window).assertExists()
+        compose.onNode(hasTestTag(DeviceTestTags.entity("ctw3_energy_interval")) and window)
+            .assert(hasText("Battery Work Time", substring = true))
+            .assert(hasText("In battery mode, how long the pump runs before it sleeps."))
+            .performClick()
+        compose.onNode(hasTestTag(DeviceTestTags.entity("ctw3_sleep_time")) and window).performClick()
+        compose.onNode(hasText("Close") and window).performClick()
+        assertEquals(listOf("edit:ctw3_energy_interval", "edit:ctw3_sleep_time", "battery:false"), calls)
+    }
+
+    @Test
+    fun `a battery time's editor takes the window's place, with PetKit's range`() {
+        val entity = FountainFixtures.battery.page!!.device.entity("ctw3_energy_interval")!!
+        show(
+            FountainFixtures.battery.copy(
+                batteryModeOpen = true,
+                commands = CommandState(),
+                editor = SettingEditorState(entity),
+            ),
+        )
+
+        compose.onNodeWithTag(FountainTestTags.BATTERY_MODE_DIALOG).assertDoesNotExist()
+        compose.onNode(hasText("Battery Work Time") and hasAnyAncestor(hasTestTag(DeviceTestTags.EDITOR)))
+            .assertExists()
+        compose.onNodeWithText("Cancel").performClick()
+        assertEquals(listOf("edit:null"), calls)
     }
 
     @Test
@@ -363,5 +492,9 @@ class FountainScreenTest {
         compose.onNodeWithText("The server cannot be reached.").assertExists()
         compose.onNodeWithText("Retry").performClick()
         assertEquals(listOf("refresh"), calls)
+    }
+
+    private companion object {
+        const val WAITING = "Requested, waiting for the fountain"
     }
 }

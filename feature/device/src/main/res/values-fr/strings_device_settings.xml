@@ -49,11 +49,14 @@
     <string name="device_help_fountain_time">En mode intermittent, durée pendant laquelle l\'eau coule.</string>
     <string name="device_help_sleep_time">En mode intermittent, durée de pause entre deux écoulements.</string>
     <string name="device_help_w5_mode">Normal fait tourner la pompe sans arrêt ; intelligent alterne marche et pause.</string>
-    <string name="device_help_ctw3_mode">Normal fait tourner la pompe sans arrêt ; intelligent alterne marche et pause.</string>
+    <string name="device_help_ctw3_mode">Continu fait tourner la pompe sans arrêt ; intermittent alterne marche et pause. Sur batterie, la fontaine suit son mode batterie à la place.</string>
     <string name="device_help_w5_smart_work">En mode intelligent, durée de marche de la pompe.</string>
     <string name="device_help_w5_smart_sleep">En mode intelligent, durée de pause de la pompe.</string>
-    <string name="device_help_ctw3_smart_work">En mode intelligent, durée de marche de la pompe.</string>
-    <string name="device_help_ctw3_smart_sleep">En mode intelligent, durée de pause de la pompe.</string>
+    <string name="device_help_ctw3_smart_work">En mode intermittent, durée de marche de la pompe.</string>
+    <string name="device_help_ctw3_smart_sleep">En mode intermittent, durée de pause de la pompe.</string>
+    <string name="device_help_ctw3_working">Désactivé, met la fontaine en pause sans changer son mode, sur batterie aussi.</string>
+    <string name="device_help_ctw3_energy_interval">En mode batterie, durée de marche de la pompe avant sa mise en veille.</string>
+    <string name="device_help_ctw3_sleep_time">En mode batterie, durée de veille de la pompe entre deux marches.</string>
     <string name="device_help_auto_refill">Remplit seule la gamelle depuis le réservoir d\'eau propre.</string>
     <string name="device_help_auto_water_change">Vide et remplace l\'eau selon un programme.</string>
     <string name="device_help_water_change_cycle">Tous les combien de jours l\'eau est changée.</string>

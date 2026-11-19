@@ -61,11 +61,18 @@ internal fun entityValueText(entity: Entity, labels: ServerLabels, zone: ZoneId)
     val display = entity.display
     return when {
         value is EntityValue.None -> stringResource(R.string.device_value_none)
+
         time != null -> timeText(time)
-        display != null -> optionText(display, labels)
+
+        display != null -> optionText(display, labels, entity.key)
+
         value is EntityValue.Bool -> booleanText(entity, value.value)
+
         value is EntityValue.Number -> numberText(value.value, entity)
-        value is EntityValue.Text -> timestamp(value.value)?.let { instantText(it, zone) } ?: labels.option(value.value)
+
+        value is EntityValue.Text ->
+            timestamp(value.value)?.let { instantText(it, zone) } ?: labels.option(value.value, entity.key)
+
         else -> (value as EntityValue.Other).json
     }
 }

@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.RegisterExtension
 import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.core.domain.Outcome
+import org.petkitlocal.core.domain.device.EntityWriteProblem
 import org.petkitlocal.core.domain.device.ObserveLiveUpdatesUseCase
 import org.petkitlocal.core.domain.device.RunDeviceActionUseCase
 import org.petkitlocal.core.domain.device.SetEntityValueUseCase
@@ -289,6 +290,99 @@ class FountainViewModelTest {
             commands.writes,
         )
     }
+
+    @Test
+    fun `Pause pauses a running CTW3 and runs a paused one, as the server answers`() = runTest(main.dispatcher) {
+        devices.devices.value = listOf(FountainFixtures.ctw3, FountainFixtures.onlineRelay)
+        val viewModel = viewModel(3003L)
+        collect(viewModel)
+        advanceUntilIdle()
+        assertEquals(false, viewModel.uiState.value.page?.modeBar?.pause?.paused)
+
+        viewModel.onPause()
+        runCurrent()
+        assertEquals(
+            listOf(FakeDeviceCommandRepository.Write(3003, "ctw3_working", EntityValue.Bool(false))),
+            commands.writes,
+        )
+        assertEquals(CommandResult.Sent(CommandDelivery.Mqtt), viewModel.uiState.value.commands.feedback?.result)
+        // No optimistic UI: the tile follows the cache, not the tap.
+        assertEquals(false, viewModel.uiState.value.page?.modeBar?.pause?.paused)
+
+        devices.devices.value = listOf(FountainFixtures.ctw3(working = false), FountainFixtures.onlineRelay)
+        runCurrent()
+        viewModel.onPause()
+        runCurrent()
+        assertEquals(EntityValue.Bool(true), commands.writes.last().value)
+        // The mode is left alone: Pause is its own switch.
+        assertTrue(commands.writes.none { it.key == "ctw3_mode" })
+    }
+
+    @Test
+    fun `on battery, a mode is sent all the same and the server's refusal says why`() = runTest(main.dispatcher) {
+        val refusal = DomainError.Validation(field = null, code = "on_battery", message = "the fountain is on battery")
+        commands.result = Outcome.Failure(refusal)
+        devices.devices.value = listOf(FountainFixtures.ctw3(mode = 3), FountainFixtures.onlineRelay)
+        val viewModel = viewModel(3003L)
+        collect(viewModel)
+        advanceUntilIdle()
+        val bar = viewModel.uiState.value.page!!.modeBar!!
+        assertNull(bar.selected)
+        assertTrue(bar.battery!!.active)
+
+        viewModel.onMode("normal")
+        runCurrent()
+
+        assertEquals(
+            listOf(FakeDeviceCommandRepository.Write(3003, "ctw3_mode", EntityValue.Text("normal"))),
+            commands.writes,
+        )
+        assertEquals(CommandResult.Failed(refusal), viewModel.uiState.value.commands.feedback?.result)
+        assertNull(viewModel.uiState.value.pendingMode)
+        // Pause is not refused on battery.
+        commands.result = Outcome.Success(CommandDelivery.Mqtt)
+        viewModel.onPause()
+        runCurrent()
+        assertEquals(EntityValue.Bool(false), commands.writes.last().value)
+    }
+
+    @Test
+    fun `the battery mode's window opens its times' editors, and comes back once one is saved`() =
+        runTest(main.dispatcher) {
+            devices.devices.value = listOf(FountainFixtures.ctw3(mode = 3), FountainFixtures.onlineRelay)
+            val viewModel = viewModel(3003L)
+            collect(viewModel)
+            advanceUntilIdle()
+
+            viewModel.onBatteryMode(true)
+            viewModel.onEdit("ctw3_energy_interval")
+            runCurrent()
+            assertTrue(viewModel.uiState.value.batteryModeOpen)
+            assertEquals("ctw3_energy_interval", viewModel.uiState.value.editor?.entity?.key)
+
+            // Out of PetKit's range: said in place, nothing sent.
+            viewModel.onSave("ctw3_energy_interval", EntityValue.Number(301.0))
+            runCurrent()
+            assertEquals(EntityWriteProblem.AboveMax(300.0), viewModel.uiState.value.editor?.problem)
+            assertTrue(commands.writes.isEmpty())
+
+            viewModel.onSave("ctw3_energy_interval", EntityValue.Number(120.0))
+            runCurrent()
+            assertEquals(
+                listOf(FakeDeviceCommandRepository.Write(3003, "ctw3_energy_interval", EntityValue.Number(120.0))),
+                commands.writes,
+            )
+            // Taken: the editor closes, back to the battery mode's window.
+            assertNull(viewModel.uiState.value.editor)
+            assertTrue(viewModel.uiState.value.batteryModeOpen)
+
+            // Closing the window closes an editor open over it too.
+            viewModel.onEdit("ctw3_sleep_time")
+            viewModel.onBatteryMode(false)
+            runCurrent()
+            assertNull(viewModel.uiState.value.editor)
+            assertFalse(viewModel.uiState.value.batteryModeOpen)
+        }
 
     @Test
     fun `status chips are only the features that are on, and the battery is reported`() = runTest(main.dispatcher) {
