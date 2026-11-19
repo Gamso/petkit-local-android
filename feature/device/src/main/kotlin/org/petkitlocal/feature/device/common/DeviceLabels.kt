@@ -91,7 +91,7 @@ internal fun errorText(error: DomainError): String = when (error) {
     is DomainError.Server -> error.message?.takeIf { it.isNotBlank() }
         ?: stringResource(R.string.device_error_server, error.status?.let { "HTTP $it" } ?: error.code.orEmpty())
 
-    is DomainError.Network -> stringResource(R.string.device_error_network)
+    is DomainError.Network, is DomainError.Certificate -> stringResource(R.string.device_error_network)
 
     is DomainError.SessionEnded, is DomainError.Unauthorized -> stringResource(R.string.device_error_session)
 

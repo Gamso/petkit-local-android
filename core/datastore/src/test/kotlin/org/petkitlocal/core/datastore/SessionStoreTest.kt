@@ -11,6 +11,7 @@ import javax.crypto.spec.GCMParameterSpec
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
+import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
@@ -98,5 +99,36 @@ class SessionStoreTest {
         file.writeText("not a protobuf at all")
 
         assertEquals(StoredSession(), store(SoftwareCipher()).current())
+    }
+
+    @Test
+    fun `a pinned certificate reads back, is kept apart from the session, and goes only when cleared`() = runTest {
+        val store = store(SoftwareCipher())
+        val der = "a certificate's DER".toByteArray()
+        store.savePin("https://pets.home.lan", der)
+        store.saveSignIn("https://pets.home.lan", "token", "abc123")
+
+        store.clearSession(endedReason = "InvalidToken")
+
+        val pin = store.pin()
+        assertEquals("https://pets.home.lan", pin?.serverBaseUrl)
+        assertArrayEquals(der, pin?.certificate)
+        assertFalse(String(file.readBytes(), Charsets.ISO_8859_1).contains("a certificate's DER"))
+
+        store.clearPin()
+
+        assertNull(store.pin())
+        assertEquals("https://pets.home.lan", store.current().serverBaseUrl)
+    }
+
+    @Test
+    fun `a pin sealed with a lost key reads as none`() = runTest {
+        val cipher = SoftwareCipher()
+        val store = store(cipher)
+        store.savePin("https://pets.home.lan", byteArrayOf(1, 2, 3))
+
+        cipher.key = SoftwareCipher.newKey()
+
+        assertNull(store.pin())
     }
 }

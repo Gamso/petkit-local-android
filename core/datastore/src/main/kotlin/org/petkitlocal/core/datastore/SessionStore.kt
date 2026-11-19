@@ -29,14 +29,26 @@ data class StoredSession(
 )
 
 /**
+ * The one certificate the owner trusted by hand (SPEC.md §8), for the server at [serverBaseUrl].
+ * [certificate] is its DER encoding.
+ */
+class StoredPin(val serverBaseUrl: String, val certificate: ByteArray)
+
+/**
  * The session in DataStore, its token sealed by [cipher] (ADR 0004). The password is never
  * given to this class.
+ *
+ * The pinned certificate lives in the same file, sealed by the same key: it is public, but what
+ * the app trusts must not be changed behind its back. It is kept apart from the session
+ * ([pin], [savePin], [clearPin]): it is trusted before the session exists, so a sign-in that
+ * fails keeps it.
  */
 class SessionStore(private val dataStore: DataStore<Preferences>, private val cipher: TokenCipher) {
-    val session: Flow<StoredSession> = dataStore.data
-        // An unreadable file reads as empty, that is signed out; the next write replaces it.
+    // An unreadable file reads as empty, that is signed out; the next write replaces it.
+    private val preferences: Flow<Preferences> = dataStore.data
         .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
-        .map(::read)
+
+    val session: Flow<StoredSession> = preferences.map(::read)
 
     suspend fun current(): StoredSession = session.first()
 
@@ -60,6 +72,35 @@ class SessionStore(private val dataStore: DataStore<Preferences>, private val ci
             it.remove(SESSION_ID)
             if (endedReason == null) it.remove(ENDED_REASON) else it[ENDED_REASON] = endedReason
         }
+    }
+
+    /** The pinned certificate, or null when none is, or when it can no longer be opened. */
+    suspend fun pin(): StoredPin? = preferences.map(::readPin).first()
+
+    /** Pins [certificate] (DER) for [serverBaseUrl], replacing any pin. */
+    suspend fun savePin(serverBaseUrl: String, certificate: ByteArray) {
+        val sealed = cipher.encrypt(certificate)
+        dataStore.edit {
+            it[PIN_SERVER] = serverBaseUrl
+            it[PIN] = encode(sealed.ciphertext)
+            it[PIN_IV] = encode(sealed.iv)
+        }
+    }
+
+    suspend fun clearPin() {
+        dataStore.edit {
+            it.remove(PIN_SERVER)
+            it.remove(PIN)
+            it.remove(PIN_IV)
+        }
+    }
+
+    private fun readPin(preferences: Preferences): StoredPin? {
+        val server = preferences[PIN_SERVER]
+        val ciphertext = preferences[PIN]?.let(::decode)
+        val iv = preferences[PIN_IV]?.let(::decode)
+        if (server == null || ciphertext == null || iv == null) return null
+        return cipher.decrypt(SealedSecret(iv, ciphertext))?.let { StoredPin(server, it) }
     }
 
     private fun read(preferences: Preferences): StoredSession {
@@ -92,5 +133,8 @@ class SessionStore(private val dataStore: DataStore<Preferences>, private val ci
         val TOKEN_IV = stringPreferencesKey("token_iv")
         val SESSION_ID = stringPreferencesKey("session_id")
         val ENDED_REASON = stringPreferencesKey("session_ended_reason")
+        val PIN_SERVER = stringPreferencesKey("pinned_certificate_server")
+        val PIN = stringPreferencesKey("pinned_certificate_ciphertext")
+        val PIN_IV = stringPreferencesKey("pinned_certificate_iv")
     }
 }

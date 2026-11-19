@@ -11,21 +11,28 @@ import org.petkitlocal.core.network.PetkitHttpClient
 import org.petkitlocal.core.network.ServerAddressProvider
 import org.petkitlocal.core.network.auth.SessionEndListener
 import org.petkitlocal.core.network.auth.SessionTokenProvider
+import org.petkitlocal.core.network.tls.CertificatePinStore
+import org.petkitlocal.core.network.tls.ServerTrust
 
 /**
- * The shared HTTP stack. [ServerAddressProvider], [SessionTokenProvider] and
- * [SessionEndListener] are bound by core:data, on top of the session store.
+ * The shared HTTP stack. [ServerAddressProvider], [SessionTokenProvider], [SessionEndListener]
+ * and [CertificatePinStore] are bound by core:data, on top of the session store.
  */
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
     @Provides
     @Singleton
+    fun serverTrust(pins: CertificatePinStore): ServerTrust = ServerTrust(pins)
+
+    @Provides
+    @Singleton
     fun okHttpClient(
         serverAddress: ServerAddressProvider,
         tokenProvider: SessionTokenProvider,
         sessionEnded: SessionEndListener,
-    ): OkHttpClient = PetkitHttpClient.okHttpClient(serverAddress, tokenProvider, sessionEnded)
+        trust: ServerTrust,
+    ): OkHttpClient = PetkitHttpClient.okHttpClient(serverAddress, tokenProvider, sessionEnded, trust = trust)
 
     @Provides
     @Singleton

@@ -2,7 +2,11 @@ package org.petkitlocal.core.data.auth
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import java.io.File
+import java.security.KeyStore
+import java.security.cert.X509Certificate
 import java.util.concurrent.TimeUnit
+import javax.net.ssl.KeyManagerFactory
+import javax.net.ssl.SSLContext
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -23,8 +27,11 @@ import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertInstanceOf
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
@@ -37,6 +44,7 @@ import org.petkitlocal.core.domain.SessionEndReason
 import org.petkitlocal.core.domain.UnauthorizedReason
 import org.petkitlocal.core.domain.auth.AddressCheck
 import org.petkitlocal.core.domain.auth.AuthState
+import org.petkitlocal.core.domain.auth.CertificateProblem
 import org.petkitlocal.core.domain.auth.ServerAddress
 import org.petkitlocal.core.domain.auth.ServerAddresses
 import org.petkitlocal.core.domain.auth.ServerScopedCache
@@ -45,6 +53,10 @@ import org.petkitlocal.core.network.PetkitApi
 import org.petkitlocal.core.network.PetkitHttpClient
 import org.petkitlocal.core.network.closeCodeToDomainError
 import org.petkitlocal.core.network.error.apiCall
+import org.petkitlocal.core.network.tls.CertificateRefusedException
+import org.petkitlocal.core.network.tls.Certificates
+import org.petkitlocal.core.network.tls.Refusal
+import org.petkitlocal.core.network.tls.ServerTrust
 
 /**
  * Integration: the session repository with the real DataStore file, the real OkHttp client and
@@ -72,17 +84,22 @@ class AuthRepositoryImplTest {
     private inner class Harness {
         private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default).also { scopes += it }
         private var apiRef: PetkitApi? = null
+        private var trustRef: ServerTrust? = null
+        private val store = SessionStore(
+            PreferenceDataStoreFactory.create(scope = scope) { File(dir, "session.preferences_pb") },
+            ReversingCipher(),
+        )
+        val certificates = CertificateTrust(store, { checkNotNull(trustRef) }, scope)
         val repository: AuthRepositoryImpl = AuthRepositoryImpl(
-            store = SessionStore(
-                PreferenceDataStoreFactory.create(scope = scope) { File(dir, "session.preferences_pb") },
-                ReversingCipher(),
-            ),
+            store = store,
             api = { checkNotNull(apiRef) },
             caches = setOf(cache),
-            serverCaches = setOf(serverCache),
+            serverCaches = setOf(serverCache, certificates),
             scope = scope,
+            certificates = certificates,
         )
-        val client = PetkitHttpClient.okHttpClient(repository, repository, repository)
+        private val trust = ServerTrust(certificates).also { trustRef = it }
+        val client = PetkitHttpClient.okHttpClient(repository, repository, repository, trust = trust)
         val api: PetkitApi = PetkitHttpClient.api(client).also { apiRef = it }
 
         suspend fun close() = scope.coroutineContext.job.cancelAndJoin()
@@ -401,6 +418,133 @@ class AuthRepositoryImplTest {
         assertEquals("tok-1", harness.repository.currentToken())
     }
 
+    // --- a server with a self-signed certificate (SPEC.md §8) ------------------------------------
+
+    /** An HTTPS server presenting [certificate] (`src/test/resources/tls/`, as in core:network). */
+    private fun secureServer(certificate: String): MockWebServer = MockWebServer().apply {
+        val keys = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm())
+        keys.init(keyStore(certificate), TLS_PASSWORD)
+        useHttps(SSLContext.getInstance("TLS").apply { init(keys.keyManagers, null, null) }.socketFactory)
+        start()
+    }
+
+    private fun keyStore(name: String): KeyStore = KeyStore.getInstance("PKCS12").apply {
+        checkNotNull(AuthRepositoryImplTest::class.java.getResourceAsStream("/tls/$name.p12")).use {
+            load(it, TLS_PASSWORD)
+        }
+    }
+
+    private fun certificate(name: String): X509Certificate = keyStore(name).getCertificate("server") as X509Certificate
+
+    private fun fingerprint(certificate: X509Certificate?): String? = certificate?.let(Certificates::sha256)
+
+    private fun MockWebServer.address(): ServerAddress =
+        (ServerAddresses.normalise(url("/").toString()) as AddressCheck.Valid).address
+
+    private fun MockWebServer.json(body: String) {
+        enqueue(MockResponse.Builder().code(200).body(body).addHeader("Content-Type", "application/json").build())
+    }
+
+    private fun Outcome<*>.problem(): CertificateProblem =
+        ((this as Outcome.Failure).error as DomainError.Certificate).problem
+
+    @Test
+    fun `a self-signed server is refused until trusted, then signing out forgets the certificate`() = runBlocking {
+        val harness = Harness()
+        secureServer("first").use { secure ->
+            val server = secure.address()
+            val refused = harness.repository.probe(server).problem()
+            assertInstanceOf(CertificateProblem.Untrusted::class.java, refused)
+
+            assertTrue(harness.certificates.trust(server, refused.presented))
+            secure.json(INFO)
+            secure.json(LOGIN)
+            assertInstanceOf(Outcome.Success::class.java, harness.repository.probe(server))
+            assertInstanceOf(Outcome.Success::class.java, harness.repository.signIn(server, "demo", "Pixel 8"))
+            assertNotNull(harness.certificates.pinned()) // a sign-in to the same server keeps it
+
+            secure.json("{}") // the logout
+            harness.repository.signOut()
+
+            assertNull(harness.certificates.pinned())
+            assertInstanceOf(CertificateProblem.Untrusted::class.java, harness.repository.probe(server).problem())
+        }
+    }
+
+    @Test
+    fun `the pin outlives a restart, and goes with a session the server ended`() = runBlocking {
+        val first = Harness()
+        secureServer("first").use { secure ->
+            val server = secure.address()
+            assertTrue(first.certificates.trust(server, first.repository.probe(server).problem().presented))
+            secure.json(LOGIN)
+            first.repository.signIn(server, "demo", "Pixel 8")
+            first.close()
+
+            val restarted = Harness()
+            secure.json(INFO)
+
+            assertInstanceOf(Outcome.Success::class.java, restarted.repository.probe(server))
+            assertEquals(fingerprint(certificate("first")), fingerprint(restarted.certificates.pinned()?.certificate))
+
+            restarted.repository.endSession(SessionEndReason.InvalidToken)
+
+            assertNull(restarted.certificates.pinned())
+        }
+    }
+
+    @Test
+    fun `signing in to another server forgets the pin`() = runBlocking {
+        val harness = Harness()
+        secureServer("first").use { secure ->
+            val server = secure.address()
+            assertTrue(harness.certificates.trust(server, harness.repository.probe(server).problem().presented))
+
+            harness.signIn() // the plain-HTTP server of the other tests
+
+            assertNull(harness.certificates.pinned())
+        }
+    }
+
+    @Test
+    fun `a certificate that does not name the server is never pinned`() = runBlocking {
+        val harness = Harness()
+        secureServer("wrong-host").use { secure ->
+            val problem = harness.repository.probe(secure.address()).problem()
+            assertInstanceOf(CertificateProblem.WrongHost::class.java, problem)
+
+            assertFalse(harness.certificates.trust(secure.address(), problem.presented))
+            assertNull(harness.certificates.pinned())
+        }
+    }
+
+    @Test
+    fun `a changed certificate is offered once, until trusted or put off`() = runBlocking {
+        val harness = Harness()
+        secureServer("first").use { secure ->
+            val server = secure.address()
+            assertTrue(harness.certificates.trust(server, harness.repository.probe(server).problem().presented))
+            val pin = checkNotNull(harness.certificates.pinned())
+            val refuse = { name: String ->
+                harness.certificates.onRefused(
+                    CertificateRefusedException(Refusal.Changed, pin.host, certificate(name), pin.certificate),
+                )
+            }
+
+            refuse("renewed")
+            val change = checkNotNull(harness.certificates.changedCertificate.value)
+            assertEquals(fingerprint(certificate("first")), change.pinnedSha256)
+
+            harness.certificates.dismissChange(change)
+            refuse("renewed")
+            assertNull(harness.certificates.changedCertificate.value) // put off: not asked again
+
+            assertTrue(harness.certificates.trustChange(change))
+            assertEquals(fingerprint(certificate("renewed")), fingerprint(harness.certificates.pinned()?.certificate))
+            assertEquals(pin.port, harness.certificates.pinned()?.port)
+        }
+    }
+
     private companion object {
         const val SESSION =
             """{"id":"abc123","name":"Pixel 8","created":1.0,"last_used":1.0,"expires":7776001.0,"kinds":null,"push":null}"""
@@ -410,5 +554,6 @@ class AuthRepositoryImplTest {
         const val SIGNED_IN_INFO =
             """{"api_version":1,"server_time":5.0,"authenticated":true,"server_version":"1.4.0","session":$SESSION}"""
         const val DEVICES = """{"devices":[]}"""
+        val TLS_PASSWORD = "petkit".toCharArray()
     }
 }
