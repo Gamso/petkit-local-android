@@ -26,8 +26,9 @@ class AndroidApplicationConventionPlugin : Plugin<Project> {
                 isMinifyEnabled = true
                 isShrinkResources = true
                 proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-                // Until release signing arrives (issue 26), a release build is signed with the
-                // debug key, so CI and developers can install and smoke-test the R8 output.
+                // Signed with the debug key unless a key is injected (-Pandroid.injected.signing.*),
+                // so developers and CI can install and smoke-test the R8 output. Only release.yml
+                // injects the release key; no keystore is ever committed.
                 signingConfig = signingConfigs.getByName("debug")
             }
         }

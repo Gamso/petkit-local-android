@@ -6,6 +6,8 @@
 #   it installs, starts and shows its first screen without a crash or an ANR
 #   (scripts/smoke-test.sh).
 #
+# release.yml calls this workflow too, so a release passes the same gates.
+#
 # Locally: README.md, "End-to-end and smoke tests".
 name: e2e
 
@@ -36,6 +38,22 @@ on:
         description: Also run the e2e suite on the minimum SDK (API 29)
         type: boolean
         default: false
+  workflow_call:
+    inputs:
+      min-sdk:
+        description: Also run the e2e suite on the minimum SDK (API 29)
+        type: boolean
+        default: false
+    # Only the CI key's secrets: a caller never hands this workflow anything else (the release key).
+    secrets:
+      ANDROID_CI_KEYSTORE_BASE64:
+        required: false
+      ANDROID_CI_KEYSTORE_PASSWORD:
+        required: false
+      ANDROID_CI_KEY_ALIAS:
+        required: false
+      ANDROID_CI_KEY_PASSWORD:
+        required: false
 
 concurrency:
   group: e2e-${{ github.ref }}

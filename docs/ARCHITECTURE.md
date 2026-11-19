@@ -208,10 +208,10 @@ Rules:
 
 | Workflow | Trigger | Jobs (in parallel unless noted) | Target time |
 |---|---|---|---|
-| `ci.yml` | every pull request and push to `main` | **static**: ktlint, detekt, Android lint · **unit**: unit + integration + contract tests, Kover report · **compose**: Robolectric Compose UI tests + Roborazzi verify (diffs uploaded as artifacts) · **build**: `assembleDebug` and `assembleRelease` with R8 | < 10 min |
-| `e2e.yml` | pull requests touching `app/`, `core/`, `feature/`, `push/` or the workflow; push to `main`; nightly | **e2e**: emulator (Gradle Managed Device, KVM) + mock server container, end-to-end suite · then **smoke**: release APK on the same emulator | < 25 min |
+| `ci.yml` | every pull request and push to `main`; called by `release.yml` | **static**: ktlint, detekt, Android lint · **unit**: unit + integration + contract tests, Kover report · **compose**: Robolectric Compose UI tests + Roborazzi verify (diffs uploaded as artifacts) · **build**: `assembleDebug` and `assembleRelease` with R8 | < 10 min |
+| `e2e.yml` | pull requests touching `app/`, `core/`, `feature/`, `push/` or the workflow; push to `main`; nightly; called by `release.yml` | **e2e**: emulator (Gradle Managed Device, KVM) + mock server container, end-to-end suite · then **smoke**: release APK on the same emulator | < 25 min |
 | `e2e-real-server.yml` | nightly and on demand | **e2e (real server)**: the same suite against the petkit-local container (`dev` image), mock-only tests skipped | < 30 min |
-| `release.yml` | tag `v*` | static + unit + compose + e2e + smoke must pass, **then** sign and attach the APK (and AAB if the Play Store is chosen) to a GitHub release | — |
+| `release.yml` | tag `v*` (`vMAJOR.MINOR.PATCH`) | **version** from the tag · then `ci.yml` and `e2e.yml` called as they are (static, unit, compose, build, e2e, smoke) and, meanwhile, **apk**: the release APK (R8) with the tag's version, signed with the release key from the secrets (no key, no release) and its signature checked · once all passed, **publish**: a GitHub release with generated notes, `petkit-local-<version>.apk` and its `.sha256`. Only publish may write to the repository, and it never sees the key. How to cut one: `docs/RELEASING.md` | < 30 min |
 | `contract-refresh.yml` | weekly and on demand | fetch `openapi.yaml` from the latest petkit-local release; if it changed, open a pull request so the contract tests run against it | — |
 
 - **The nightly takes the server as it is now**: the floating `dev` tag of petkit-local's latest

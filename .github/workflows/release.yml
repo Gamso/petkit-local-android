@@ -1,0 +1,200 @@
+# A release, on each pushed tag vMAJOR.MINOR.PATCH (docs/ARCHITECTURE.md §7, docs/RELEASING.md):
+#
+# - version: the tag gives the APK its version, v0.1.0 -> versionName 0.1.0, versionCode 100
+#   (build-logic AppVersion.kt, which refuses anything else).
+# - ci and e2e: the gates of every pull request, called rather than copied (ci.yml: static, unit,
+#   compose, build; e2e.yml: e2e, then smoke).
+# - apk: meanwhile, the release APK (R8) with that version, signed with the RELEASE key from the
+#   repository secrets, and its signature checked. Without that key the job fails: a release is
+#   never signed with anything else, since an update must carry the same key as what is installed.
+# - publish: once all of them passed, a GitHub release for the tag with generated notes, the APK
+#   (petkit-local-<version>.apk) and its SHA-256 (petkit-local-<version>.apk.sha256).
+#
+# Only publish may write to the repository, and it never sees the key; the job holding the key
+# may only read.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  # To run it again for a tag whose release was deleted: "Use workflow from" that tag, not a branch.
+  workflow_dispatch:
+
+# Never two runs for one tag; never one stopped halfway through publishing.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  version:
+    name: version
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.tag.outputs.version }}
+    steps:
+      # The shape only; Gradle checks the ranges when it builds (parseAppVersion).
+      - name: Version from the tag
+        id: tag
+        run: |
+          if [ "$GITHUB_REF_TYPE" != tag ]; then
+            echo "::error::A release is made from a tag (v0.1.0), not from the branch $GITHUB_REF_NAME."
+            exit 1
+          fi
+          if ! [[ $GITHUB_REF_NAME =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "::error::Tag $GITHUB_REF_NAME is not vMAJOR.MINOR.PATCH (e.g. v0.1.0): no leading zero, no suffix."
+            exit 1
+          fi
+          echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          echo "Releasing ${GITHUB_REF_NAME#v} from $GITHUB_SHA."
+
+  ci:
+    name: ci
+    needs: version
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+
+  e2e:
+    name: e2e
+    needs: version
+    uses: ./.github/workflows/e2e.yml
+    permissions:
+      contents: read
+    # The smoke test's CI key, and nothing else: never the release key.
+    secrets:
+      ANDROID_CI_KEYSTORE_BASE64: ${{ secrets.ANDROID_CI_KEYSTORE_BASE64 }}
+      ANDROID_CI_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_CI_KEYSTORE_PASSWORD }}
+      ANDROID_CI_KEY_ALIAS: ${{ secrets.ANDROID_CI_KEY_ALIAS }}
+      ANDROID_CI_KEY_PASSWORD: ${{ secrets.ANDROID_CI_KEY_PASSWORD }}
+
+  apk:
+    name: apk
+    needs: version
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      APK: app/build/outputs/apk/release/app-release.apk
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          distribution: temurin
+          java-version: "25"
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+        with:
+          cache-read-only: true
+
+      # The release key comes from four repository secrets (docs/RELEASING.md):
+      #   ANDROID_RELEASE_KEYSTORE_BASE64  the keystore (PKCS12 or JKS), base64-encoded
+      #   ANDROID_RELEASE_KEYSTORE_PASSWORD
+      #   ANDROID_RELEASE_KEY_ALIAS
+      #   ANDROID_RELEASE_KEY_PASSWORD     optional; the keystore password when empty
+      # Unlike e2e.yml's CI key there is no fallback: without them the release stops here.
+      - name: Signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
+        run: |
+          missing=""
+          [ -n "$KEYSTORE_BASE64" ] || missing="$missing ANDROID_RELEASE_KEYSTORE_BASE64"
+          [ -n "$KEYSTORE_PASSWORD" ] || missing="$missing ANDROID_RELEASE_KEYSTORE_PASSWORD"
+          [ -n "$KEY_ALIAS" ] || missing="$missing ANDROID_RELEASE_KEY_ALIAS"
+          if [ -n "$missing" ]; then
+            echo "::error::No release signing key: missing secret(s)$missing. See docs/RELEASING.md; nothing was published."
+            exit 1
+          fi
+          keystore="$RUNNER_TEMP/release-signing.keystore"
+          if ! printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$keystore"; then
+            echo "::error::ANDROID_RELEASE_KEYSTORE_BASE64 is not valid base64."
+            exit 1
+          fi
+          {
+            echo "SIGNING_STORE_FILE=$keystore"
+            echo "SIGNING_STORE_PASSWORD=$KEYSTORE_PASSWORD"
+            echo "SIGNING_KEY_ALIAS=$KEY_ALIAS"
+            echo "SIGNING_KEY_PASSWORD=${KEY_PASSWORD:-$KEYSTORE_PASSWORD}"
+          } >> "$GITHUB_ENV"
+
+      # The version from the tag, and AGP's injected signing (as in e2e.yml's smoke job) in place
+      # of the release build type's debug key.
+      - name: Release APK (R8)
+        run: >-
+          scripts/gradle-ci.sh :app:assembleRelease
+          -PappVersion="$VERSION"
+          -Pandroid.injected.signing.store.file="$SIGNING_STORE_FILE"
+          -Pandroid.injected.signing.store.password="$SIGNING_STORE_PASSWORD"
+          -Pandroid.injected.signing.key.alias="$SIGNING_KEY_ALIAS"
+          -Pandroid.injected.signing.key.password="$SIGNING_KEY_PASSWORD"
+
+      - name: Check the signature and the version
+        run: |
+          build_tools=$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)
+          mkdir -p build/release
+          "$build_tools/apksigner" verify --print-certs "$APK" | tee build/apk-certs.txt
+          if grep -q "CN=Android Debug" build/apk-certs.txt; then
+            echo "::error::The release APK is signed with the debug key."
+            exit 1
+          fi
+          package=$("$build_tools/aapt2" dump badging "$APK" | grep '^package:')
+          echo "$package"
+          if ! grep -qF " versionName='$VERSION' " <<< "$package "; then
+            echo "::error::The APK's versionName is not $VERSION."
+            exit 1
+          fi
+
+      - name: Name the APK and its checksum
+        run: |
+          name="petkit-local-$VERSION.apk"
+          cp "$APK" "build/release/$name"
+          cp app/build/outputs/mapping/release/mapping.txt "build/release/petkit-local-$VERSION-mapping.txt"
+          (cd build/release && sha256sum "$name" > "$name.sha256")
+          apk_sha256=$(cut -d' ' -f1 "build/release/$name.sha256")
+          cert_sha256=$(grep -m1 'certificate SHA-256 digest:' build/apk-certs.txt | awk '{ print $NF }')
+          # Put before GitHub's generated notes.
+          cat > build/release/notes.md <<EOF
+          Install or update: download \`$name\` below and open it on the phone (Android 10 or later). See the README, "Installing and updating".
+
+          - APK SHA-256: \`$apk_sha256\`
+          - Signing certificate SHA-256: \`$cert_sha256\`
+          EOF
+          cat build/release/notes.md
+
+      # The mapping file (to read an obfuscated stack trace) stays with the run, not the release.
+      - name: Upload the release files
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release
+          path: build/release/
+          if-no-files-found: error
+          retention-days: 90
+
+  publish:
+    name: publish
+    needs: [version, ci, e2e, apk]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release
+          path: build/release
+      - name: GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --verify-tag \
+            --generate-notes --notes-file build/release/notes.md \
+            "build/release/petkit-local-$VERSION.apk" \
+            "build/release/petkit-local-$VERSION.apk.sha256"
