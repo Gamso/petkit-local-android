@@ -12,6 +12,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import org.petkitlocal.core.domain.auth.LocalNetworkAccess
 import org.petkitlocal.core.domain.settings.AppVersionProvider
+import org.petkitlocal.core.domain.talk.MicrophoneAccess
 
 /** What only the app module can bind: the Android permissions the domain asks about, and its version. */
 @Module
@@ -24,6 +25,12 @@ object AppModule {
     fun localNetworkAccess(@ApplicationContext context: Context): LocalNetworkAccess = LocalNetworkAccess {
         Build.VERSION.SDK_INT >= LOCAL_NETWORK_PERMISSION_SDK &&
             ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_LOCAL_NETWORK) !=
+            PackageManager.PERMISSION_GRANTED
+    }
+
+    @Provides
+    fun microphoneAccess(@ApplicationContext context: Context): MicrophoneAccess = MicrophoneAccess {
+        ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
             PackageManager.PERMISSION_GRANTED
     }
 

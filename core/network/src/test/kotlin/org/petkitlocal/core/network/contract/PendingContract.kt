@@ -14,8 +14,6 @@ object PendingContract {
     val ROUTES = setOf(
         "PUT /push",
         "DELETE /push",
-        // Talking through a camera: the app's client for it is not written yet.
-        "GET /devices/{id}/talk",
     )
 
     /** The bodies of [ROUTES]. */
