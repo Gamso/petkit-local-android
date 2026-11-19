@@ -23,4 +23,5 @@ the bearer header. Viewers are capped per camera and per server.
 
 - Low delay when the network allows it, and still a picture when it does not.
 - A custom `DataSource` to write and test (MockWebServer can serve a WebSocket); HLS needs none.
-- No WebRTC: two-way talk stays out of v1 (SPEC.md §2).
+- No WebRTC: talking through a camera goes over a WebSocket of its own (`/devices/{id}/talk`,
+  SPEC.md §7 and decision 5), not through the video transport.

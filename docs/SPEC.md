@@ -20,7 +20,6 @@ numbered as on the canvas.
 - Adding a device, Wi-Fi/Bluetooth provisioning, firmware patching or flashing — the panel does
   that, on the LAN.
 - Anything Home Assistant does: automations, dashboards, other brands.
-- Two-way talk from the camera (needs WebRTC through a TURN relay; see section 9).
 - Several servers or several accounts in one app.
 - iOS.
 
@@ -154,7 +153,22 @@ screen).
 - Plays the fMP4-over-WebSocket stream (`/devices/{id}/live`); falls back to HLS automatically on
   close code `1013` or repeated failures.
 - Recent clips below.
-- "Talk" is shown disabled with an explanation (non-goal).
+- **Talk**, under the controls: held to speak through the camera's speaker, walkie-talkie style,
+  over `/devices/{id}/talk` (the phone's microphone as raw PCM, no encoder).
+  - "Hold to talk" while the server says the camera can talk (`DeviceSummary.talk`); while held,
+    "Connecting…" until the camera accepts, then "Talking · release to stop" with a red dot and
+    what is happening under it. Letting go, sliding off, leaving the screen or the app going to
+    the background stops it cleanly; the camera plays what it received.
+  - The camera's own sound is off from the press until the talk is over (it has no echo
+    cancellation), then back as the user left it.
+  - When the server says the camera cannot talk now (the Two-Way Talk patcher is missing, the
+    camera has not reported its address, it is not a camera, or the server is too old to say),
+    Talk stays pressable with the short reason under it, and pressing it says what to do.
+  - The microphone is asked for at the first press, with the reason; refused, the screen says how
+    to allow it and opens the app's page in Android's settings.
+  - Every error the socket can bring (busy, unreachable, no audio for 15 s, the server
+    restarting...) is said in words under Talk, and TalkBack announces it.
+  - TalkBack has no practical hold: there, a double tap starts talking and the next one stops.
 
 ### 8 · Settings
 - Server: address, server version.
@@ -271,4 +285,9 @@ screen).
      topic setting, for people who already run ntfy. The app does not use them in v1.
    - Changed on 2026-11-15: the first version of this decision used UnifiedPush with the ntfy app
      as distributor, which needed a self-hosted ntfy server and a second app on the phone.
-5. **Two-way talk from outside** (WebRTC + TURN): a later version.
+5. **Two-way talk over the app's own connection**, not WebRTC: the phone's microphone goes to the
+   camera as raw PCM over the authenticated `/devices/{id}/talk` WebSocket (petkit-local#108),
+   which works from anywhere the API does, with no TURN relay. Held to speak (§7): the issue left
+   hold or toggle open, and the owner chose press-and-hold.
+   - Changed on 2026-11-19: the first version of this decision kept two-way talk out of v1, as it
+     was thought to need WebRTC through a TURN relay.
