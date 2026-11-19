@@ -55,11 +55,12 @@ jobs:
       matrix:
         # Managed devices of build-logic/.../ManagedDevices.kt, and the system image each uses.
         # API 37 is an Automated Test Device image; there is none below API 30, so API 29 runs
-        # on Google APIs.
+        # on the plain AOSP image. Not Google APIs: its Play services kept the emulator busy enough
+        # (GC pauses, dex2oat, frames of 900 ms) that a different test timed out every night.
         device: >-
           ${{ fromJSON((github.event_name == 'schedule' || inputs.min-sdk) && '[
             {"check": "e2e", "name": "pixel6Api37", "image": "android-37.0/aosp_atd"},
-            {"check": "e2e (API 29)", "name": "pixel6Api29", "image": "android-29/google_apis"}
+            {"check": "e2e (API 29)", "name": "pixel6Api29", "image": "android-29/default"}
           ]' || '[
             {"check": "e2e", "name": "pixel6Api37", "image": "android-37.0/aosp_atd"}
           ]') }}

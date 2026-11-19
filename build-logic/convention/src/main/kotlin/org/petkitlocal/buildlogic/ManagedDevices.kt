@@ -26,12 +26,14 @@ internal fun Project.configureManagedDevices(extension: CommonExtension) {
             // because AGP cannot tell it from the SDK version and warns at every configuration.
             pageAlignment = PageAlignment.FORCE_4KB_PAGES
         }
-        // The minimum SDK. There is no ATD image below API 30, so it is a Google APIs image. The
-        // nightly e2e run and developers use it; pull requests do not wait for it.
+        // The minimum SDK. There is no ATD image below API 30, so it is the plain AOSP image: the
+        // app uses no Play services, and with them (Google APIs) the emulator was busy enough that
+        // a different test timed out every night. The nightly e2e run and developers use it; pull
+        // requests do not wait for it.
         create("pixel6Api$minSdk") {
             device = PHONE
             sdkVersion = minSdk
-            systemImageSource = "google"
+            systemImageSource = "aosp"
             require64Bit = true
             testedAbi = hostAbi
         }
