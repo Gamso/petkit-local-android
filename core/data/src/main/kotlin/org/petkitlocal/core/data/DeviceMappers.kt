@@ -23,12 +23,14 @@ import org.petkitlocal.core.domain.model.Entity
 import org.petkitlocal.core.domain.model.EntityCategory
 import org.petkitlocal.core.domain.model.EntityComponent
 import org.petkitlocal.core.domain.model.EntityValue
+import org.petkitlocal.core.domain.model.TalkAvailability
 import org.petkitlocal.core.network.PetkitJson
 import org.petkitlocal.core.network.dto.AccessoryRefDto
 import org.petkitlocal.core.network.dto.DeviceConnection as ApiDeviceConnection
 import org.petkitlocal.core.network.dto.DeviceDetailDto
 import org.petkitlocal.core.network.dto.DeviceKind
 import org.petkitlocal.core.network.dto.DeviceSummaryDto
+import org.petkitlocal.core.network.dto.DeviceTalk
 import org.petkitlocal.core.network.dto.DeviceTransport as ApiDeviceTransport
 import org.petkitlocal.core.network.dto.EntityCategory as ApiEntityCategory
 import org.petkitlocal.core.network.dto.EntityComponent as ApiEntityComponent
@@ -60,6 +62,7 @@ internal fun DeviceSummaryDto.toRow(position: Int, serial: String?) = DeviceRow(
     connection = connection,
     parentId = parentId,
     accessoriesJson = PetkitJson.encodeToString(accessoryList, accessories),
+    talk = talk,
 )
 
 /** The row of a `DeviceDetail` (a `hello` lists them), which is a `DeviceSummary` with more. */
@@ -80,6 +83,7 @@ internal fun DeviceDetailDto.toRow(position: Int) = DeviceRow(
     connection = connection,
     parentId = parentId,
     accessoriesJson = PetkitJson.encodeToString(accessoryList, accessories),
+    talk = talk,
 )
 
 /** A row's accessories; text that is not the list the server sent (it never should be) is none. */
@@ -141,6 +145,15 @@ internal fun DeviceWithDetails.toDomain() = Device(
     connection = if (device.connection == ApiDeviceConnection.BLE) DeviceConnection.Ble else DeviceConnection.Wifi,
     parentId = device.parentId,
     accessories = decodeAccessories(device.accessoriesJson),
+    // None from a server too old to say; a value this app does not know yet is Unknown.
+    talk = device.talk?.let { TALK[it] ?: TalkAvailability.Unknown } ?: TalkAvailability.ServerTooOld,
+)
+
+private val TALK = mapOf(
+    DeviceTalk.AVAILABLE to TalkAvailability.Available,
+    DeviceTalk.NEEDS_PATCHER to TalkAvailability.NeedsPatcher,
+    DeviceTalk.DEVICE_UNREACHABLE to TalkAvailability.DeviceUnreachable,
+    DeviceTalk.UNSUPPORTED to TalkAvailability.Unsupported,
 )
 
 internal fun deviceFamily(kind: String): DeviceFamily = when (kind) {

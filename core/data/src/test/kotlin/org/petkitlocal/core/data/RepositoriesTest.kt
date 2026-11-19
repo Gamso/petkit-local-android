@@ -22,6 +22,7 @@ import org.petkitlocal.core.domain.model.EntityComponent
 import org.petkitlocal.core.domain.model.EntityValue
 import org.petkitlocal.core.domain.model.PetRef
 import org.petkitlocal.core.domain.model.Portions
+import org.petkitlocal.core.domain.model.TalkAvailability
 import org.petkitlocal.core.domain.model.TimelineCategory
 import org.petkitlocal.core.domain.model.TimelineStep
 import org.robolectric.RobolectricTestRunner
@@ -101,6 +102,33 @@ class RepositoriesTest {
         assertEquals(2, generation2.generation)
         assertEquals("Model 1003", older.modelName)
         assertNull(older.generation)
+    }
+
+    @Test
+    fun `a device says whether it can be talked through, and a server that does not say is too old`() = runTest {
+        fun withTalk(id: Long, talk: String) =
+            summary(id, "litter_box").replace(""""is_camera":false,""", """"is_camera":true,"talk":"$talk",""")
+        server.on(
+            "devices",
+            """{"devices":[${withTalk(1003, "available")},${withTalk(1004, "needs_patcher")},""" +
+                """${withTalk(1005, "device_unreachable")},${withTalk(1006, "unsupported")},""" +
+                """${withTalk(1007, "on_mars")},${summary(1008, "litter_box")}]}""",
+        )
+        (1003L..1008L).forEach { server.on("devices/$it", detail(it, "litter_box")) }
+
+        devices.refresh()
+
+        assertEquals(
+            listOf(
+                TalkAvailability.Available,
+                TalkAvailability.NeedsPatcher,
+                TalkAvailability.DeviceUnreachable,
+                TalkAvailability.Unsupported,
+                TalkAvailability.Unknown,
+                TalkAvailability.ServerTooOld,
+            ),
+            devices.observeDevices().first().map { it.talk },
+        )
     }
 
     @Test
