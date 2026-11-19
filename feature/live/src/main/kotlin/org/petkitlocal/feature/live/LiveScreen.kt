@@ -1,7 +1,14 @@
 package org.petkitlocal.feature.live
 
+import android.Manifest
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import android.view.SurfaceView
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
@@ -50,6 +58,7 @@ import org.petkitlocal.core.domain.video.LivePhase
 import org.petkitlocal.core.domain.video.LiveSession
 import org.petkitlocal.core.domain.video.LiveTransport
 import org.petkitlocal.core.ui.RecentClipsCard
+import org.petkitlocal.core.ui.startFirst
 
 /** What the live screen's user can do; the route wires each to the ViewModel. */
 data class LiveCallbacks(
@@ -63,6 +72,14 @@ data class LiveCallbacks(
     /** History, narrowed to this camera: the rest of its clips. */
     val onSeeAllClips: () -> Unit = {},
     val onRetryClips: () -> Unit = {},
+    /** Talk: the finger went down on it. */
+    val onTalkPressed: () -> Unit = {},
+    /** Talk: the finger went up, or slid off. */
+    val onTalkReleased: () -> Unit = {},
+    /** Talk activated without a press (TalkBack's double tap): starts or stops talking. */
+    val onTalkToggled: () -> Unit = {},
+    /** This app's page in Android's settings, where the microphone can be allowed. */
+    val onOpenAppSettings: () -> Unit = {},
 )
 
 object LiveTestTags {
@@ -75,6 +92,18 @@ object LiveTestTags {
     /** "HLS" while on the fallback. */
     const val TRANSPORT = "live_transport"
     const val STATUS = "live_status"
+
+    /** Talk, held to speak through the camera. */
+    const val TALK = "live_talk"
+
+    /** Under Talk while talking: the red dot and what is happening. */
+    const val TALK_INDICATOR = "live_talk_indicator"
+
+    /** Under Talk: what was said last (why it cannot talk, the microphone, an error). */
+    const val TALK_NOTICE = "live_talk_notice"
+
+    /** Under Talk: why the server says the camera cannot talk now. */
+    const val TALK_REASON = "live_talk_reason"
 }
 
 @Composable
@@ -85,7 +114,18 @@ internal fun LiveRoute(
     viewModel: LiveViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    // Playing only while the screen is visible: no player and no socket in the background.
+    val context = LocalContext.current
+    val askMicrophone = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+        viewModel.onMicrophoneResult(it)
+    }
+    LaunchedEffect(viewModel) {
+        viewModel.effects.collect { effect ->
+            when (effect) {
+                LiveEffect.RequestMicrophone -> askMicrophone.launch(Manifest.permission.RECORD_AUDIO)
+            }
+        }
+    }
+    // Playing (and talking) only while the screen is visible: no player and no socket in the background.
     LifecycleStartEffect(viewModel) {
         viewModel.onVisible()
         onStopOrDispose { viewModel.onHidden() }
@@ -94,7 +134,7 @@ internal fun LiveRoute(
         LivePlayerEvents(viewModel::onPlaying, viewModel::onPlayerFailed, viewModel::onDelay)
     }
     val player = rememberLivePlayer(uiState.playback, viewModel.playerFactory, events)
-    LaunchedEffect(player, uiState.muted) { player?.applyMuted(uiState.muted) }
+    LaunchedEffect(player, uiState.soundMuted) { player?.applyMuted(uiState.soundMuted) }
     val videoSize = rememberVideoSize(player)
     var surface by remember { mutableStateOf<SurfaceView?>(null) }
     val scope = rememberCoroutineScope()
@@ -118,9 +158,21 @@ internal fun LiveRoute(
             onOpenClip = onOpenClip,
             onSeeAllClips = { onOpenHistory(viewModel.deviceId) },
             onRetryClips = viewModel::onRefreshClips,
+            onTalkPressed = viewModel::onTalkPressed,
+            onTalkReleased = viewModel::onTalkReleased,
+            onTalkToggled = viewModel::onTalkToggled,
+            onOpenAppSettings = { openAppSettings(context) },
         ),
         aspectRatio = aspectRatioOf(videoSize),
     ) { modifier -> LiveVideoSurface(player, onView = { surface = it }, modifier = modifier) }
+}
+
+/** This app's page in Android's settings, where a refused microphone can be allowed. */
+private fun openAppSettings(context: Context) {
+    startFirst(
+        context,
+        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null)),
+    )
 }
 
 /** The size of [player]'s video, followed as it changes; unknown (0 x 0) before the first frame. */
@@ -142,7 +194,7 @@ private fun rememberVideoSize(player: Player?): VideoSize {
 /**
  * A camera's live video (SPEC.md §5.7), always dark (docs/DESIGN.md): the picture full width
  * with its badge (live, how far behind, HLS on the fallback) and what the session is doing over
- * it, then sound, snapshot and full screen, "Talk", which this app does not offer, and
+ * it, then sound, snapshot and full screen, Talk (held to speak through the camera), and
  * the camera's recent clips, each opening the clip player (which stops the live video). Full
  * screen, the picture takes the whole landscape window with its controls over it.
  *

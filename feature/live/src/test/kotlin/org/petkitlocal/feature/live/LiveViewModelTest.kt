@@ -24,6 +24,7 @@ import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.core.domain.Outcome
 import org.petkitlocal.core.domain.device.ObserveDeviceUseCase
 import org.petkitlocal.core.domain.repository.SnapshotRepository
+import org.petkitlocal.core.domain.talk.OpenTalkUseCase
 import org.petkitlocal.core.domain.video.LiveFailure
 import org.petkitlocal.core.domain.video.LivePhase
 import org.petkitlocal.core.domain.video.LiveSession
@@ -32,6 +33,8 @@ import org.petkitlocal.core.domain.video.ObserveRecentClipsUseCase
 import org.petkitlocal.core.domain.video.RefreshRecentClipsUseCase
 import org.petkitlocal.core.domain.video.SaveSnapshotUseCase
 import org.petkitlocal.core.testing.FakeDeviceRepository
+import org.petkitlocal.core.testing.FakeMicrophoneAccess
+import org.petkitlocal.core.testing.FakeTalkRepository
 import org.petkitlocal.core.testing.FakeTimelineRepository
 import org.petkitlocal.core.testing.Household
 import org.petkitlocal.core.testing.MainDispatcherExtension
@@ -53,6 +56,8 @@ class LiveViewModelTest {
         SaveSnapshotUseCase(snapshots, Household.clock),
         ObserveRecentClipsUseCase(timeline),
         RefreshRecentClipsUseCase(timeline),
+        OpenTalkUseCase(FakeTalkRepository()),
+        FakeMicrophoneAccess(),
         Household.clock,
         NoPlayers,
     )
@@ -277,7 +282,7 @@ class LiveViewModelTest {
     }
 
     /** The ViewModel only hands the factory to the screen. */
-    private object NoPlayers : LivePlayerFactory {
+    internal object NoPlayers : LivePlayerFactory {
         override fun create(context: Context, deviceId: Long, transport: LiveTransport): Player =
             error("no player here")
 

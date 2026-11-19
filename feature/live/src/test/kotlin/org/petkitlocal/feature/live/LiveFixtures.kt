@@ -2,6 +2,8 @@ package org.petkitlocal.feature.live
 
 import kotlin.time.Duration.Companion.milliseconds
 import org.petkitlocal.core.domain.DomainError
+import org.petkitlocal.core.domain.model.TalkAvailability
+import org.petkitlocal.core.domain.talk.TalkFailure
 import org.petkitlocal.core.domain.video.LiveFailure
 import org.petkitlocal.core.domain.video.LivePhase
 import org.petkitlocal.core.domain.video.LiveSession
@@ -28,6 +30,7 @@ internal object LiveFixtures {
         availability = LiveAvailability.Camera,
         session = session,
         clips = clips,
+        talk = TalkUiState(TalkAvailability.Available),
     )
 
     val connecting = state(LiveSession(phase = LivePhase.Starting, attempt = 1))
@@ -52,6 +55,33 @@ internal object LiveFixtures {
     )
 
     val fullscreen = playing.copy(fullscreen = true)
+
+    /** Talk held, the camera playing the microphone. */
+    val talking = playing.copy(talk = TalkUiState(TalkAvailability.Available, TalkPhase.Talking))
+
+    /** Talk held, the socket still opening. */
+    val talkConnecting = playing.copy(talk = TalkUiState(TalkAvailability.Available, TalkPhase.Connecting))
+
+    /** Let go: the camera plays what it received. */
+    val talkStopping = playing.copy(talk = TalkUiState(TalkAvailability.Available, TalkPhase.Stopping))
+
+    /** A camera without the Two-Way Talk patcher: the short reason under Talk. */
+    val talkNeedsPatcher = playing.copy(talk = TalkUiState(TalkAvailability.NeedsPatcher))
+
+    /** ...and Talk pressed anyway: what to do about it. */
+    val talkNeedsPatcherPressed = talkNeedsPatcher.copy(
+        talk = talkNeedsPatcher.talk.copy(notice = TalkNotice.Unavailable(TalkAvailability.NeedsPatcher)),
+    )
+
+    /** The microphone refused, and the way to Android's settings. */
+    val microphoneDenied = playing.copy(
+        talk = TalkUiState(TalkAvailability.Available, notice = TalkNotice.MicrophoneDenied),
+    )
+
+    /** Someone else talking through the camera. */
+    val talkBusy = playing.copy(
+        talk = TalkUiState(TalkAvailability.Available, notice = TalkNotice.Failed(TalkFailure.Busy)),
+    )
 
     val notACamera = LiveUiState(
         deviceId = Household.feeder.id,
