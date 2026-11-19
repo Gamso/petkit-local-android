@@ -21,27 +21,27 @@ exposed through a `PkTheme` composition local; screens never use raw values.
 
 | Token | Value | Use |
 |---|---|---|
-| `background` | `#EEF0F3` | Screen background |
+| `background` | `#EEF0F7` | Screen background |
 | `surface` | `#FFFFFF` | Cards, sheets |
-| `surfaceMuted` | `#F1F3F6` | Secondary buttons, tiles |
+| `surfaceMuted` | `#F1F2F9` | Secondary buttons, tiles |
 | `onSurface` | `#1B1F24` | Primary text |
-| `onSurfaceMuted` | `#5B6470` | Secondary text (4.6:1 on white) |
-| `accent` | `#0B7A72` | Primary actions, selected tab, OK state (5.2:1 on white) |
-| `accentContainer` | `#E6F4F2` | Accent backgrounds, "idle" band |
-| `onAccentContainer` | `#075E58` | Text on accent backgrounds |
-| `secondary` | `#2E4C78` | Second pet colour, informative chips |
+| `onSurfaceMuted` | `#5B6470` | Secondary text (6.0:1 on white, 5.3:1 on `background`) |
+| `accent` | `#3F51B5` | Primary actions, selected tab, OK state (6.9:1 on white) |
+| `accentContainer` | `#E8EBFB` | Accent backgrounds, "idle" band |
+| `onAccentContainer` | `#2A3790` | Text on accent backgrounds |
+| `secondary` | `#0F6E66` | Second pet colour, informative chips |
 | `warning` | `#B45309` | Attention states, alert dots |
 | `warningContainer` | `#FFF4E5` | Alert banners and pills |
 | `onWarningContainer` | `#7A3A06` | Text on alert backgrounds |
 | `success` | `#1F7A3A` | "Served", "idle" status text |
 | `danger` | `#B42318` | Sign out, destructive confirmation |
-| `outline` | `#D5D9DF` | Field borders, separators |
+| `outline` | `#D6D9E4` | Field borders, separators |
 
 Device pages use a soft vertical gradient behind the hero, tinted per family: litter
-`#E3F1EF`, feeder `#E8EEF7`, fountain `#E2EFF7`, pet `#F6EBDF`, each fading into `background`.
+`#E6E9FA`, feeder `#E8EEF7`, fountain `#E2EFF7`, pet `#F6EBDF`, each fading into `background`.
 
 Three "on" tokens complete the table for text and icons on filled colours: `onAccent`
-`#FFFFFF` (5.2:1), `onSecondary` `#FFFFFF` (8.7:1), `onDanger` `#FFFFFF` (6.6:1).
+`#FFFFFF` (6.9:1), `onSecondary` `#FFFFFF` (6.1:1), `onDanger` `#FFFFFF` (6.6:1).
 
 ### Colour (dark)
 
@@ -51,36 +51,36 @@ palettes and fails the build below 4.5:1. Ratios are against `surface` unless st
 
 | Token | Value | Contrast |
 |---|---|---|
-| `background` | `#101316` | — |
-| `surface` | `#1A1E23` | — |
-| `surfaceMuted` | `#252B32` | — |
-| `onSurface` | `#E6E9ED` | 13.8:1 (15.3:1 on `background`, 11.7:1 on `surfaceMuted`) |
-| `onSurfaceMuted` | `#A4ADB9` | 7.4:1 (6.3:1 on `surfaceMuted`) |
-| `accent` | `#5CC8BD` | 8.3:1 |
-| `onAccent` | `#00211E` | 8.5:1 on `accent` |
-| `accentContainer` | `#123A36` | — |
-| `onAccentContainer` | `#A6E6DE` | 8.9:1 on `accentContainer` |
-| `secondary` | `#9DB8E3` | 8.3:1 |
-| `onSecondary` | `#0D1B30` | 8.6:1 on `secondary` |
+| `background` | `#101219` | — |
+| `surface` | `#1A1D27` | — |
+| `surfaceMuted` | `#252936` | — |
+| `onSurface` | `#E6E9ED` | 13.8:1 (15.4:1 on `background`, 11.9:1 on `surfaceMuted`) |
+| `onSurfaceMuted` | `#A4ADB9` | 7.4:1 (6.4:1 on `surfaceMuted`) |
+| `accent` | `#B4C0FF` | 9.5:1 |
+| `onAccent` | `#0E1A5C` | 9.0:1 on `accent` |
+| `accentContainer` | `#262F63` | — |
+| `onAccentContainer` | `#DCE1FF` | 9.7:1 on `accentContainer` |
+| `secondary` | `#6ED3C7` | 9.5:1 |
+| `onSecondary` | `#00201D` | 9.6:1 on `secondary` |
 | `warning` | `#F2A65A` | 8.3:1 |
 | `warningContainer` | `#3A2810` | — |
 | `onWarningContainer` | `#FFD8A8` | 10.5:1 on `warningContainer` |
-| `success` | `#74CF8F` | 8.8:1 |
+| `success` | `#74CF8F` | 8.9:1 |
 | `danger` | `#FF8B7E` | 7.4:1 |
 | `onDanger` | `#3A0904` | 7.6:1 on `danger` |
-| `outline` | `#3A424C` | Separators only, like its light value |
+| `outline` | `#3A3F52` | Separators only, like its light value |
 
-Hero tints in dark: litter `#16302D`, feeder `#1B2433`, fountain `#15293A`, pet `#33281C`.
+Hero tints in dark: litter `#1E2342`, feeder `#1B2433`, fountain `#15293A`, pet `#33281C`.
 `photoPlate` is what a product photo lies on: nothing in light, `#DDE2E7` in dark (Illustrations). In dark, filled colours
 are light and their "on" colours dark, the reverse of the light palette. The live-video screen
 is always dark.
 
 Pets get colours in a fixed order so charts and avatars agree everywhere: accent, secondary,
-then purple (`#7B4FA8` light, `#C8A2EC` dark) and rose (`#A8436A` light, `#F291B3` dark), each
+then rose (`#A8436A` light, `#F291B3` dark) and ochre (`#8A5A00` light, `#E8BE6A` dark), each
 at least 5.7:1 on `surface`. A Dual-Hopper's hoppers have theirs too, the food drawn in each and
-the portions it gave: hopper 1 teal (`#0B7A72` light, `#5CC8BD` dark), hopper 2 orange (`#B45309`
-light, `#F2A65A` dark), each at least 4.5:1 on `surface` and always beside its name. Every
-coloured state also has a label or a shape, never colour alone: a selected filter chip carries a
+the portions it gave: hopper 1 indigo, the accent (`#3F51B5` light, `#B4C0FF` dark), hopper 2
+orange (`#B45309` light, `#F2A65A` dark), each at least 4.5:1 on `surface` and always beside its
+name. Every coloured state also has a label or a shape, never colour alone: a selected filter chip carries a
 check mark, a mode chip says "On" or "Off".
 
 ### Type
