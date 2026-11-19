@@ -1,12 +1,14 @@
 # The gate of every pull request and of main (docs/ARCHITECTURE.md §7): four jobs in parallel,
 # each a required check. Locally, `./gradlew assembleDebug assembleRelease check` runs all of it.
 # The build runs on JDK 25 (gradle/gradle-daemon-jvm.properties); the app is Java 17 bytecode.
+# release.yml calls this workflow too, so a release passes the same gates.
 name: ci
 
 on:
   pull_request:
   push:
     branches: [main]
+  workflow_call:
 
 # A newer push to the same branch or pull request makes the running build pointless.
 concurrency:
@@ -125,8 +127,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
         with:
           cache-read-only: ${{ github.ref != 'refs/heads/main' }}
-      # The release build goes through R8; until release signing exists (issue 26) it is signed
-      # with the debug key, so this APK is for testing only.
+      # The release build goes through R8 and is signed with the debug key, so this APK is for
+      # testing only; release.yml builds the one that is published, signed with the release key.
       - name: Debug and release builds
         run: scripts/gradle-ci.sh assembleDebug assembleRelease
       - name: Upload APKs
