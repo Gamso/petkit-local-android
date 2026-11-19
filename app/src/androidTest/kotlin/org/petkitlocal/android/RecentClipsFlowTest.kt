@@ -1,19 +1,23 @@
 package org.petkitlocal.android
 
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -63,7 +67,7 @@ class RecentClipsFlowTest {
 
         compose.onNodeWithTag(PageTestTags.LIST).performScrollToNode(hasTestTag(RecentClipsTestTags.SECTION))
         waitFor(aClip)
-        compose.onAllNodes(aClip).onFirst().performScrollTo().performClick()
+        compose.onAllNodes(aClip).onFirst().scrollAboveActionSheet().performClick()
 
         waitFor(hasTestTag(HistoryTestTags.CLIP_PLAYER))
         // Its length is known once the player has read the file through the bearer-carrying client.
@@ -100,6 +104,26 @@ class RecentClipsFlowTest {
     /** Any clip of the recent clips row. */
     private val aClip = SemanticsMatcher("is a recent clip") { node ->
         node.config.getOrNull(SemanticsProperties.TestTag)?.let(RecentClipsTestTags::isClip) == true
+    }
+
+    /**
+     * Scrolls this node of a device page into view above the page's action sheet. The sheet lies
+     * over the bottom of the list, which `performScrollTo` does not know: it stops as soon as the
+     * node is inside the list's bounds, partly under the sheet, and a tap at its centre then lands
+     * on one of the sheet's quick actions instead (on API 29, whose taller navigation bar raises
+     * the sheet, it sent a Scoop). The list's bottom padding is the sheet's height, so its last
+     * item can always be brought above it.
+     */
+    private fun SemanticsNodeInteraction.scrollAboveActionSheet(): SemanticsNodeInteraction {
+        performScrollTo()
+        val sheet = compose.onAllNodesWithTag(DeviceTestTags.ACTION_SHEET).fetchSemanticsNodes().firstOrNull()
+            ?: return this
+        val hidden = fetchSemanticsNode().boundsInRoot.bottom - sheet.boundsInRoot.top
+        if (hidden > 0f) {
+            compose.onNodeWithTag(PageTestTags.LIST)
+                .performSemanticsAction(SemanticsActions.ScrollBy) { scrollBy -> scrollBy(0f, hidden) }
+        }
+        return this
     }
 
     /** From Home to [deviceId]'s page. */
