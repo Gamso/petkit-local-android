@@ -1,5 +1,6 @@
 import java.util.regex.Pattern
 import org.petkitlocal.buildlogic.DirectDependenciesReport
+import org.petkitlocal.buildlogic.appVersion
 import org.petkitlocal.buildlogic.directExternalDependencies
 
 plugins {
@@ -9,13 +10,17 @@ plugins {
     alias(libs.plugins.aboutlibraries.android)
 }
 
+// A release takes its version from its tag (release.yml passes -PappVersion=0.1.0 for v0.1.0, and
+// build-logic's parseAppVersion derives the code); every other build is this dev version, code 1.
+val apkVersion = appVersion(devName = "0.1.0-dev")
+
 android {
     namespace = "org.petkitlocal.android"
 
     defaultConfig {
         applicationId = "org.petkitlocal.android"
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = apkVersion.code
+        versionName = apkVersion.name
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
