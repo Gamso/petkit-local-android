@@ -29,6 +29,7 @@
     <string name="server_entity_cleaning_schedule">Cleaning Schedule (JSON)</string>
     <string name="server_entity_click_ok">OK Button Under Child Lock</string>
     <string name="server_entity_ctw3_battery">Battery</string>
+    <string name="server_entity_ctw3_battery_mode">Battery Mode</string>
     <string name="server_entity_ctw3_breakdown">Breakdown</string>
     <string name="server_entity_ctw3_brightness">Brightness</string>
     <string name="server_entity_ctw3_child_lock">Child Lock</string>
@@ -43,8 +44,8 @@
     <string name="server_entity_ctw3_power">Power</string>
     <string name="server_entity_ctw3_running">Pump Running</string>
     <string name="server_entity_ctw3_sleep_time">Battery Sleep Time</string>
-    <string name="server_entity_ctw3_smart_sleep">Smart Mode Rest Time</string>
-    <string name="server_entity_ctw3_smart_work">Smart Mode Run Time</string>
+    <string name="server_entity_ctw3_smart_sleep">Intermittent Rest Time</string>
+    <string name="server_entity_ctw3_smart_work">Intermittent Run Time</string>
     <string name="server_entity_ctw3_water_lack">Water Low</string>
     <string name="server_entity_ctw3_working">Working</string>
     <string name="server_entity_deep_clean">Deep Cleaning</string>
@@ -215,6 +216,10 @@
     <string name="server_option_has_food">Has food</string>
     <string name="server_option_aborted_water_not_hot_enough">aborted (water not hot enough)</string>
     <string name="server_option_battery">battery</string>
+    <!-- A CTW3's modes, as PetKit's app names them; the server's keys stay normal and smart. -->
+    <string name="server_option_ctw3_mode_normal">continuous</string>
+    <string name="server_option_ctw3_mode_smart">intermittent</string>
+    <string name="server_option_ctw3_mode_battery">battery mode</string>
     <string name="server_option_bentonite">bentonite</string>
     <string name="server_option_calibrating">calibrating</string>
     <string name="server_option_cleaning">cleaning</string>

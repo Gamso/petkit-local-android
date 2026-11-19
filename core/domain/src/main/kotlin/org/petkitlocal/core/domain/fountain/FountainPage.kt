@@ -61,9 +61,32 @@ data class FountainMode(val key: String, val kind: FountainModeKind)
 /**
  * The fountain's mode select, as the bottom bar offers it: entity [key], its [options] in the
  * server's order (their labels are translated by value), and the one the device last reported
- * ([selected], null while it has not said). The bar shows [selected], never what was tapped.
+ * ([selected], null while it has not said, or while it shows a state that is not an option, a
+ * CTW3's battery mode). The bar shows [selected], never what was tapped.
+ *
+ * A fountain whose bar in PetKit's app also has a Pause and a battery mode (the CTW3) has them
+ * here too: [pause] before the options, [battery] after them.
  */
-data class FountainModeBar(val key: String, val options: List<String>, val selected: String?)
+data class FountainModeBar(
+    val key: String,
+    val options: List<String>,
+    val selected: String?,
+    val pause: FountainPause? = null,
+    val battery: FountainBatteryMode? = null,
+)
+
+/**
+ * The fountain's Pause: switch [key], on while the pump runs (petkit-local's `ctw3_working`, the
+ * right way up), so [paused] is its value inverted; null while it has not reported.
+ */
+data class FountainPause(val key: String, val paused: Boolean?)
+
+/**
+ * The battery mode a cordless fountain enters by itself when unplugged and leaves when plugged in
+ * again: a state, never a choice. [active] while the fountain reports it; [settings] are the keys
+ * of its battery working and sleep times the server lets be set, in that order.
+ */
+data class FountainBatteryMode(val active: Boolean, val settings: List<String>)
 
 enum class FountainModeKind {
     /** Smart mode (the pump runs, then rests) rather than normal (it runs all the time). */

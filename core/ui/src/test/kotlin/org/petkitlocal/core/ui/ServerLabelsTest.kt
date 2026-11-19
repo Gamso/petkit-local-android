@@ -53,7 +53,30 @@ class ServerLabelsTest {
         val maps = listOf(EntityLabels, ActionLabels, OptionLabels, FilterLabels, EventKindLabels)
         val resources = ApplicationProvider.getApplicationContext<Context>().resources
         maps.forEach { map -> map.forEach { (key, id) -> assertTrue(key, resources.getString(id).isNotBlank()) } }
-        assertEquals(260, maps.sumOf { it.size })
+        assertEquals(261, maps.sumOf { it.size })
+        EntityOptionLabels.forEach { (entity, options) ->
+            options.forEach { (option, id) -> assertTrue("$entity $option", resources.getString(id).isNotBlank()) }
+        }
+    }
+
+    @Test
+    fun `a CTW3 names its modes as PetKit does, and a W5 keeps its own names`() {
+        assertEquals("continuous", labels.option("normal", "ctw3_mode"))
+        assertEquals("intermittent", labels.option("smart", "ctw3_mode"))
+        assertEquals("battery mode", labels.option("battery", "ctw3_mode"))
+        assertEquals("smart", labels.option("smart", "w5_mode"))
+        assertEquals("normal", labels.option("normal", null))
+        assertEquals("Intermittent Run Time", labels.entity("ctw3_smart_work", "Intermittent Run Time"))
+    }
+
+    @Test
+    @Config(qualifiers = "fr")
+    fun `in French, a CTW3's modes are Continu, Intermittent and Mode batterie`() {
+        assertEquals("continu", labels.option("normal", "ctw3_mode"))
+        assertEquals("intermittent", labels.option("smart", "ctw3_mode"))
+        assertEquals("mode batterie", labels.option("battery", "ctw3_mode"))
+        assertEquals("intelligent", labels.option("smart", "w5_mode"))
+        assertEquals("Mode batterie", labels.entity("ctw3_battery_mode", "Battery Mode"))
     }
 
     @Test

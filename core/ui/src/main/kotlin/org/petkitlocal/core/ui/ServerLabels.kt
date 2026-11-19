@@ -22,8 +22,14 @@ class ServerLabels(private val resources: Resources) {
     /** `Action.name`, by `Action.key`. */
     fun action(key: String, serverName: String): String = translate(ActionLabels, key, serverName)
 
-    /** A select's option or a sensor's `display` text, which is its own key. */
-    fun option(value: String): String = translate(OptionLabels, value, value)
+    /**
+     * A select's option or a sensor's `display` text, which is its own key: named as the select
+     * [entityKey] names it where that differs from the shared name (a CTW3's `ctw3_mode` says
+     * continuous for `normal`).
+     */
+    fun option(value: String, entityKey: String? = null): String =
+        entityKey?.let { EntityOptionLabels[it]?.get(value) }?.let(resources::getString)
+            ?: translate(OptionLabels, value, value)
 
     /** A History filter chip, by its `TimelineFilter` value. */
     fun filter(key: String): String = translate(FilterLabels, key, key)
