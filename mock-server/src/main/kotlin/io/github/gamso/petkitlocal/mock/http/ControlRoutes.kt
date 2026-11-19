@@ -8,6 +8,10 @@ import io.github.gamso.petkitlocal.mock.state.ForcedFailure
 import io.github.gamso.petkitlocal.mock.state.LiveViewer
 import io.github.gamso.petkitlocal.mock.state.MockDevice
 import io.github.gamso.petkitlocal.mock.state.Subscriber
+import io.github.gamso.petkitlocal.mock.state.TALK_VALUES
+import io.github.gamso.petkitlocal.mock.state.TalkHub
+import io.github.gamso.petkitlocal.mock.state.TalkRefusal
+import io.github.gamso.petkitlocal.mock.state.Talker
 import io.github.gamso.petkitlocal.mock.state.World
 import io.github.gamso.petkitlocal.mock.state.asStrictInt
 import io.github.gamso.petkitlocal.mock.state.clearError
@@ -95,6 +99,7 @@ private val CONTROL_ROUTES =
         "POST   /mock/devices/{id}/offline | /online",
         "POST   /mock/devices/{id}/remove             sends device_removed (reset brings it back)",
         "PUT    /mock/devices/{id}/state              {\"<value_path>\": value, ...}  raw state, any entity",
+        "PUT    /mock/devices/{id}/talk               {talk}  available | needs_patcher | device_unreachable | unsupported",
         "POST   /mock/clock/advance                   {seconds}",
         "GET    /mock/sessions",
         "DELETE /mock/sessions/{id}                   revoke one (its sockets close 4401)",
@@ -109,6 +114,8 @@ private val CONTROL_ROUTES =
         "POST   /mock/ws/close                        {code?, reason?}  close every /ws socket (1001, 1013, 4401...)",
         "POST   /mock/live/close                      {code?, reason?}  close every live-video socket (1011; 1001, 1013, 4409...)",
         "POST   /mock/live/error                      {message?, next?}  `error` to every live-video socket and the next `next` opens",
+        "POST   /mock/talk/error                      {code, message?, next?}  `error`, close 4000: every talk, the next `next` opens",
+        "POST   /mock/talk/close                      {code?, reason?}  close every talk socket (1001; 1000, 1009, 4401...)",
         "POST   /mock/scenario/tick                   roll one scenario event now",
         "PUT    /mock/scenario                        {interval_sec}  0 stops it",
     )
@@ -129,6 +136,8 @@ fun Route.controlRoutes(
                     put("notification_sockets", synchronized(world.lock) { world.notify.size })
                     put("live_sockets", world.live.sockets)
                     put("hls_views", world.live.hlsViews)
+                    put("talk_sockets", world.talk.sockets)
+                    put("talk_bytes", world.talk.bytes)
                     put("routes", buildJsonArray { CONTROL_ROUTES.forEach { add(JsonPrimitive(it)) } })
                 },
             )
@@ -223,6 +232,14 @@ private fun Route.deviceControl(world: World) {
         post("/remove") {
             val device = world.controlDevice(call)
             synchronized(world.lock) { world.removeDevice(device.id) }
+            call.ok()
+        }
+        put("/talk") {
+            val device = world.controlDevice(call)
+            val talk =
+                call.jsonBody().str("talk")?.takeIf { it in TALK_VALUES }
+                    ?: throw ApiException(400, "bad_request", "talk is one of $TALK_VALUES")
+            synchronized(world.lock) { world.change(device, reported = false) { device.talk = talk } }
             call.ok()
         }
         put("/state") {
@@ -370,6 +387,23 @@ private fun Route.harnessControl(
         if (next < 0) throw ApiException(400, "bad_request", "next must be 0 or more")
         world.live.failNextOpens(next, message)
         call.ok(buildJsonObject { put("sent", world.live.errorAll(message)) })
+    }
+    post("/talk/error") {
+        val body = call.jsonBody()
+        val code =
+            body.str("code")?.takeIf { it in TalkHub.CODES }
+                ?: throw ApiException(400, "bad_request", "code is one of ${TalkHub.CODES}")
+        val refusal = TalkRefusal(code, body.str("message") ?: TalkHub.defaultMessage(code))
+        val next = body.int("next") ?: 0
+        if (next < 0) throw ApiException(400, "bad_request", "next must be 0 or more")
+        world.talk.failNextOpens(next, refusal)
+        call.ok(buildJsonObject { put("sent", world.talk.failAll(refusal)) })
+    }
+    post("/talk/close") {
+        val body = call.optionalBody()
+        val code = (body.int("code") ?: Talker.CLOSE_GOING_AWAY.toInt()).toShort()
+        val closed = world.talk.end(code, body.str("reason") ?: "closed by the mock's control API")
+        call.ok(buildJsonObject { put("closed", closed) })
     }
     post("/scenario/tick") {
         call.ok(buildJsonObject { put("event", scenario.tick()) })

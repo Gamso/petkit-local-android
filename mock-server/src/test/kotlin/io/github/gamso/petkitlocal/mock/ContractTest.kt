@@ -211,6 +211,20 @@ class ContractTest {
             assertEquals(503, api.get(hls, "/devices/${Seed.T5}/live/hls/playlist.m3u8").status)
             api.client.control(HttpMethod.Post, "/fail", """{"method":"GET","path":"$hls","status":502,"error":"bad_upstream"}""")
             assertEquals(502, api.get(hls, "/devices/${Seed.T5}/live/hls/playlist.m3u8").status)
+
+            // Talk: only what every route refuses is refused before the upgrade (TalkTest has the rest).
+            val talk = "/devices/{id}/talk"
+            assertEquals(426, api.get(talk, "/devices/${Seed.T5}/talk").status)
+            assertEquals(404, api.get(talk, "/devices/99/talk").status)
+            assertEquals(401, api.get(talk, "/devices/${Seed.T5}/talk", token = null).status)
+            api.client.webSocket(
+                "/app/v1/devices/${Seed.T5}/talk",
+                request = { header(HttpHeaders.Authorization, "Bearer ${api.token}") },
+            ) {
+                val ready = (kotlinx.coroutines.withTimeout(5000) { incoming.receive() } as Frame.Text).readText()
+                assertTrue(ready.startsWith("""{"type":"ready""""), ready)
+            }
+            Coverage.record("GET", talk, 101)
         }
 
     @Test
@@ -313,13 +327,12 @@ class ContractTest {
     /**
      * UnifiedPush: in the spec, not served, as the app does not use it (ADR 0007). Every session
      * the mock hands out says `push: null`, which is true. The notification socket is covered by
-     * NotifySocketTest. Talking through a camera: not served yet.
+     * NotifySocketTest.
      */
     private val pending =
         setOf(
             "PUT" to "/push",
             "DELETE" to "/push",
-            "GET" to "/devices/{id}/talk",
         )
 
     @AfterAll

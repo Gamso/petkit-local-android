@@ -68,12 +68,16 @@ class World(
     /** Live video: the test pattern's sockets and HLS views. */
     val live = LiveHub()
 
+    /** Talking through the cameras: one talk per device, and the audio bytes received. */
+    val talk = TalkHub()
+
     /** The notification socket and its catch-up log. */
     val notify = NotifyChannel(clock, config.heartbeatSec)
     val auth =
         Auth(clock, config.lockoutBaseSec, config.lockoutMaxSec) { ended ->
             hub.end(Subscriber.CLOSE_SESSION_ENDED, "session ended") { it.session === ended }
             live.endSessions { it.id == ended.id }
+            talk.endSessions { it.id == ended.id }
             notify.endSession(ended)
         }
     val devices = TreeMap<Int, MockDevice>()
@@ -109,6 +113,7 @@ class World(
             failures.clear()
             disabledKinds.clear()
             live.reset()
+            talk.reset()
             notify.reset()
             random = Random(config.seed + 1)
             Seed(this, Random(config.seed)).build()
@@ -140,6 +145,7 @@ class World(
     fun shutdown() {
         hub.end(Subscriber.CLOSE_GOING_AWAY, "server shutting down")
         live.end(LiveViewer.CLOSE_GOING_AWAY, "server shutting down")
+        talk.end(Talker.CLOSE_GOING_AWAY, "server shutting down")
         synchronized(lock) { notify.end(Subscriber.CLOSE_GOING_AWAY, "server shutting down") }
         scope.cancel()
     }

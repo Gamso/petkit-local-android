@@ -154,6 +154,20 @@ the commit recorded in `api/SOURCE`.
     rewriting each one's decode time and sequence number, so a player sees one continuous stream.
     Every camera shows the same picture, on one clock: a viewer joining late gets the stream where
     it is.
+- **Talk** (`/devices/{id}/talk`) is a WebSocket taking the phone's microphone as raw PCM, as
+  petkit-local's: there is no camera behind it, so the mock counts the audio bytes it receives
+  (`talk_bytes` in `GET /mock`).
+  - Each device's `talk` says whether it can start: the T5 and the D4H are `available`, the T6,
+    the D4SH and the W7H `needs_patcher`, the T7 `device_unreachable`, the rest `unsupported`
+    (`PUT /mock/devices/{id}/talk` changes it, with a `device` message).
+  - Only 401, 404 `device_not_found` and 426 are refused before the upgrade. On the open socket
+    the mock answers `{"type":"ready","format":"s16le","sample_rate":16000,"channels":1}`, or an
+    `error` (`not_a_camera`, `needs_patcher`, `device_unreachable`, `busy` while another socket
+    talks through the device) and closes with 4000.
+  - Binary frames are counted; one over 64 KiB closes with 1009. `{"type":"stop"}` is answered
+    `{"type":"stopped"}` and closes with 1000; other text is ignored. 15 s without audio ends the
+    talk with `idle_timeout`. A socket closes with 4401 when its session ends and 1001 on
+    shutdown or reset.
 
 ## The seeded household
 
@@ -231,7 +245,7 @@ Under `/mock`, no authentication, JSON in and out. It is meant for the app's end
 
 | Route | Body | Effect |
 |---|---|---|
-| `GET /mock` | | Routes, clock offset, scenario state, open sockets (`/ws`, notifications, live video, HLS views). |
+| `GET /mock` | | Routes, clock offset, scenario state, open sockets (`/ws`, notifications, live video, HLS views, talks) and `talk_bytes`, the audio bytes every talk received since the last reset. |
 | `POST /mock/reset` | | Back to the seed: devices, pets, history, password. Sessions are dropped. |
 | `POST /mock/devices/{id}/visit` | `pet_id?`, `weight_g?`, `duration_sec?`, `auto_clean?`, `health_alert?` | A live visit on a litter box. |
 | `POST /mock/devices/{id}/meal` | `amount?`, `amount1?`, `amount2?` | A feeder serves a meal. |
@@ -241,6 +255,7 @@ Under `/mock`, no authentication, JSON in and out. It is meant for the app's end
 | `POST /mock/devices/{id}/error/clear` | | Clears it, with an "Error cleared" card. |
 | `POST /mock/devices/{id}/offline`, `/online` | | Sends a `device` message; an MQTT device falls back to `http` while offline. |
 | `POST /mock/devices/{id}/remove` | | Sends `device_removed`; a reset brings the device back. |
+| `PUT /mock/devices/{id}/talk` | `talk`: `available`, `needs_patcher`, `device_unreachable` or `unsupported` | Sets whether the device can be talked through, with a `device` message. |
 | `PUT /mock/devices/{id}/state` | `{"<value_path>": value, ...}` | Sets raw state behind any entity, for example `{"consumables.liquid": 5}`. |
 | `POST /mock/clock/advance` | `seconds` | Moves the fake clock forward, for session expiry and lockouts. |
 | `GET /mock/sessions` | | Live sessions, with the notification `kinds` each chose. |
@@ -255,6 +270,8 @@ Under `/mock`, no authentication, JSON in and out. It is meant for the app's end
 | `POST /mock/ws/close` | `code?` (default 1001), `reason?` | Closes every `/ws` socket with that code. |
 | `POST /mock/live/close` | `code?` (default 1011), `reason?` | Closes every live-video socket with that code: 1011 or 1001 (stream ended), 1013 (too slow, the app falls back to HLS), 4409 (replaced). |
 | `POST /mock/live/error` | `message?`, `next?` | Sends an `error` to every open live-video socket, which then stops streaming, and answers the next `next` (default 0) `mse` requests with that `error` instead of the stream: a camera that does not take a new viewer yet. |
+| `POST /mock/talk/error` | `code`, `message?`, `next?` | Sends an `error` with that `code` (`not_a_camera`, `needs_patcher`, `device_unreachable`, `busy`, `transcoder_failed`, `idle_timeout`) to every open talk, which closes with 4000, and answers the next `next` (default 0) talks with it instead of `ready`. |
+| `POST /mock/talk/close` | `code?` (default 1001), `reason?` | Closes every talk socket with that code (1000, 1001, 1009, 4401...). |
 | `POST /mock/scenario/tick` | | Rolls one scenario event now. |
 | `PUT /mock/scenario` | `interval_sec` | Restarts the engine at that interval; `0` stops it. |
 
@@ -285,6 +302,7 @@ The other tests cover:
 - the `/ws` sequences and close codes;
 - live video: the pattern's fragments and their timestamps, the socket's flow, HLS, the viewer caps and
   the close codes;
+- talk: `ready`, the audio counted, `stop`, the refusals, `busy`, the control API's errors and closes;
 - the control API;
 - the write validation;
 - the determinism of the seed.
