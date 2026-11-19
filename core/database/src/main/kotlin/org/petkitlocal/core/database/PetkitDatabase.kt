@@ -60,8 +60,9 @@ abstract class PetkitDatabase : RoomDatabase() {
          * 8: timeline cards keep what a feed served, which the server now sends on the card; the
          *    portions read from each meal's event, and their table, are gone.
          * 9: devices keep their full product name and their generation (a Pura Max 2).
+         * 10: devices keep whether they can be talked through.
          */
-        const val VERSION = 9
+        const val VERSION = 10
 
         /** The oldest schema an installed app may hold; [VERSION] until the first release. */
         const val OLDEST_SUPPORTED_VERSION = VERSION

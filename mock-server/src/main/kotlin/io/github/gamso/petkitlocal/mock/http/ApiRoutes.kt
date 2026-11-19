@@ -157,6 +157,7 @@ fun Route.apiRoutes(world: World) {
         deviceRoutes(world)
         feedingRoutes(world)
         liveVideoRoutes(world)
+        talkRoutes(world)
         timelineRoutes(world)
         mediaRoutes(world)
         petRoutes(world)

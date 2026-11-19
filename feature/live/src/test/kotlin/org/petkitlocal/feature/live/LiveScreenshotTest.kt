@@ -18,8 +18,9 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * The live video screen in EN/FR (always dark, so light variants would only repeat the dark
  * ones), the playing state also at 130 % font scale: playing on the WebSocket, on HLS with a
- * snapshot saved, connecting, waiting to reconnect, stopped, full screen in landscape, and a
- * device without a camera. No player runs here: the picture is the black box around it. The
+ * snapshot saved, connecting, waiting to reconnect, stopped, full screen in landscape, Talk held,
+ * a camera that cannot talk (and Talk pressed anyway), the microphone refused, and a device
+ * without a camera. No player runs here: the picture is the black box around it. The
  * golden images are in src/test/screenshots. Inspection mode keeps the spinner still: animated, it
  * never lets the looper go idle and the capture hangs (it did, on CI).
  */
@@ -46,6 +47,23 @@ class LiveScreenshotTest(private val variant: ScreenshotVariant) {
     @Test
     @Config(qualifiers = "w780dp-h360dp-land-xhdpi", sdk = [36])
     fun fullscreen() = screen("live_fullscreen") { LiveScreen(LiveFixtures.fullscreen, LiveCallbacks()) }
+
+    @Test
+    fun talking() = screen("live_talking") { LiveScreen(LiveFixtures.talking, LiveCallbacks()) }
+
+    @Test
+    fun talkNeedsPatcher() = screen("live_talk_needs_patcher") {
+        LiveScreen(LiveFixtures.talkNeedsPatcher, LiveCallbacks())
+    }
+
+    @Test
+    fun talkNeedsPatcherPressed() =
+        screen("live_talk_needs_patcher_pressed") { LiveScreen(LiveFixtures.talkNeedsPatcherPressed, LiveCallbacks()) }
+
+    @Test
+    fun microphoneDenied() = screen("live_talk_microphone_denied") {
+        LiveScreen(LiveFixtures.microphoneDenied, LiveCallbacks())
+    }
 
     @Test
     fun notACamera() = screen("live_not_a_camera") { LiveScreen(LiveFixtures.notACamera, LiveCallbacks()) }

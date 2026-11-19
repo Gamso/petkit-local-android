@@ -74,6 +74,7 @@ in CI fails the build if a feature imports a data-layer package.
   - `FeedingRepository`
   - `LiveUpdatesRepository`
   - `VideoRepository`
+  - `TalkRepository`
   - `SettingsRepository`
 - **Use cases**: one public `operator fun invoke`, one job each:
   - `SignInUseCase`, `ObserveDevicesUseCase`, `RunDeviceActionUseCase`, `SetEntityValueUseCase`,
@@ -122,6 +123,17 @@ in CI fails the build if a feature imports a data-layer package.
   - It sends the single `mse` request with the codecs the device's decoder supports, and feeds the binary fMP4 fragments to ExoPlayer through a pipe-backed `DataSource`.
   - On close code `1013`, or after two failed starts, it switches to the HLS URL with the same header (`DefaultHttpDataSource` with request properties).
   - Close code `4409` (replaced) is silent.
+
+- **Talk**: `TalkRepository` opens `/devices/{id}/talk` (`TalkSocketClient`, on the shared
+  OkHttp client and its bearer header) and records the microphone with `AudioRecord` only once
+  the server says `ready`, sending raw PCM (s16le, 16 kHz, mono) as it is recorded, with no
+  encoder.
+  - A stop ends the recording, sends `{"type":"stop"}` and waits for the server to close (at most
+    10 s); cancelling the collection closes at once. The microphone is released either way.
+  - Every `error` code and close code becomes a `TalkFailure` the screen says in words; `4401`
+    ends the session, as on the live socket.
+  - The live screen holds the talk only while Talk is held and the screen is visible, and mutes
+    the camera's own sound meanwhile (half-duplex).
 
 ## 5. Notifications
 

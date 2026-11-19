@@ -69,6 +69,7 @@ val OPERATIONS: List<Pair<HttpMethod, String>> =
         HttpMethod.Delete to "/devices/{id}/deferred-feeds/{feed_id}",
         HttpMethod.Get to "/devices/{id}/live",
         HttpMethod.Get to "/devices/{id}/live/hls/{file}",
+        HttpMethod.Get to "/devices/{id}/talk",
         HttpMethod.Get to "/timeline",
         HttpMethod.Get to "/timeline/{event_id}",
         HttpMethod.Get to "/media/thumb/{path}",

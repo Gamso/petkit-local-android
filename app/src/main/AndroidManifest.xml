@@ -6,6 +6,9 @@
     <!-- Android 17+: without it, packets to a private address (a server on the LAN) are dropped
          and every call times out. Asked at sign-in, only for a LAN server (feature:auth). -->
     <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
+    <!-- Talking through a camera from the live video screen: asked the first time Talk is held
+         (feature:live). -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
     <application
         android:name=".PetkitLocalApplication"

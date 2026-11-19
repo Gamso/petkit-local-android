@@ -42,6 +42,8 @@ data class DeviceRow(
     val connection: String = "wifi",
     @ColumnInfo(name = "parent_id") val parentId: Long? = null,
     @ColumnInfo(name = "accessories_json") val accessoriesJson: String = "[]",
+    /** Whether it can be talked through (`available`, `needs_patcher`...); null from a server that does not say. */
+    val talk: String? = null,
 )
 
 /** One `Entity` of a device. */

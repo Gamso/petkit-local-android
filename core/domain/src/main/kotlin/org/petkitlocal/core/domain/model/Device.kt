@@ -43,6 +43,8 @@ data class Device(
      * server that does not tell generations apart.
      */
     val generation: Int? = null,
+    /** Whether the camera can be talked through now, as the server judges it. */
+    val talk: TalkAvailability = TalkAvailability.Unsupported,
 ) {
     fun entity(key: String): Entity? = entities.firstOrNull { it.key == key }
 
@@ -54,6 +56,30 @@ data class Device(
      * as the firmware takes the first (`BLERegistry.get_linked_k3`).
      */
     val puraAirId: Long? get() = accessories.firstOrNull { it.family == DeviceFamily.Purifier }?.id
+}
+
+/**
+ * Whether a device can be talked through now (`DeviceSummary.talk`), judged by the server from
+ * what it recorded: no request reaches the device to answer it, so [Available] is not a promise,
+ * and the talk itself may still be refused.
+ */
+enum class TalkAvailability {
+    Available,
+
+    /** The Two-Way Talk patcher is not applied to it (petkit-local's panel, Patchers tab). */
+    NeedsPatcher,
+
+    /** The camera has not reported its network address: off, or not heard from since the server started. */
+    DeviceUnreachable,
+
+    /** No Talk at all: not a camera. */
+    Unsupported,
+
+    /** The server predates talking from the app: it says nothing, and has no talk route. */
+    ServerTooOld,
+
+    /** A value the server added later: not available, for a reason this app cannot name. */
+    Unknown,
 }
 
 /** How a device reaches petkit-local. */

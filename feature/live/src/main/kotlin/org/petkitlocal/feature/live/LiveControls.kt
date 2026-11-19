@@ -18,12 +18,10 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
-import org.petkitlocal.core.designsystem.component.PkButton
-import org.petkitlocal.core.designsystem.component.PkButtonStyle
 import org.petkitlocal.core.designsystem.component.PkIconButton
 import org.petkitlocal.core.designsystem.icon.PkIcons
 import org.petkitlocal.core.designsystem.theme.PkTheme
-/** Under the picture: sound, snapshot, full screen; what the snapshot came to; then "Talk". */
+/** Under the picture: sound, snapshot, full screen; what the snapshot came to; then Talk. */
 @Composable
 internal fun LiveControls(uiState: LiveUiState, callbacks: LiveCallbacks) {
     Column(
@@ -34,12 +32,12 @@ internal fun LiveControls(uiState: LiveUiState, callbacks: LiveCallbacks) {
             .padding(PkTheme.spacing.gutter),
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(PkTheme.spacing.m)) {
-            MuteButton(uiState.muted, callbacks.onToggleMute)
+            MuteButton(uiState.soundMuted, callbacks.onToggleMute)
             SnapshotButton(uiState.savingSnapshot, callbacks.onSnapshot)
             PkIconButton(PkIcons.Fullscreen, stringResource(R.string.live_fullscreen), { callbacks.onFullscreen(true) })
         }
         SnapshotNotice(uiState.snapshot)
-        TalkUnavailable()
+        TalkControls(uiState.talk, callbacks)
     }
 }
 
@@ -59,7 +57,7 @@ internal fun BoxScope.FullscreenControls(uiState: LiveUiState, callbacks: LiveCa
             Modifier.clip(PkTheme.shapes.chip).background(Picture.copy(alpha = PILL_ALPHA)),
         )
         Row(horizontalArrangement = Arrangement.spacedBy(PkTheme.spacing.s)) {
-            MuteButton(uiState.muted, callbacks.onToggleMute)
+            MuteButton(uiState.soundMuted, callbacks.onToggleMute)
             SnapshotButton(uiState.savingSnapshot, callbacks.onSnapshot)
             PkIconButton(PkIcons.FullscreenExit, stringResource(R.string.live_exit_fullscreen), {
                 callbacks.onFullscreen(false)
@@ -100,27 +98,4 @@ internal fun SnapshotNotice(result: SnapshotResult?, modifier: Modifier = Modifi
             .padding(horizontal = PkTheme.spacing.s, vertical = PkTheme.spacing.xxs)
             .semantics { liveRegion = LiveRegionMode.Polite },
     )
-}
-
-/** Two-way talk is not in this app (SPEC.md §2): shown, disabled, with the reason under it. */
-@Composable
-private fun TalkUnavailable() {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(PkTheme.spacing.xxs),
-    ) {
-        PkButton(
-            text = stringResource(R.string.live_talk),
-            onClick = {},
-            style = PkButtonStyle.Secondary,
-            enabled = false,
-            icon = PkIcons.MicOff,
-        )
-        Text(
-            stringResource(R.string.live_talk_unavailable),
-            style = PkTheme.typography.bodyMedium,
-            color = PkTheme.colors.onSurfaceMuted,
-            textAlign = TextAlign.Center,
-        )
-    }
 }

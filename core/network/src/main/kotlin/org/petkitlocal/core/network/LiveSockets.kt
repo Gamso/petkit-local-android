@@ -6,9 +6,10 @@ import org.petkitlocal.core.domain.SessionEndReason
 import org.petkitlocal.core.network.dto.UpdateMessageDto
 
 /*
- * The routes that are not REST: the two WebSockets and the live HLS files. Their message DTOs
+ * The routes that are not REST: the WebSockets and the live HLS files. Their message DTOs
  * are in dto/UpdateDtos.kt, covered by the contract tests; each client runs on the shared OkHttp
- * client of PetkitHttpClient ([LiveUpdatesClient] for `/ws`, video/ for live video).
+ * client of PetkitHttpClient ([LiveUpdatesClient] for `/ws`, video/ for live video,
+ * [TalkSocketClient] for talking through a camera).
  */
 
 /** What the `/ws` live-updates socket yields while it is collected. */
@@ -27,12 +28,18 @@ interface LiveUpdatesSocket {
     fun updates(): Flow<LiveUpdate>
 }
 
-/** WebSocket close codes of both sockets (api/openapi.yaml, `/ws` and `/devices/{id}/live`). */
+/** WebSocket close codes of the sockets (api/openapi.yaml: `/ws`, `/devices/{id}/live` and `/talk`). */
 object CloseCodes {
     const val NORMAL = 1000
     const val GOING_AWAY = 1001
+
+    /** Talk: a frame over 64 KiB. */
+    const val TOO_BIG = 1009
     const val STREAM_ENDED = 1011
     const val TOO_SLOW = 1013
+
+    /** Talk: after an `error` message, which says why. */
+    const val TALK_ERROR = 4000
     const val SESSION_ENDED = 4401
     const val REPLACED = 4409
 }

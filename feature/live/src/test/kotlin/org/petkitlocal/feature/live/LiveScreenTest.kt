@@ -1,8 +1,18 @@
 package org.petkitlocal.feature.live
 
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -12,6 +22,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performSemanticsAction
+import androidx.compose.ui.test.performTouchInput
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -39,6 +51,10 @@ class LiveScreenTest {
         onOpenClip = { calls += "clip:${it.kind}" },
         onSeeAllClips = { calls += "all-clips" },
         onRetryClips = { calls += "retry-clips" },
+        onTalkPressed = { calls += "talk-press" },
+        onTalkReleased = { calls += "talk-release" },
+        onTalkToggled = { calls += "talk-toggle" },
+        onOpenAppSettings = { calls += "app-settings" },
     )
 
     private fun show(state: LiveUiState) {
@@ -87,11 +103,126 @@ class LiveScreenTest {
     }
 
     @Test
-    fun `talk is shown disabled, with the reason`() {
+    fun `talk is held to speak, a finger down pressing it and up letting it go`() {
         show(LiveFixtures.playing)
 
-        compose.onNode(hasText("Talk") and hasClickAction()).performScrollTo().assertIsNotEnabled()
-        compose.onNodeWithText("Talking through the camera is not supported.").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Hold to talk", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag(LiveTestTags.TALK).assertIsEnabled().performTouchInput { down(center) }
+        assertEquals(listOf("talk-press"), calls)
+        compose.onNodeWithTag(LiveTestTags.TALK).performTouchInput { up() }
+        assertEquals(listOf("talk-press", "talk-release"), calls)
+        compose.onNodeWithTag(LiveTestTags.TALK_REASON).assertDoesNotExist()
+    }
+
+    @Test
+    fun `sliding off Talk lets it go too`() {
+        show(LiveFixtures.playing)
+
+        compose.onNodeWithTag(LiveTestTags.TALK).performScrollTo().performTouchInput {
+            down(center)
+            moveTo(center + Offset(0f, height * 3f))
+        }
+        assertEquals(listOf("talk-press", "talk-release"), calls)
+    }
+
+    @Test
+    fun `TalkBack reads Talk with what a double tap does, and its double tap toggles`() {
+        show(LiveFixtures.playing)
+
+        val talk = compose.onNodeWithTag(LiveTestTags.TALK).performScrollTo()
+        talk.assert(hasContentDescription("Talk") and hasClickAction())
+        talk.assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
+        assertEquals("start talking", talk.fetchSemanticsNode().config[SemanticsActions.OnClick].label)
+        talk.performSemanticsAction(SemanticsActions.OnClick)
+        assertEquals(listOf("talk-toggle"), calls)
+    }
+
+    @Test
+    fun `talking is plain to see and to hear, and the camera's sound shows as off`() {
+        show(LiveFixtures.talking)
+
+        val talk = compose.onNodeWithTag(LiveTestTags.TALK).performScrollTo()
+        compose.onNodeWithText("Talking · release to stop", useUnmergedTree = true).assertIsDisplayed()
+        talk.assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Talking"))
+        assertEquals("stop talking", talk.fetchSemanticsNode().config[SemanticsActions.OnClick].label)
+        compose.onNodeWithTag(LiveTestTags.TALK_INDICATOR)
+            .performScrollTo()
+            .assertIsDisplayed()
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
+        compose.onNodeWithText("The camera plays what you say. Its own sound is off meanwhile.").assertExists()
+        compose.onNodeWithContentDescription("Turn sound on").assertIsDisplayed()
+    }
+
+    @Test
+    fun `connecting says so while held, and a double tap cancels`() {
+        show(LiveFixtures.talkConnecting)
+
+        val talk = compose.onNodeWithTag(LiveTestTags.TALK).performScrollTo().assertIsEnabled()
+        compose.onNodeWithText("Connecting… keep holding", useUnmergedTree = true).assertExists()
+        talk.assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Connecting"))
+        assertEquals("stop connecting", talk.fetchSemanticsNode().config[SemanticsActions.OnClick].label)
+    }
+
+    @Test
+    fun `while the camera finishes, Talk is disabled`() {
+        show(LiveFixtures.talkStopping)
+
+        compose.onNodeWithTag(LiveTestTags.TALK).performScrollTo().assertIsNotEnabled()
+        compose.onNodeWithTag(LiveTestTags.TALK).performTouchInput { click() }
+        assertEquals(emptyList<String>(), calls)
+    }
+
+    @Test
+    fun `a camera that cannot talk keeps Talk pressable, with the reason under it`() {
+        show(LiveFixtures.talkNeedsPatcher)
+
+        compose.onNodeWithTag(LiveTestTags.TALK).performScrollTo().assertIsEnabled()
+        compose.onNodeWithText("Talk", useUnmergedTree = true).assertExists()
+        compose.onNodeWithTag(LiveTestTags.TALK_REASON).assertIsDisplayed()
+        compose.onNodeWithText("Needs the Two-Way Talk patcher.").assertIsDisplayed()
+        compose.onNodeWithTag(LiveTestTags.TALK).performTouchInput { click() }
+        assertEquals(listOf("talk-press", "talk-release"), calls)
+    }
+
+    @Test
+    fun `pressed anyway, it says what to do, and TalkBack hears it`() {
+        show(LiveFixtures.talkNeedsPatcherPressed)
+
+        val fix = "Apply the Two-Way Talk patcher to this camera in the petkit-local panel (Patchers tab), " +
+            "then try again."
+        compose.onNodeWithText(fix).performScrollTo().assertIsDisplayed()
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
+        compose.onNodeWithTag(LiveTestTags.TALK_REASON).assertDoesNotExist()
+    }
+
+    @Test
+    fun `a refused microphone says how to allow it, with the way to Android's settings`() {
+        show(LiveFixtures.microphoneDenied)
+
+        compose.onNodeWithText(
+            "The microphone is not allowed. Allow it for this app in Android's settings to talk through the camera.",
+        ).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Open settings").performScrollTo().performClick()
+        assertEquals(listOf("app-settings"), calls)
+    }
+
+    @Test
+    fun `an error from the server is said in place`() {
+        show(LiveFixtures.talkBusy)
+
+        compose.onNodeWithText("Someone else is talking through this camera. Try again when they stop.")
+            .performScrollTo()
+            .assertIsDisplayed()
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
+    }
+
+    @Test
+    @Config(qualifiers = "fr-w411dp-h900dp")
+    fun `in French, Talk says to hold it`() {
+        show(LiveFixtures.playing)
+
+        compose.onNodeWithText("Maintenir pour parler", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag(LiveTestTags.TALK).assert(hasContentDescription("Parler"))
     }
 
     @Test

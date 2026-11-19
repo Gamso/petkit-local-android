@@ -139,6 +139,7 @@ arrow mirrored in right-to-left languages.
 | `SettingRow` | Settings, device settings | Switch, select, number, time, text editors per entity type |
 | `LiveCard` | Camera device pages | At the top, under the header and its chips, above the hero: the latest still (16:9, cropped) with "Still from 14:32" in a veiled pill, a round play button in the middle, "Watch live" with a green dot; a plain dark card with the play button before any still. Dark in both themes, like the live screen. One button for TalkBack, naming the device and the still's time |
 | `VideoPlayer` | Live | Live badge, measured delay, fullscreen, mute, snapshot |
+| `TalkControls` | Live | Talk held to speak: "Hold to talk" in the accent colour, "Connecting…" while held, "Talking · release to stop" in `danger` with a red dot and what is happening under it; a camera that cannot talk keeps the button (secondary, crossed-out microphone) with the reason under it, and pressing it says what to do. Errors and the microphone permission are said under it, announced by TalkBack; TalkBack's double tap toggles instead of holding |
 | `StateViews` | Everywhere | Skeleton loading, empty (illustration and one line), error with retry, offline banner |
 
 Every component has light/dark × EN/FR previews and a screenshot test.

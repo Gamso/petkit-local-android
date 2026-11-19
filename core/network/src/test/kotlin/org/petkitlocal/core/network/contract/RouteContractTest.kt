@@ -17,6 +17,7 @@ import org.petkitlocal.core.network.LiveUpdatesSocket
 import org.petkitlocal.core.network.NotificationSocket
 import org.petkitlocal.core.network.PetkitApi
 import org.petkitlocal.core.network.PetkitHttpClient
+import org.petkitlocal.core.network.TalkSocketClient
 import org.petkitlocal.core.network.video.LiveMediaSources
 import org.petkitlocal.core.network.video.LiveSocketDataSource
 import retrofit2.Response
@@ -44,6 +45,7 @@ class RouteContractTest {
         "GET /notifications/ws" to NotificationSocket::class,
         "GET /devices/{id}/live" to LiveSocketDataSource::class,
         "GET /devices/{id}/live/hls/{file}" to LiveMediaSources::class,
+        "GET /devices/{id}/talk" to TalkSocketClient::class,
     )
 
     private data class Route(val method: String, val path: String, val function: KFunction<*>) {

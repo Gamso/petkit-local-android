@@ -19,6 +19,7 @@ import org.petkitlocal.core.domain.model.MediaFile
 import org.petkitlocal.core.domain.model.MediaKind
 import org.petkitlocal.core.domain.model.Pet
 import org.petkitlocal.core.domain.model.PetRef
+import org.petkitlocal.core.domain.model.TalkAvailability
 import org.petkitlocal.core.domain.model.TimelineCategory
 import org.petkitlocal.core.domain.model.TimelineItem
 import org.petkitlocal.core.domain.model.TimelineMedia
@@ -217,6 +218,7 @@ object Household {
         parentId: Long? = null,
         accessories: List<AccessoryRef> = emptyList(),
         generation: Int? = null,
+        talk: TalkAvailability = if (isCamera) TalkAvailability.Available else TalkAvailability.Unsupported,
     ) = Device(
         id = id,
         type = type,
@@ -233,6 +235,7 @@ object Household {
         parentId = parentId,
         accessories = accessories,
         generation = generation,
+        talk = talk,
     )
 
     fun sensor(

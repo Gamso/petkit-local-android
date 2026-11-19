@@ -1,12 +1,12 @@
 {
   "formatVersion": 1,
   "database": {
-    "version": 9,
-    "identityHash": "4be7969a2ff44902ad29cc23a358ec85",
+    "version": 10,
+    "identityHash": "cfe2cc299ca6a576fc606692cb1d2203",
     "entities": [
       {
         "tableName": "devices",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `position` INTEGER NOT NULL, `type` TEXT NOT NULL, `model` TEXT NOT NULL, `model_name` TEXT NOT NULL, `generation` INTEGER, `kind` TEXT NOT NULL, `online` INTEGER NOT NULL, `transport` TEXT NOT NULL, `last_seen` REAL, `firmware` TEXT, `is_camera` INTEGER NOT NULL, `serial` TEXT, `connection` TEXT NOT NULL, `parent_id` INTEGER, `accessories_json` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `position` INTEGER NOT NULL, `type` TEXT NOT NULL, `model` TEXT NOT NULL, `model_name` TEXT NOT NULL, `generation` INTEGER, `kind` TEXT NOT NULL, `online` INTEGER NOT NULL, `transport` TEXT NOT NULL, `last_seen` REAL, `firmware` TEXT, `is_camera` INTEGER NOT NULL, `serial` TEXT, `connection` TEXT NOT NULL, `parent_id` INTEGER, `accessories_json` TEXT NOT NULL, `talk` TEXT, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -98,6 +98,11 @@
             "columnName": "accessories_json",
             "affinity": "TEXT",
             "notNull": true
+          },
+          {
+            "fieldPath": "talk",
+            "columnName": "talk",
+            "affinity": "TEXT"
           }
         ],
         "primaryKey": {
@@ -589,7 +594,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '4be7969a2ff44902ad29cc23a358ec85')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'cfe2cc299ca6a576fc606692cb1d2203')"
     ]
   }
 }
