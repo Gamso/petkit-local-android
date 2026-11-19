@@ -40,6 +40,7 @@ internal fun generalErrorMessage(failure: SignInFailure?): String? = when (failu
     SignInFailure.PasswordMissing,
     is SignInFailure.WrongPassword,
     SignInFailure.LocalNetworkDenied,
+    is SignInFailure.Certificate,
     -> null
 
     SignInFailure.NotPetkitLocal -> stringResource(R.string.auth_error_not_petkit_local)

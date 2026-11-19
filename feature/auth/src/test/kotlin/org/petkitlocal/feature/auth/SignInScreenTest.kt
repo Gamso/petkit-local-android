@@ -24,6 +24,7 @@ import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.SessionEndReason
 import org.petkitlocal.core.domain.auth.AddressProblem
 import org.petkitlocal.core.domain.auth.SignInFailure
+import org.petkitlocal.core.testing.FakeServerTrustRepository
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
@@ -43,6 +44,7 @@ class SignInScreenTest {
         onSubmit = { calls += "submit" },
         onAllowLocalNetwork = { calls += "allow local network" },
         onOpenAppSettings = { calls += "app settings" },
+        onTrustCertificate = { calls += "trust certificate" },
     )
     private val filled = SignInUiState(address = "https://pets.example.com", password = "demo", phoneName = "Pixel 8")
 
@@ -181,6 +183,64 @@ class SignInScreenTest {
         compose.onNodeWithText("Open Android settings").performScrollTo().performClick()
 
         assertEquals(listOf("allow local network", "app settings"), calls)
+    }
+
+    @Test
+    fun `a refused certificate shows what to check, and trusting it is one tap`() {
+        show(filled.copy(failure = SignInFailure.Certificate(FakeServerTrustRepository.UNTRUSTED)))
+
+        compose.onNodeWithTag(SignInTestTags.CERTIFICATE)
+            .assertTextContains("not signed by an authority this phone trusts", substring = true)
+        compose.onNodeWithTag(SignInTestTags.CERTIFICATE_FINGERPRINT)
+            .assertTextContains(breakableFingerprint(FakeServerTrustRepository.CERTIFICATE.sha256), substring = true)
+        compose.onNodeWithText("CN=petkit.home.lan", useUnmergedTree = true).assertExists()
+        compose.onNodeWithText("petkit.home.lan", useUnmergedTree = true).assertExists()
+        compose.onNodeWithTag(SignInTestTags.ERROR).assertDoesNotExist()
+        compose.onNodeWithTag(SignInTestTags.TRUST_CERTIFICATE).performScrollTo()
+            .assertTextContains("Trust this certificate").performClick()
+
+        assertEquals(listOf("trust certificate"), calls)
+    }
+
+    @Test
+    fun `a changed certificate shows both fingerprints and offers the new one`() {
+        show(filled.copy(failure = SignInFailure.Certificate(FakeServerTrustRepository.CHANGED)))
+
+        compose.onNodeWithTag(SignInTestTags.CERTIFICATE_FINGERPRINT)
+            .assertTextContains(breakableFingerprint(FakeServerTrustRepository.RENEWED.sha256), substring = true)
+        compose.onNodeWithTag(SignInTestTags.CERTIFICATE_PINNED_FINGERPRINT)
+            .assertTextContains(breakableFingerprint(FakeServerTrustRepository.CERTIFICATE.sha256), substring = true)
+        compose.onNodeWithTag(SignInTestTags.TRUST_CERTIFICATE).assertTextContains("Trust the new certificate")
+    }
+
+    @Test
+    fun `a certificate for another host says so and offers nothing`() {
+        show(filled.copy(failure = SignInFailure.Certificate(FakeServerTrustRepository.WRONG_HOST)))
+
+        compose.onNodeWithTag(SignInTestTags.CERTIFICATE)
+            .assertTextContains("This certificate is not for 192.168.1.20", substring = true)
+        compose.onNodeWithTag(SignInTestTags.TRUST_CERTIFICATE).assertDoesNotExist()
+    }
+
+    @Test
+    fun `the changed-certificate dialog trusts or puts off`() {
+        compose.setContent {
+            PkTheme {
+                CertificateChangeContent(
+                    FakeServerTrustRepository.CHANGED,
+                    onTrust = { calls += "trust" },
+                    onNotNow = { calls += "not now" },
+                )
+            }
+        }
+
+        compose.onNode(hasText("Server certificate changed") and isHeading()).assertExists()
+        compose.onNodeWithTag(SignInTestTags.CERTIFICATE_PINNED_FINGERPRINT)
+            .assertTextContains(breakableFingerprint(FakeServerTrustRepository.CERTIFICATE.sha256), substring = true)
+        compose.onNodeWithTag(SignInTestTags.TRUST_CERTIFICATE).performScrollTo().performClick()
+        compose.onNodeWithTag(SignInTestTags.CERTIFICATE_NOT_NOW).performScrollTo().performClick()
+
+        assertEquals(listOf("trust", "not now"), calls)
     }
 
     @Test

@@ -19,6 +19,7 @@ import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.auth.AuthState
 import org.petkitlocal.core.domain.notifications.NotificationTarget
 import org.petkitlocal.core.domain.repository.LiveUpdatesStatus
+import org.petkitlocal.feature.auth.CertificateChangeRoute
 import org.petkitlocal.feature.auth.SignInDestination
 import org.petkitlocal.feature.auth.password.changePasswordScreen
 import org.petkitlocal.feature.auth.password.navigateToChangePassword
@@ -63,6 +64,8 @@ fun PetkitApp(viewModel: AppViewModel) {
         if (signedIn) LiveUpdates(viewModel)
         val target by viewModel.openTarget.collectAsStateWithLifecycle()
         PetkitNavHost(signedIn = signedIn, target = target, onTargetHandled = viewModel::onTargetHandled)
+        // The server's pinned certificate replaced by another: asked over whatever screen is up.
+        if (signedIn) CertificateChangeRoute()
     }
 }
 

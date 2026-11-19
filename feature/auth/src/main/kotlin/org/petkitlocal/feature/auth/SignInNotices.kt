@@ -24,6 +24,7 @@ import org.petkitlocal.core.designsystem.component.PkButtonStyle
 import org.petkitlocal.core.designsystem.icon.PkIcons
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.SessionEndReason
+import org.petkitlocal.core.domain.auth.CertificateProblem
 
 /* The messages of the sign-in screen that belong to no single field. */
 
@@ -44,11 +45,17 @@ internal fun SessionEndedBanner(reason: SessionEndReason) {
 internal fun ErrorCard(text: String) = Notice(text, Modifier.testTag(SignInTestTags.ERROR))
 
 /**
- * A warning-coloured message with an icon (the colour is never the only signal), and the button
- * that resolves it when there is one.
+ * A warning-coloured message with an icon (the colour is never the only signal), [details] below
+ * it if any, and the button that resolves it when there is one.
  */
 @Composable
-internal fun Notice(text: String, modifier: Modifier = Modifier, action: Pair<String, () -> Unit>? = null) {
+internal fun Notice(
+    text: String,
+    modifier: Modifier = Modifier,
+    action: Pair<String, () -> Unit>? = null,
+    actionTag: String? = null,
+    details: @Composable () -> Unit = {},
+) {
     Column(
         verticalArrangement = Arrangement.spacedBy(PkTheme.spacing.s),
         modifier = modifier
@@ -72,8 +79,30 @@ internal fun Notice(text: String, modifier: Modifier = Modifier, action: Pair<St
             )
             Text(text, style = PkTheme.typography.bodyMedium, color = PkTheme.colors.onWarningContainer)
         }
+        details()
         action?.let { (label, onClick) ->
-            PkButton(label, onClick = onClick, style = PkButtonStyle.Secondary, modifier = Modifier.fillMaxWidth())
+            PkButton(
+                label,
+                onClick = onClick,
+                style = PkButtonStyle.Secondary,
+                modifier = Modifier.fillMaxWidth().then(actionTag?.let { Modifier.testTag(it) } ?: Modifier),
+            )
         }
+    }
+}
+
+/**
+ * A refused server certificate (SPEC.md §5.1): why, the details to check, and the button that
+ * trusts it when it can be trusted. A certificate for another host, or out of date, offers none.
+ */
+@Composable
+internal fun CertificateNotice(problem: CertificateProblem, onTrust: () -> Unit) {
+    Notice(
+        text = certificateMessage(problem),
+        action = trustLabel(problem)?.let { it to onTrust },
+        actionTag = SignInTestTags.TRUST_CERTIFICATE,
+        modifier = Modifier.testTag(SignInTestTags.CERTIFICATE),
+    ) {
+        CertificateDetails(problem, color = PkTheme.colors.onWarningContainer)
     }
 }

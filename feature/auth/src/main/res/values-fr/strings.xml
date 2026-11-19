@@ -42,6 +42,25 @@
     <string name="auth_error_local_network_denied">L\'accès au réseau local a été refusé : l\'application ne peut pas joindre un serveur de votre réseau domestique. Autorisez-le dans les paramètres Android de l\'application, ou utilisez une adresse HTTPS joignable depuis Internet.</string>
     <string name="auth_open_app_settings">Ouvrir les paramètres Android</string>
 
+    <string name="auth_certificate_untrusted">Le certificat de ce serveur n\'est signé par aucune autorité reconnue par ce téléphone.</string>
+    <string name="auth_certificate_untrusted_help">Si votre serveur utilise un certificat auto-signé ou votre propre autorité, vérifiez que cette empreinte est bien celle de votre serveur, puis faites-lui confiance. Rien n\'a été envoyé au serveur.</string>
+    <string name="auth_certificate_changed">Le certificat de ce serveur a changé depuis que vous lui avez fait confiance.</string>
+    <string name="auth_certificate_changed_help">Un renouvellement a cet effet, une interception de la connexion aussi. Comparez la nouvelle empreinte avec celle de votre serveur avant de lui faire confiance. Rien n\'a été envoyé au serveur.</string>
+    <string name="auth_certificate_wrong_host">Ce certificat n\'est pas celui de %1$s : la connexion a été refusée. Utilisez l\'adresse que nomme le certificat, ou corrigez le certificat sur le serveur.</string>
+    <string name="auth_certificate_not_valid_now">Ce certificat a expiré ou n\'est pas encore valide : la connexion a été refusée. Renouvelez-le sur le serveur, ou vérifiez la date du téléphone.</string>
+    <string name="auth_certificate_server">Serveur</string>
+    <string name="auth_certificate_subject">Sujet</string>
+    <string name="auth_certificate_validity">Validité</string>
+    <string name="auth_certificate_validity_range">du %1$s au %2$s</string>
+    <string name="auth_certificate_fingerprint">Empreinte SHA-256</string>
+    <string name="auth_certificate_new_fingerprint">Nouvelle empreinte SHA-256</string>
+    <string name="auth_certificate_pinned_fingerprint">Acceptée jusqu\'ici (SHA-256)</string>
+    <string name="auth_certificate_trust">Faire confiance à ce certificat</string>
+    <string name="auth_certificate_trust_new">Faire confiance au nouveau certificat</string>
+    <string name="auth_certificate_change_title">Certificat du serveur modifié</string>
+    <string name="auth_certificate_change_message">%1$s a présenté un autre certificat que celui auquel vous avez fait confiance : l\'application a refusé de s\'y connecter. Un renouvellement a cet effet, une interception de la connexion aussi : comparez les empreintes avec celles de votre serveur avant de lui faire confiance.</string>
+    <string name="auth_certificate_not_now">Plus tard</string>
+
     <string name="auth_session_ended">Vous avez été déconnecté : la session de ce téléphone a été révoquée dans le panneau, le mot de passe a changé, ou elle est restée 90 jours sans servir.</string>
     <string name="auth_session_ended_password_removed">Vous avez été déconnecté : le mot de passe a été supprimé dans le panneau. Définissez-en un nouveau pour vous reconnecter.</string>
 

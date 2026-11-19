@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.RegisterExtension
 import org.petkitlocal.core.domain.DomainError
+import org.petkitlocal.core.domain.Outcome
 import org.petkitlocal.core.domain.SessionEndReason
 import org.petkitlocal.core.domain.UnauthorizedReason
 import org.petkitlocal.core.domain.auth.AddressProblem
@@ -25,7 +26,9 @@ import org.petkitlocal.core.domain.auth.ObserveAuthStateUseCase
 import org.petkitlocal.core.domain.auth.PhoneNameProvider
 import org.petkitlocal.core.domain.auth.SignInFailure
 import org.petkitlocal.core.domain.auth.SignInUseCase
+import org.petkitlocal.core.domain.auth.TrustCertificateUseCase
 import org.petkitlocal.core.testing.FakeAuthRepository
+import org.petkitlocal.core.testing.FakeServerTrustRepository
 import org.petkitlocal.core.testing.MainDispatcherExtension
 
 @OptIn(ExperimentalCoroutinesApi::class) // advanceTimeBy, runCurrent
@@ -35,6 +38,7 @@ class SignInViewModelTest {
     val main = MainDispatcherExtension()
 
     private val repository = FakeAuthRepository().apply { lastServer = "https://pets.example.com" }
+    private val trust = FakeServerTrustRepository()
     private var localNetworkPermissionNeeded = false
 
     /** A view model whose state is collected, as the screen does, for the length of the test. */
@@ -43,6 +47,7 @@ class SignInViewModelTest {
         defaults = GetSignInDefaultsUseCase(repository, PhoneNameProvider { "Google Pixel 8" }),
         observeAuthState = ObserveAuthStateUseCase(repository),
         localNetwork = { localNetworkPermissionNeeded },
+        trustCertificate = TrustCertificateUseCase(trust),
     ).also { viewModel -> backgroundScope.launch { viewModel.uiState.collect {} } }
 
     private val SignInViewModel.state get() = uiState.value
@@ -58,6 +63,7 @@ class SignInViewModelTest {
             defaults = GetSignInDefaultsUseCase(repository, PhoneNameProvider { "Google Pixel 8" }),
             observeAuthState = ObserveAuthStateUseCase(repository),
             localNetwork = { localNetworkPermissionNeeded },
+            trustCertificate = TrustCertificateUseCase(trust),
         )
 
         viewModel.uiState.test {
@@ -127,6 +133,64 @@ class SignInViewModelTest {
         runCurrent()
 
         assertEquals(listOf(SignInEffect.Focus(SignInField.Password)), effects)
+    }
+
+    @Test
+    fun `a refused certificate is shown, and trusting it pins it for the typed address and signs in`() =
+        runTest(main.dispatcher) {
+            repository.failProbe(DomainError.Certificate(FakeServerTrustRepository.UNTRUSTED))
+            val viewModel = viewModel()
+            viewModel.onAddressChange("https://petkit.home.lan")
+            viewModel.fill()
+            viewModel.onSubmit()
+            runCurrent()
+            assertEquals(SignInFailure.Certificate(FakeServerTrustRepository.UNTRUSTED), viewModel.state.failure)
+            assertEquals("demo", viewModel.state.password) // kept for the retry
+
+            repository.probeResult = Outcome.Success(FakeAuthRepository.INFO)
+            viewModel.onTrustCertificate()
+            runCurrent()
+
+            val (server, certificate) = trust.trusted.single()
+            assertEquals("https://petkit.home.lan", server?.baseUrl)
+            assertEquals(FakeServerTrustRepository.CERTIFICATE, certificate)
+            assertEquals(2, repository.probes.size)
+            assertEquals("demo", repository.logins.single().password)
+            assertNull(viewModel.state.failure)
+            assertEquals(AuthState.SignedIn("https://petkit.home.lan"), repository.authState.value)
+        }
+
+    @Test
+    fun `a certificate for another host offers nothing to trust`() = runTest(main.dispatcher) {
+        repository.failProbe(DomainError.Certificate(FakeServerTrustRepository.WRONG_HOST))
+        val viewModel = viewModel()
+        viewModel.fill()
+        viewModel.onSubmit()
+        runCurrent()
+
+        viewModel.onTrustCertificate()
+        runCurrent()
+
+        assertTrue(trust.trusted.isEmpty())
+        assertEquals(1, repository.probes.size)
+        assertEquals(SignInFailure.Certificate(FakeServerTrustRepository.WRONG_HOST), viewModel.state.failure)
+    }
+
+    @Test
+    fun `a certificate the repository will not pin leaves the form as it was`() = runTest(main.dispatcher) {
+        repository.failProbe(DomainError.Certificate(FakeServerTrustRepository.CHANGED))
+        trust.trustResult = false
+        val viewModel = viewModel()
+        viewModel.fill()
+        viewModel.onSubmit()
+        runCurrent()
+
+        viewModel.onTrustCertificate()
+        runCurrent()
+
+        assertFalse(viewModel.state.submitting)
+        assertEquals(1, repository.probes.size)
+        assertEquals(SignInFailure.Certificate(FakeServerTrustRepository.CHANGED), viewModel.state.failure)
     }
 
     @Test
