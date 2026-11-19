@@ -78,6 +78,26 @@ class ControlApiTest {
         }
 
     @Test
+    fun `a device's transport can be switched, and its accessories follow`() =
+        mockTest { _, api ->
+            api.login()
+
+            suspend fun transportOf(id: Int) =
+                api
+                    .get("/devices")["devices"]
+                    .jsonArray
+                    .first { it.jsonObject["id"]!!.jsonPrimitive.int == id }
+                    .jsonObject["transport"]!!
+                    .jsonPrimitive.content
+            assertEquals("http", transportOf(Seed.CTW3))
+            assertEquals(200, api.client.control(HttpMethod.Put, "/devices/${Seed.D4}/transport", """{"transport":"mqtt"}""").status)
+            assertEquals("mqtt", transportOf(Seed.D4))
+            assertEquals("mqtt", transportOf(Seed.CTW3))
+            assertEquals(400, api.client.control(HttpMethod.Put, "/devices/${Seed.D4}/transport", """{"transport":"ble"}""").status)
+            assertEquals(400, api.client.control(HttpMethod.Put, "/devices/${Seed.CTW3}/transport", """{"transport":"mqtt"}""").status)
+        }
+
+    @Test
     fun `the clock advances, sessions are listed and revoked`() =
         mockTest { world, api ->
             val token = api.login()

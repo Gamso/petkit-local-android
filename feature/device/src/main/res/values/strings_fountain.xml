@@ -12,7 +12,7 @@
     <string name="page_condition_stopped">Stopped</string>
     <string name="page_explain_water">The water the fountain holds. Top it up when the fountain says it is low.</string>
     <string name="page_explain_filter">The filter cartridge, by what is left of it. Replace it when it runs out, then reset its counter.</string>
-    <string name="page_explain_pump">The pump that keeps the water moving. In smart mode it rests between runs, so stopped is not a fault.</string>
+    <string name="page_explain_pump">The pump that keeps the water moving. In smart or intermittent mode it rests between runs, so stopped is not a fault.</string>
     <string name="page_explain_battery">The battery of this cordless fountain. Charge it when it runs low.</string>
     <string name="page_explain_tray">The tray the pets drink from. Empty and clean it when it is full, then put it back.</string>
     <string name="page_explain_clean_tank">The tank of clean water that refills the tray. Fill it and put it back.</string>
@@ -20,6 +20,8 @@
 
     <!-- Fountain page. -->
     <string name="fountain_mode_smart">Smart mode</string>
+    <!-- A CTW3's mode 2, which PetKit calls Intermittent (petkit-local's key: smart). -->
+    <string name="fountain_mode_intermittent">Intermittent mode</string>
     <string name="fountain_mode_dnd">Do not disturb</string>
     <string name="fountain_mode_lock">Child lock</string>
     <string name="fountain_today">Today</string>
@@ -56,6 +58,18 @@
     <string name="fountain_mode_option_smart">Smart</string>
     <!-- TalkBack, on the option tapped until the fountain reports it. -->
     <string name="fountain_mode_pending">Requested, waiting for the fountain</string>
+    <!-- A CTW3's bar, as PetKit's: Pause first, then its modes, then its battery mode, which the
+         fountain enters by itself when unplugged and is never chosen. -->
+    <string name="fountain_mode_pause">Pause</string>
+    <string name="fountain_mode_battery">Battery mode</string>
+    <!-- TalkBack, on the battery mode tile. -->
+    <string name="fountain_battery_mode_on">On battery now</string>
+    <string name="fountain_battery_mode_off">Plugged in</string>
+    <!-- The battery mode's window, opened from its tile. -->
+    <string name="fountain_battery_mode_explain">Unplugged, the fountain switches to battery mode by itself: the pump runs, then sleeps, for the times below. Plugged in again, it goes back to its own mode. Neither mode can be chosen meanwhile.</string>
+    <string name="fountain_battery_mode_now_on">The fountain is on battery now.</string>
+    <string name="fountain_battery_mode_now_off">The fountain is plugged in.</string>
+    <string name="fountain_battery_mode_no_settings">The server offers no battery times to set for this fountain.</string>
 
     <!-- The status line at the top: battery, then when a Bluetooth fountain last reported and through which device. -->
     <string name="fountain_battery">Battery %1$d %%</string>

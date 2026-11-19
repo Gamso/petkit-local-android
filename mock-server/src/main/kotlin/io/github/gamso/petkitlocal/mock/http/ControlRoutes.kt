@@ -81,6 +81,9 @@ private fun MockDevice.notAccessory(): MockDevice =
         this
     }
 
+/** `DeviceSummary.transport`: an MQTT session, or HTTP polling. */
+private val TRANSPORTS = setOf("mqtt", "http")
+
 /** A litter box's visit summary (`events/codes.py`), the code a `toilet` notification carries. */
 private const val VISIT_CODE = "10"
 
@@ -101,6 +104,7 @@ private val CONTROL_ROUTES =
         "POST   /mock/devices/{id}/remove             sends device_removed (reset brings it back)",
         "PUT    /mock/devices/{id}/state              {\"<value_path>\": value, ...}  raw state, any entity",
         "PUT    /mock/devices/{id}/talk               {talk}  available | needs_patcher | device_unreachable | unsupported",
+        "PUT    /mock/devices/{id}/transport          {transport}  mqtt | http  (a device, not an accessory; its accessories follow)",
         "POST   /mock/clock/advance                   {seconds}",
         "GET    /mock/sessions",
         "DELETE /mock/sessions/{id}                   revoke one (its sockets close 4401)",
@@ -271,6 +275,15 @@ private fun Route.deviceControl(world: World) {
                 call.jsonBody().str("talk")?.takeIf { it in TALK_VALUES }
                     ?: throw ApiException(400, "bad_request", "talk is one of $TALK_VALUES")
             synchronized(world.lock) { world.change(device, reported = false) { device.talk = talk } }
+            call.ok()
+        }
+        put("/transport") {
+            val device = world.controlDevice(call).notAccessory()
+            val transport =
+                call.jsonBody().str("transport")?.takeIf { it in TRANSPORTS }
+                    ?: throw ApiException(400, "bad_request", "transport is one of $TRANSPORTS")
+            // An accessory's summary follows its parent's: `change` sends theirs too.
+            synchronized(world.lock) { world.change(device, reported = false) { device.transport = transport } }
             call.ok()
         }
         put("/state") {

@@ -84,6 +84,10 @@ object SettingCatalog {
             "ctw3_mode",
             "ctw3_smart_work",
             "ctw3_smart_sleep",
+            // The battery mode's working and sleep times (PetKit's `CTW3BatteryModeWindow`,
+            // Gamso/petkit-local#116): the CTW3 runs on them whenever it is unplugged.
+            "ctw3_energy_interval",
+            "ctw3_sleep_time",
         )
         put(
             SettingCategory.WaterCare,
@@ -168,8 +172,6 @@ object SettingCatalog {
             SettingCategory.Advanced,
             "cleaning_schedule",
             "feeding_schedule",
-            "ctw3_energy_interval",
-            "ctw3_sleep_time",
         )
     }
 
@@ -189,7 +191,6 @@ object SettingCatalog {
         "surplus_level",
         "feed_sound",
         "voice_dispense",
-        "ctw3_working",
         "w5_dnd",
         "ctw3_dnd",
         "wander_detection",
@@ -200,8 +201,6 @@ object SettingCatalog {
         "eat_video",
         "capability_high_light",
         "selected_sound",
-        "ctw3_energy_interval",
-        "ctw3_sleep_time",
     )
 
     /** Every key the table places. */

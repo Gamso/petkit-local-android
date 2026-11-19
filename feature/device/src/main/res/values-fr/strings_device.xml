@@ -48,6 +48,8 @@
     <string name="device_error_unexpected">La réponse du serveur n\'a pas été comprise.</string>
     <string name="device_error_server">Le serveur a échoué (%1$s).</string>
     <string name="device_error_refused">Le serveur a refusé.</string>
+    <!-- 422 on_battery : le mode d'une CTW3, tant qu'elle est en mode batterie (Gamso/petkit-local#116). -->
+    <string name="device_error_on_battery">La fontaine est sur batterie : elle reste en mode batterie jusqu\'à ce qu\'elle soit rebranchée. Ses durées sur batterie se règlent sous Mode batterie.</string>
     <string name="device_error_not_found">L\'appareil n\'est plus sur le serveur.</string>
     <string name="device_relay">Relayé par %1$s</string>
     <string name="device_relay_open">Ouvrir le %1$s</string>

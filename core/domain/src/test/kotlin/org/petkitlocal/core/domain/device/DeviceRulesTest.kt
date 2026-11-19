@@ -62,13 +62,13 @@ class DeviceRulesTest {
     @Test
     fun `a number snaps to its step from its minimum, within bounds`() {
         val interval = entity("ctw3_energy_interval", EntityComponent.Number, EntityValue.Number(60.0))
-            .copy(min = 15.0, max = 3600.0, step = 15.0)
+            .copy(min = 15.0, max = 300.0, step = 15.0)
         val ratio = entity("ratio", EntityComponent.Number, EntityValue.Number(0.5)).copy(step = 0.1)
 
         assertEquals(60.0, EntityWrites.snap(interval, 67.0))
         assertEquals(75.0, EntityWrites.snap(interval, 68.0))
         assertEquals(15.0, EntityWrites.snap(interval, -40.0))
-        assertEquals(3600.0, EntityWrites.snap(interval, 9999.0))
+        assertEquals(300.0, EntityWrites.snap(interval, 9999.0))
         assertEquals(0.3, EntityWrites.snap(ratio, 0.1 + 0.2))
         assertEquals(1.0, EntityWrites.step(volume))
     }

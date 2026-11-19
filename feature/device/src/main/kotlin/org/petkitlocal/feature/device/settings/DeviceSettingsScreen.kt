@@ -370,7 +370,7 @@ private fun SwitchRow(
 
 /** Any other setting: its current value at the end, and a tap opens its editor. */
 @Composable
-private fun EditRow(entity: Entity, help: String?, labels: ServerLabels, zone: ZoneId, onEdit: () -> Unit) {
+internal fun EditRow(entity: Entity, help: String?, labels: ServerLabels, zone: ZoneId, onEdit: () -> Unit) {
     val name = labels.entity(entity.key, entity.name)
     Row(
         verticalAlignment = Alignment.CenterVertically,

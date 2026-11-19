@@ -196,7 +196,11 @@ class MockDevice(
     companion object {
         val DUAL_HOPPER = setOf("d4s", "d4sh")
 
-        /** The option label a raw enum value stands for: `option_values`, else the index. */
+        /**
+         * The option label a raw enum value stands for: `option_values`, else the index; then a
+         * value the select only shows (`readonly_options`, a CTW3's `battery`), whose label is
+         * not among its options (`app_api/serializers.py::_display`).
+         */
         fun display(
             def: EntityDef,
             raw: JsonElement?,
@@ -207,7 +211,10 @@ class MockDevice(
             values.forEachIndexed { i, candidate ->
                 if (i < options.size && sameScalar(candidate, prim)) return options[i]
             }
-            return null
+            return def.readonlyOptions
+                ?.entries
+                ?.firstOrNull { (value, _) -> sameScalar(JsonPrimitive(value), prim) }
+                ?.value
         }
 
         private fun sameScalar(

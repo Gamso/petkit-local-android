@@ -12,7 +12,7 @@
     <string name="page_condition_stopped">À l\'arrêt</string>
     <string name="page_explain_water">L\'eau de la fontaine. Remplissez-la quand la fontaine signale qu\'elle est basse.</string>
     <string name="page_explain_filter">La cartouche filtrante, selon ce qu\'il en reste. Remplacez-la quand elle est usée, puis remettez son compteur à zéro.</string>
-    <string name="page_explain_pump">La pompe qui fait circuler l\'eau. En mode intelligent, elle se repose entre deux cycles : à l\'arrêt n\'est pas une panne.</string>
+    <string name="page_explain_pump">La pompe qui fait circuler l\'eau. En mode intelligent ou intermittent, elle se repose entre deux cycles : à l\'arrêt n\'est pas une panne.</string>
     <string name="page_explain_battery">La batterie de cette fontaine sans fil. Rechargez-la quand elle est faible.</string>
     <string name="page_explain_tray">Le plateau où boivent les animaux. Videz-le et nettoyez-le quand il est plein, puis remettez-le en place.</string>
     <string name="page_explain_clean_tank">Le bac d\'eau propre qui remplit le plateau. Remplissez-le et remettez-le en place.</string>
@@ -20,6 +20,8 @@
 
     <!-- Page fontaine. -->
     <string name="fountain_mode_smart">Mode intelligent</string>
+    <!-- Le mode 2 d'une CTW3, que PetKit appelle Intermittent (clé de petkit-local : smart). -->
+    <string name="fountain_mode_intermittent">Mode intermittent</string>
     <string name="fountain_mode_dnd">Ne pas déranger</string>
     <string name="fountain_mode_lock">Sécurité enfant</string>
     <string name="fountain_today">Aujourd\'hui</string>
@@ -59,6 +61,18 @@
     <string name="fountain_mode_option_smart">Intelligent</string>
     <!-- TalkBack, sur l'option touchée tant que la fontaine ne l'a pas signalée. -->
     <string name="fountain_mode_pending">Demandé, en attente de la fontaine</string>
+    <!-- La barre d'une CTW3, comme celle de PetKit : Pause d'abord, puis ses modes, puis son mode
+         batterie, où la fontaine passe d'elle-même une fois débranchée et qu'on ne choisit jamais. -->
+    <string name="fountain_mode_pause">Pause</string>
+    <string name="fountain_mode_battery">Mode batterie</string>
+    <!-- TalkBack, sur la tuile du mode batterie. -->
+    <string name="fountain_battery_mode_on">Sur batterie en ce moment</string>
+    <string name="fountain_battery_mode_off">Branchée</string>
+    <!-- La fenêtre du mode batterie, ouverte depuis sa tuile. -->
+    <string name="fountain_battery_mode_explain">Débranchée, la fontaine passe d\'elle-même en mode batterie : la pompe fonctionne, puis se met en veille, selon les durées ci-dessous. Rebranchée, elle reprend son propre mode. Aucun des deux modes ne peut être choisi entre-temps.</string>
+    <string name="fountain_battery_mode_now_on">La fontaine est sur batterie.</string>
+    <string name="fountain_battery_mode_now_off">La fontaine est branchée.</string>
+    <string name="fountain_battery_mode_no_settings">Le serveur ne propose aucune durée sur batterie à régler pour cette fontaine.</string>
 
     <!-- La ligne d'état en haut : batterie, puis quand une fontaine Bluetooth s'est signalée et par quel appareil. -->
     <string name="fountain_battery">Batterie %1$d %%</string>

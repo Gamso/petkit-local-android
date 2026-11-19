@@ -63,7 +63,7 @@ internal fun FountainStatusChips(battery: Hotspot?, modes: List<FountainMode>, m
         if (level != null) BatteryPill(level, low = battery.attention)
         modes.forEach { mode ->
             PkModeChip(
-                label = stringResource(modeLabel(mode.kind)),
+                label = stringResource(modeLabel(mode)),
                 on = true,
                 modifier = Modifier.testTag(PageTestTags.mode(mode.key)),
             )
@@ -71,10 +71,14 @@ internal fun FountainStatusChips(battery: Hotspot?, modes: List<FountainMode>, m
     }
 }
 
+/** A chip's name. The CTW3's mode 2 (`smart`) is Intermittent, as PetKit calls it; the W5's is Smart. */
 @StringRes
-private fun modeLabel(kind: FountainModeKind): Int = when (kind) {
-    FountainModeKind.Smart -> R.string.fountain_mode_smart
+private fun modeLabel(mode: FountainMode): Int = when (mode.kind) {
+    FountainModeKind.Smart ->
+        if (mode.key == CTW3_MODE) R.string.fountain_mode_intermittent else R.string.fountain_mode_smart
+
     FountainModeKind.DoNotDisturb -> R.string.fountain_mode_dnd
+
     FountainModeKind.ChildLock -> R.string.fountain_mode_lock
 }
 

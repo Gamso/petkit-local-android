@@ -8,6 +8,7 @@ import org.petkitlocal.core.domain.devicepage.FountainParts
 import org.petkitlocal.core.domain.devicepage.HotspotRules
 import org.petkitlocal.core.domain.home.HomeRules
 import org.petkitlocal.core.domain.model.Device
+import org.petkitlocal.core.domain.model.Entity
 import org.petkitlocal.core.domain.model.EntityComponent
 import org.petkitlocal.core.domain.model.Pet
 import org.petkitlocal.core.domain.model.TimelineCategory
@@ -27,6 +28,22 @@ object FountainRules {
      * fountains' `normal`/`smart` (`ha/entities/ble.py`).
      */
     private val MODE_KEYS = listOf("flow_mode", "w5_mode", "ctw3_mode")
+
+    /**
+     * PetKit's Pause, by the switch that is on while the pump runs: the CTW3's `ctw3_working`
+     * (petkit-local's `ha/entities/ble.py`, issue Gamso/petkit-local#116).
+     */
+    private val PAUSE_KEYS = listOf("ctw3_working")
+
+    /**
+     * The battery mode: the read-only flag a CTW3 raises unplugged (`ctw3_battery_mode`), and the
+     * battery working and sleep times PetKit's battery-mode window sets, in seconds.
+     */
+    private val BATTERY_MODE_KEYS = listOf("ctw3_battery_mode")
+    private val BATTERY_TIME_KEYS = listOf("ctw3_energy_interval", "ctw3_sleep_time")
+
+    /** The mode select's `display` while the fountain is on battery: shown, never offered. */
+    private const val BATTERY = "battery"
 
     /** The mode select whose `smart` option is the smart mode chip, when the bar does not offer it. */
     private val SMART_MODE_KEYS = listOf("w5_mode", "ctw3_mode")
@@ -99,7 +116,32 @@ object FountainRules {
         val entity = MODE_KEYS.firstNotNullOfOrNull { device.entity(it) }
             ?.takeIf { it.component == EntityComponent.Select && it.settable && it.options.isNotEmpty() }
             ?: return null
-        return FountainModeBar(entity.key, entity.options, EntityWrites.selectedOption(entity))
+        return FountainModeBar(
+            key = entity.key,
+            options = entity.options,
+            selected = EntityWrites.selectedOption(entity),
+            pause = pause(device),
+            battery = batteryMode(device, entity),
+        )
+    }
+
+    /** The Pause switch, when the fountain has one the server lets be written. */
+    private fun pause(device: Device): FountainPause? {
+        val entity = PAUSE_KEYS.firstNotNullOfOrNull { device.entity(it) }
+            ?.takeIf { it.component == EntityComponent.Switch && it.settable }
+            ?: return null
+        return FountainPause(entity.key, entity.value.asBoolean?.not())
+    }
+
+    /**
+     * The battery mode, when the fountain has one: on while its flag says so, or while the mode
+     * select shows `battery` (the one value it shows and never offers), whichever the server sent.
+     */
+    private fun batteryMode(device: Device, mode: Entity): FountainBatteryMode? {
+        val flag = BATTERY_MODE_KEYS.firstNotNullOfOrNull { device.entity(it) } ?: return null
+        val active = flag.value.asBoolean == true || (mode.display == BATTERY && BATTERY !in mode.options)
+        val settings = BATTERY_TIME_KEYS.filter { key -> device.entity(key)?.settable == true }
+        return FountainBatteryMode(active, settings)
     }
 
     private fun smartMode(device: Device): FountainMode? {

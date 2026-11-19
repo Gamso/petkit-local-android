@@ -153,6 +153,83 @@ class FountainRulesTest {
         assertNull(FountainRules.modeBar(w7h))
     }
 
+    /** A CTW3 as petkit-local serves it since issue Gamso/petkit-local#116: [mode] 1, 2 or 3. */
+    private fun ctw3(mode: Int, working: Boolean = true, onBattery: Boolean = mode == 3) = device(
+        3003,
+        DeviceFamily.Fountain,
+        Entity(
+            "ctw3_mode",
+            "Flow Mode",
+            EntityComponent.Select,
+            EntityValue.Number(mode.toDouble()),
+            display = mapOf(1 to "normal", 2 to "smart", 3 to "battery")[mode],
+            options = listOf("normal", "smart"),
+            settable = true,
+        ),
+        switch("ctw3_working", working),
+        binary("ctw3_battery_mode", onBattery),
+        number("ctw3_energy_interval", 60.0),
+        number("ctw3_sleep_time", 600.0),
+        type = "ctw3",
+    ).copy(connection = DeviceConnection.Ble, parentId = 2001)
+
+    private fun number(key: String, value: Double) =
+        Entity(key, key, EntityComponent.Number, EntityValue.Number(value), unit = "s", settable = true)
+
+    @Test
+    fun `a CTW3's bar has Pause, its two modes and its battery mode, which is shown and never selected`() {
+        val battery = listOf("ctw3_energy_interval", "ctw3_sleep_time")
+
+        // Plugged in, intermittent (`smart`), running.
+        assertEquals(
+            FountainModeBar(
+                key = "ctw3_mode",
+                options = listOf("normal", "smart"),
+                selected = "smart",
+                pause = FountainPause("ctw3_working", paused = false),
+                battery = FountainBatteryMode(active = false, settings = battery),
+            ),
+            FountainRules.modeBar(ctw3(mode = 2)),
+        )
+        // Paused in continuous (`normal`): the mode stays selected, Pause says paused.
+        val paused = FountainRules.modeBar(ctw3(mode = 1, working = false))!!
+        assertEquals("normal" to true, paused.selected to paused.pause?.paused)
+
+        // Unplugged: mode 3 is no option, so none is selected, and the battery mode is on.
+        val unplugged = FountainRules.modeBar(ctw3(mode = 3))!!
+        assertNull(unplugged.selected)
+        assertEquals(listOf("normal", "smart"), unplugged.options)
+        assertEquals(FountainBatteryMode(active = true, settings = battery), unplugged.battery)
+        // Either signal is enough: a `battery` display with no flag yet, or the flag alone.
+        assertTrue(FountainRules.modeBar(ctw3(mode = 3, onBattery = false))!!.battery!!.active)
+        assertTrue(FountainRules.modeBar(ctw3(mode = 2, onBattery = true))!!.battery!!.active)
+        // Its smart mode is on the bar, not a chip, on battery or not.
+        assertTrue(FountainRules.modes(ctw3(mode = 3)).isEmpty())
+    }
+
+    @Test
+    fun `Pause and the battery mode are offered only as the server exposes them`() {
+        val full = ctw3(mode = 2)
+        fun without(vararg keys: String) = full.copy(entities = full.entities.filter { it.key !in keys })
+
+        // A server before issue #116: no battery flag, so no battery mode on the bar.
+        assertNull(FountainRules.modeBar(without("ctw3_battery_mode"))!!.battery)
+        // A read-only Pause is no button; no battery times, a battery mode with nothing to set.
+        val readOnly = full.copy(
+            entities = full.entities.map { if (it.key == "ctw3_working") it.copy(settable = false) else it },
+        )
+        assertNull(FountainRules.modeBar(readOnly)!!.pause)
+        val noTimes = without("ctw3_energy_interval", "ctw3_sleep_time")
+        assertEquals(emptyList<String>(), FountainRules.modeBar(noTimes)!!.battery!!.settings)
+        // Unreported, Pause is neither paused nor running.
+        val unreported = full.copy(
+            entities = full.entities.map { if (it.key == "ctw3_working") it.copy(value = EntityValue.None) else it },
+        )
+        assertNull(FountainRules.modeBar(unreported)!!.pause!!.paused)
+        // The W5 has neither.
+        assertEquals(null to null, FountainRules.modeBar(w5)!!.let { it.pause to it.battery })
+    }
+
     @Test
     fun `status chips are only the features that are on, and smart mode only without the bar`() {
         // The W5's mode is on the bar; its lock is on, its do not disturb off: one chip.

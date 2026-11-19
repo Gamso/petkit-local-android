@@ -245,7 +245,7 @@ private fun SelectEditor(state: SettingEditorState, onSave: (EntityValue) -> Uni
                     ),
                 )
                 Text(
-                    optionText(option, labels),
+                    optionText(option, labels, entity.key),
                     style = PkTheme.typography.bodyLarge,
                     color = PkTheme.colors.onSurface,
                     modifier = Modifier

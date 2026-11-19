@@ -73,7 +73,7 @@ class SeedTest {
     @Test
     fun `each device shows exactly the entities and actions petkit-local defines for its model`() {
         val catalog = Catalog.load()
-        assertEquals("2b080d1bca183f31288740defb238ef08e352482", catalog.source)
+        assertEquals("9e00c402df8a023eeb176e65fc5672c4451ed5bc", catalog.source)
         world.devices.values.forEach { d ->
             val detail = d.detail()
             assertEquals(catalog.model(d.type).entities.map { it.key }, detail.entities.map { it.key }, d.type)

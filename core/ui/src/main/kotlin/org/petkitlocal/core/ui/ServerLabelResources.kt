@@ -31,6 +31,7 @@ internal val EntityLabels: Map<String, Int> = mapOf(
     "cleaning_schedule" to R.string.server_entity_cleaning_schedule,
     "click_ok" to R.string.server_entity_click_ok,
     "ctw3_battery" to R.string.server_entity_ctw3_battery,
+    "ctw3_battery_mode" to R.string.server_entity_ctw3_battery_mode,
     "ctw3_breakdown" to R.string.server_entity_ctw3_breakdown,
     "ctw3_brightness" to R.string.server_entity_ctw3_brightness,
     "ctw3_child_lock" to R.string.server_entity_ctw3_child_lock,
@@ -205,6 +206,20 @@ internal val ActionLabels: Map<String, Int> = mapOf(
     "reset_n50" to R.string.server_action_reset_n50,
     "reset_n60" to R.string.server_action_reset_n60,
     "resume" to R.string.server_action_resume,
+)
+
+/**
+ * The options one select names its own way, by `Entity.key` then option: a CTW3's `ctw3_mode`
+ * keeps the keys `normal` and `smart`, which PetKit's app calls Continuous and Intermittent, and
+ * shows `battery`, its battery mode (Gamso/petkit-local#116). A W5's `w5_mode` keeps Normal and
+ * Smart, PetKit's own names for that model's modes.
+ */
+internal val EntityOptionLabels: Map<String, Map<String, Int>> = mapOf(
+    "ctw3_mode" to mapOf(
+        "normal" to R.string.server_option_ctw3_mode_normal,
+        "smart" to R.string.server_option_ctw3_mode_smart,
+        "battery" to R.string.server_option_ctw3_mode_battery,
+    ),
 )
 
 /** A select's option, or a sensor's `display`, to its text. */

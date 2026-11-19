@@ -626,7 +626,8 @@ class Seed(
                 "t6" to mapOf("state.sandPercent" to 47, "state.sandWeight" to 3050),
                 "d4" to mapOf("state.desiccantLeftDays" to 3, "state.rssi" to -67),
                 "d4sh" to mapOf("settings.selectedSound" to 2),
-                "ctw3" to mapOf("states.mode" to 2),
+                // Plugged in, in smart mode (2); unplugged it would report 3 and `batteryMode` 1.
+                "ctw3" to mapOf("states.mode" to 2, "states.batteryMode" to 0),
             )
     }
 }

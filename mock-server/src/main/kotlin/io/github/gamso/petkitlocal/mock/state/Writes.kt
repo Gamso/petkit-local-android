@@ -139,6 +139,8 @@ fun World.setEntity(
         }
     // The value is checked first, as `payload_for` runs before the relay is looked for.
     requireRelay(device)
+    // Only then the frame is built, which is where a CTW3 refuses a mode on battery.
+    refuseOnBattery(device, def)
     change(device, reported = false) {
         if (path == "feed_schedule") {
             device.syncPlan()
@@ -146,8 +148,40 @@ fun World.setEntity(
             device.doc[path] = stored
             if (path == FEED_SCHEDULE_ACTIVE) device.syncPlan()
         }
+        // Picking a CTW3's mode means "run in it": power on and un-paused, as PetKit's app sends.
+        if (def.key == CTW3_MODE) {
+            device.doc[CTW3_POWER] = JsonPrimitive(1)
+            device.doc[CTW3_SUSPEND] = JsonPrimitive(1)
+        }
     }
     return delivered to device.render(def)
+}
+
+/** A CTW3's mode select, and the raw mode it reports on battery (`events/codes.py` `CTW3_MODES`). */
+private const val CTW3_MODE = "ctw3_mode"
+private const val CTW3_BATTERY_MODE = 3
+private const val CTW3_POWER = "states.powerStatus"
+private const val CTW3_SUSPEND = "states.suspendStatus"
+
+/** petkit-local's `devices/ble/ctw3.py::ON_BATTERY_REASON`, word for word. */
+const val ON_BATTERY_REASON =
+    "the fountain is on battery and runs its battery mode until it is plugged in again; " +
+        "its battery working and sleep times are what can be set meanwhile"
+
+/**
+ * A CTW3's mode write while it reports its battery mode, refused as `_ctw3_command_for` refuses
+ * it: 422 `on_battery`, nothing sent or stored. Pause and power are not refused on battery.
+ *
+ * @throws ApiException 422 `on_battery`.
+ */
+private fun refuseOnBattery(
+    device: MockDevice,
+    def: EntityDef,
+) {
+    if (def.key != CTW3_MODE) return
+    if ((device[def.valuePath] as? JsonPrimitive)?.intOrNull == CTW3_BATTERY_MODE) {
+        throw ApiException(422, "on_battery", ON_BATTERY_REASON)
+    }
 }
 
 const val FEED_SCHEDULE_ACTIVE = "local.feedScheduleActive"

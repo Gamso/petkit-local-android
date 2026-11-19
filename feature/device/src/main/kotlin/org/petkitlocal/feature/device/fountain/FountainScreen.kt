@@ -18,6 +18,7 @@ import kotlinx.coroutines.delay
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.devicepage.DevicePart
 import org.petkitlocal.core.domain.fountain.FountainPage
+import org.petkitlocal.core.domain.model.EntityValue
 import org.petkitlocal.core.ui.LiveCardState
 import org.petkitlocal.core.ui.rememberServerLabels
 import org.petkitlocal.feature.device.DeviceNavigation
@@ -43,12 +44,20 @@ import org.petkitlocal.feature.device.litter.RefreshBanner
 import org.petkitlocal.feature.device.litter.gutter
 import org.petkitlocal.feature.device.litter.heroPhoto
 import org.petkitlocal.feature.device.litter.missingPage
+import org.petkitlocal.feature.device.settings.SettingEditorDialog
 
 /** What the user can do on the fountain page besides its commands, one callback per intent. */
 data class FountainCallbacks(
     val onRefresh: () -> Unit = {},
     /** An option of the bottom bar's mode selector. */
     val onMode: (String) -> Unit = {},
+    /** The bar's Pause tile. */
+    val onPause: () -> Unit = {},
+    /** The bar's battery mode tile opens its times (true); their window closes (false). */
+    val onBatteryMode: (Boolean) -> Unit = {},
+    /** A setting of the battery mode: its editor opens; null closes it. */
+    val onEdit: (String?) -> Unit = {},
+    val onSave: (key: String, value: EntityValue) -> Unit = { _, _ -> },
     val onPetFilter: (Long?) -> Unit = {},
     val onHotspot: (DevicePart?) -> Unit = {},
     val commands: PageCommandCallbacks = PageCommandCallbacks(),
@@ -76,6 +85,10 @@ internal fun FountainRoute(navigation: DeviceNavigation, viewModel: FountainView
                 clips.onRefresh()
             },
             onMode = viewModel::onMode,
+            onPause = viewModel::onPause,
+            onBatteryMode = viewModel::onBatteryMode,
+            onEdit = viewModel::onEdit,
+            onSave = viewModel::onSave,
             onPetFilter = viewModel::onPetFilter,
             onHotspot = viewModel::onHotspot,
             commands = PageCommandCallbacks(
@@ -96,7 +109,8 @@ private const val TICK_MS = 60_000L
  * a camera's live card; the hero with the parts the model has, the live status line, today against yesterday, the
  * drinks' 24-hour chart and the day's activity on a fountain that records them, a camera's recent
  * clips, and the action sheet every device screen shares. When the server lets the fountain's
- * mode be set, the sheet's collapsed row is the mode selector, every action behind More.
+ * mode be set, the sheet's collapsed row is the mode selector, every action behind More; a
+ * cordless fountain's battery mode there opens its times, and their editors over them.
  */
 @Composable
 internal fun FountainScreen(
@@ -126,8 +140,12 @@ internal fun FountainScreen(
                 FountainModeSelector(
                     bar = bar,
                     pending = uiState.pendingMode,
-                    sending = bar.key in uiState.commands.sending,
-                    onMode = callbacks.onMode,
+                    sending = uiState.commands.sending,
+                    callbacks = FountainBarCallbacks(
+                        onMode = callbacks.onMode,
+                        onPause = callbacks.onPause,
+                        onBatteryMode = { callbacks.onBatteryMode(true) },
+                    ),
                 )
             }
         },
@@ -145,6 +163,33 @@ internal fun FountainScreen(
             sending = uiState.commands.sending,
             onAction = callbacks.commands.onAction,
             onDismiss = { callbacks.onHotspot(null) },
+        )
+    }
+    BatteryModeDialogs(uiState, callbacks)
+}
+
+/**
+ * The battery mode's times, and over them the editor of the one tapped: closing the editor
+ * comes back to the times, as saving one does once the server took it.
+ */
+@Composable
+private fun BatteryModeDialogs(uiState: FountainUiState, callbacks: FountainCallbacks) {
+    val page = uiState.page ?: return
+    val editor = uiState.editor
+    val battery = page.modeBar?.battery
+    when {
+        editor != null -> SettingEditorDialog(
+            editor,
+            onSave = { value -> callbacks.onSave(editor.entity.key, value) },
+            onDismiss = { callbacks.onEdit(null) },
+        )
+
+        uiState.batteryModeOpen && battery != null -> FountainBatteryModeDialog(
+            device = page.device,
+            battery = battery,
+            zone = uiState.zone,
+            onEdit = callbacks.onEdit,
+            onDismiss = { callbacks.onBatteryMode(false) },
         )
     }
 }
@@ -245,6 +290,16 @@ object FountainTestTags {
     const val TODAY = "fountain:today"
     const val BATTERY = "fountain:battery"
     const val MODE_BAR = "fountain:mode-bar"
+
+    /** The options of the mode select, one radio group, between Pause and the battery mode. */
+    const val MODE_OPTIONS = "fountain:mode-options"
+
+    /** The bar's Pause tile (a CTW3's `ctw3_working`). */
+    const val PAUSE = "fountain:pause"
+
+    /** The bar's battery mode tile, and the window it opens. */
+    const val BATTERY_MODE = "fountain:battery-mode"
+    const val BATTERY_MODE_DIALOG = "fountain:battery-mode-dialog"
 
     /** An option of the mode selector, by its value (`smart`, `continuous`...). */
     fun mode(option: String): String = "fountain:mode:$option"
