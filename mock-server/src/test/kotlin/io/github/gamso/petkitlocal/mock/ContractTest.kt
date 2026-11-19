@@ -313,12 +313,13 @@ class ContractTest {
     /**
      * UnifiedPush: in the spec, not served, as the app does not use it (ADR 0007). Every session
      * the mock hands out says `push: null`, which is true. The notification socket is covered by
-     * NotifySocketTest.
+     * NotifySocketTest. Talking through a camera: not served yet.
      */
     private val pending =
         setOf(
             "PUT" to "/push",
             "DELETE" to "/push",
+            "GET" to "/devices/{id}/talk",
         )
 
     @AfterAll

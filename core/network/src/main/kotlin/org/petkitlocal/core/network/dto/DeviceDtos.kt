@@ -30,6 +30,21 @@ object DeviceConnection {
     val KNOWN = setOf(WIFI, BLE)
 }
 
+/** Values of `DeviceSummary.talk`: whether `/devices/{id}/talk` can start now. */
+object DeviceTalk {
+    const val AVAILABLE = "available"
+
+    /** The Two-Way Talk patcher is not applied (petkit-local panel, Patchers tab). */
+    const val NEEDS_PATCHER = "needs_patcher"
+
+    /** The camera has not reported its network address yet: off, or not heard from. */
+    const val DEVICE_UNREACHABLE = "device_unreachable"
+
+    /** No Talk at all: not a camera. */
+    const val UNSUPPORTED = "unsupported"
+    val KNOWN = setOf(AVAILABLE, NEEDS_PATCHER, DEVICE_UNREACHABLE, UNSUPPORTED)
+}
+
 /** Values of `AccessoryRef.kind`. */
 object AccessoryKind {
     const val FOUNTAIN = "fountain"
@@ -83,6 +98,12 @@ data class DeviceSummaryDto(
     @SerialName("last_seen") val lastSeen: Double?,
     @SerialName("firmware") val firmware: String?,
     @SerialName("is_camera") val isCamera: Boolean,
+    /**
+     * One of [DeviceTalk.KNOWN]: whether `/devices/{id}/talk` can start now. Required by the
+     * contract, but a server older than petkit-local#108 does not send it (nor serve the route):
+     * null then.
+     */
+    @SerialName("talk") val talk: String?,
     /** One of [DeviceConnection.KNOWN]. */
     @SerialName("connection") val connection: String,
     /** The device relaying this accessory; null for a WiFi device or an unlinked accessory. */
@@ -106,6 +127,8 @@ data class DeviceDetailDto(
     @SerialName("last_seen") val lastSeen: Double?,
     @SerialName("firmware") val firmware: String?,
     @SerialName("is_camera") val isCamera: Boolean,
+    /** As in [DeviceSummaryDto.talk]: null from a server that predates it. */
+    @SerialName("talk") val talk: String?,
     @SerialName("connection") val connection: String,
     @SerialName("parent_id") val parentId: Long?,
     @SerialName("accessories") val accessories: List<AccessoryRefDto>,

@@ -42,6 +42,7 @@ tags:
   - name: devices
   - name: updates
   - name: video
+  - name: talk
   - name: timeline
   - name: media
   - name: pets
@@ -517,6 +518,75 @@ paths:
               schema: { $ref: "#/components/schemas/Error" }
         "503": { $ref: "#/components/responses/VideoUnavailable" }
 
+  /devices/{id}/talk:
+    get:
+      tags: [talk]
+      operationId: openTalk
+      summary: Talk through a camera's speaker — the phone's microphone as raw PCM over a WebSocket.
+      description: |
+        A WebSocket upgrade, authenticated by the same `Authorization: Bearer` header as
+        every route (sent on the upgrade request). Only what every route refuses is
+        refused before the upgrade (401, 404 `device_not_found`, 426); everything about
+        talking itself is said on the open socket, as below. Half-duplex: mute the live
+        view's sound while talking, or the camera's microphone hears its own speaker.
+
+        Enable the Talk button only while the device's `talk` (in `DeviceSummary`) is
+        `available`; the same check is made again when the socket opens, and the sink
+        on the device is tried only then.
+
+        Message flow:
+
+        1. Server -> client, text, once, when the device's sink has accepted the
+           connection: `{"type":"ready","format":"s16le","sample_rate":16000,"channels":1}`.
+           Start recording then. Audio sent earlier is kept and played after it, but
+           an error may come instead of `ready`.
+        2. Client -> server, binary: the microphone as raw PCM, signed 16-bit
+           little-endian, 16000 Hz, mono — exactly what Android's `AudioRecord` gives with
+           `ENCODING_PCM_16BIT`, `CHANNEL_IN_MONO` and a 16000 sample rate, no encoder.
+           Frames may be any length up to 64 KiB (tens of milliseconds each is usual);
+           they are one continuous stream, so a sample may straddle two frames. Send it
+           as it is recorded: the speaker plays in real time, and the server applies
+           backpressure rather than buffering ahead.
+        3. Client -> server, text: `{"type":"stop"}` ends the talk. The audio already
+           sent is played to its end, then the server answers `{"type":"stopped"}` and
+           closes with `1000`. Closing the socket instead ends it the same way, without
+           the answer. Other text messages are ignored.
+        4. Server -> client, text, at any time: `{"type":"error","code":"<code>","message":"<text>"}`,
+           then the server closes with `4000`. `code` is one of:
+           * `not_a_camera` — this device has no speaker to talk through;
+           * `needs_patcher` — the Two-Way Talk patcher is not applied (panel, Patchers tab);
+           * `device_unreachable` — no network address known for the device, its talk
+             sink did not accept the connection (device off or unreachable, the patch
+             gone from it, or another talk — e.g. go2rtc's WebRTC — holding it), or the
+             device hung up or stopped taking the audio mid-talk;
+           * `busy` — someone (another phone, or the panel) is already talking through
+             this device; the talk in progress is not disturbed. Try again later;
+           * `transcoder_failed` — ffmpeg is missing on the server or exited; `message`
+             carries its own reason;
+           * `idle_timeout` — no audio for 15 s.
+           `message` is for a person; act on `code`.
+
+        Close codes: `1000` the talk ended normally; `1001` the server is stopping;
+        `4000` after an `error` message; `4401` the session ended (logout, revocation,
+        password change) — sign in again; `1009` a frame over 64 KiB. One talk per
+        device at a time, from any client. The server pings every 20 s.
+      parameters:
+        - { $ref: "#/components/parameters/DeviceId" }
+      responses:
+        "101":
+          description: Switching protocols; the WebSocket follows the flow above.
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404":
+          description: "`device_not_found`."
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "426":
+          description: "`upgrade_required`: the request was not a WebSocket upgrade."
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
   /timeline:
     get:
       tags: [timeline]
@@ -697,7 +767,8 @@ paths:
         * `state` — a device's entities whose value changed, and only those. A device
           is looked at at most once a second, so a burst of reports is one message.
         * `device` — a device's summary when anything other than `last_seen` changed
-          (online or offline, transport, firmware, an accessory linked or unlinked),
+          (online or offline, transport, firmware, `talk`, an accessory linked or
+          unlinked),
           or when a new device appears (fetch `/devices/{id}` for its entities).
         * `device_removed`.
         * `timeline` — a timeline card that is new or changed (its photos or video
@@ -1284,7 +1355,7 @@ components:
     DeviceSummary:
       type: object
       required: [id, type, model, model_name, generation, kind, online, transport, last_seen,
-                 firmware, is_camera, connection, parent_id, accessories]
+                 firmware, is_camera, talk, connection, parent_id, accessories]
       properties:
         id: { type: integer }
         type: { type: string, description: "Codename, e.g. `t5`, `d4sh`, `w5`, `k3`." }
@@ -1326,6 +1397,23 @@ components:
             reports.
         firmware: { type: [string, "null"], description: Null for an accessory. }
         is_camera: { type: boolean }
+        talk:
+          type: string
+          enum: [available, needs_patcher, device_unreachable, unsupported]
+          description: |
+            Whether `/devices/{id}/talk` can start now, judged from what the server has
+            recorded (no request reaches the device to answer it):
+            * `available` — enable the Talk button;
+            * `needs_patcher` — show it disabled, saying the Two-Way Talk patcher has to
+              be applied in the petkit-local panel (Patchers tab);
+            * `device_unreachable` — show it disabled, saying the camera has not reported
+              its network address yet (it is off, or has not been heard from since the
+              server started);
+            * `unsupported` — no Talk at all: not a camera (every accessory, every feeder
+              or litter box without one).
+            `available` is not a promise: the device's sink is tried when the socket
+            opens, which answers `device_unreachable` if it does not accept. A change is
+            announced on `/ws` as a `device` message.
         connection:
           type: string
           enum: [wifi, ble]

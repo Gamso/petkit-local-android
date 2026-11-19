@@ -14,6 +14,8 @@ object PendingContract {
     val ROUTES = setOf(
         "PUT /push",
         "DELETE /push",
+        // Talking through a camera: the app's client for it is not written yet.
+        "GET /devices/{id}/talk",
     )
 
     /** The bodies of [ROUTES]. */
@@ -29,9 +31,12 @@ object PendingContract {
      *
      * `model_name` (petkit-local#107): the full product name; without it the app names the
      * device by `model`, as it always did.
+     *
+     * `talk` (petkit-local#108): whether the camera can be talked through; such a server has no
+     * talk route either, and the app says it is too old to talk.
      */
     val ABSENT_FROM_OLDER_SERVERS: Map<String, Set<String>> = mapOf(
-        "DeviceSummary" to setOf("model_name"),
-        "DeviceDetail" to setOf("model_name"),
+        "DeviceSummary" to setOf("model_name", "talk"),
+        "DeviceDetail" to setOf("model_name", "talk"),
     )
 }

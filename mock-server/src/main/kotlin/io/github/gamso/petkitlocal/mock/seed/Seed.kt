@@ -10,6 +10,8 @@ import io.github.gamso.petkitlocal.mock.state.MealGroup
 import io.github.gamso.petkitlocal.mock.state.MockDevice
 import io.github.gamso.petkitlocal.mock.state.Pet
 import io.github.gamso.petkitlocal.mock.state.Reason
+import io.github.gamso.petkitlocal.mock.state.TALK_DEVICE_UNREACHABLE
+import io.github.gamso.petkitlocal.mock.state.TALK_NEEDS_PATCHER
 import io.github.gamso.petkitlocal.mock.state.World
 import io.github.gamso.petkitlocal.mock.state.cleaningCard
 import io.github.gamso.petkitlocal.mock.state.cleaningDone
@@ -52,12 +54,15 @@ class Seed(
         val firmware: String,
         /** The generation petkit-local knows it as; null while it does not know. */
         val generation: Int? = null,
+        /** Whether it can be talked through (`DeviceSummary.talk`); null: as its model has a camera. */
+        val talk: String? = null,
     )
 
     fun build() {
         DEVICES.forEach { s ->
             val device = MockDevice(s.id, world.catalog.model(s.type), s.serial, s.firmware, transportOf(s.type))
             device.generation = s.generation
+            s.talk?.let { device.talk = it }
             device.lastSeen = clock.now() - rng.nextInt(2, 40)
             world.devices[s.id] = device
             seedValues(device)
@@ -453,14 +458,16 @@ class Seed(
                 SeedDevice(T3, "t3", "20230612T3000417", "1.322"),
                 // The owner's two second generations; the Solo's generation is unknown.
                 SeedDevice(T4, "t4", "20240305T4001288", "1.652", generation = 2),
+                // Talk: the T5 and the D4H can be talked through; the T6, the D4SH and the W7H lack
+                // the Two-Way Talk patcher; the T7 has not reported its address yet.
                 SeedDevice(T5, "t5", "20250117T5000093", "1.4.12"),
-                SeedDevice(T6, "t6", "20250402T6000211", "1.2.8"),
-                SeedDevice(T7, "t7", "20250820T7000035", "1.0.16"),
+                SeedDevice(T6, "t6", "20250402T6000211", "1.2.8", talk = TALK_NEEDS_PATCHER),
+                SeedDevice(T7, "t7", "20250820T7000035", "1.0.16", talk = TALK_DEVICE_UNREACHABLE),
                 SeedDevice(D4, "d4", "20220914D4000654", "1.267"),
                 SeedDevice(D4S, "d4s", "20230225D4S00187", "1.348"),
                 SeedDevice(D4H, "d4h", "20240711D4H00402", "1.867"),
-                SeedDevice(D4SH, "d4sh", "20240903DSH00128", "1.867", generation = 2),
-                SeedDevice(W7H, "w7h", "20250610W7H00077", "1.263"),
+                SeedDevice(D4SH, "d4sh", "20240903DSH00128", "1.867", generation = 2, talk = TALK_NEEDS_PATCHER),
+                SeedDevice(W7H, "w7h", "20250610W7H00077", "1.263", talk = TALK_NEEDS_PATCHER),
                 SeedDevice(W5, "w5", null, "1.18"),
                 SeedDevice(CTW3, "ctw3", null, "2.06"),
                 SeedDevice(K3, "k3", null, "1.03"),

@@ -9,8 +9,9 @@ import org.petkitlocal.core.network.dto.DeviceSummaryDto
 import org.petkitlocal.core.network.dto.UpdateMessageDto
 
 /**
- * A device's full name and generation (petkit-local#107): read when the server sends them, null
- * when a server older than them leaves them out, as a released server does.
+ * A device's full name and generation (petkit-local#107) and whether it can be talked through
+ * (petkit-local#108): read when the server sends them, null when a server older than them leaves
+ * them out, as a released server does.
  */
 class DeviceDtosTest {
     private fun summary(extra: String) =
@@ -71,5 +72,24 @@ class DeviceDtosTest {
         val json = PetkitJson.encodeToString(DeviceSummaryDto.serializer(), dto)
         assertEquals(dto, PetkitJson.decodeFromString(DeviceSummaryDto.serializer(), json))
         assertTrue(""""model_name":"Pura Max 2","generation":2""" in json) { json }
+    }
+
+    @Test
+    fun `a summary and a detail say whether the camera can be talked through`() {
+        val dto = PetkitJson.decodeFromString(
+            DeviceSummaryDto.serializer(),
+            summary(""""talk":"needs_patcher",""").replace("\"is_camera\":false", "\"is_camera\":true"),
+        )
+        assertEquals("needs_patcher", dto.talk)
+
+        val detail = summary(""""talk":"available",""").dropLast(1) + ""","serial":null,"entities":[],"actions":[]}"""
+        assertEquals("available", PetkitJson.decodeFromString(DeviceDetailDto.serializer(), detail).talk)
+    }
+
+    @Test
+    fun `a server that predates talk sends none, and the summary still reads`() {
+        assertNull(PetkitJson.decodeFromString(DeviceSummaryDto.serializer(), summary("")).talk)
+        val message = decodeUpdateMessage("""{"type":"device","device":${summary("")}}""")
+        assertNull((message as UpdateMessageDto.Device).device.talk)
     }
 }

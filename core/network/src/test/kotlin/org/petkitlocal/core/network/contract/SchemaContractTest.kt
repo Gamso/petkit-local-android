@@ -30,6 +30,7 @@ import org.petkitlocal.core.network.dto.DeviceConnection
 import org.petkitlocal.core.network.dto.DeviceDetailDto
 import org.petkitlocal.core.network.dto.DeviceKind
 import org.petkitlocal.core.network.dto.DeviceSummaryDto
+import org.petkitlocal.core.network.dto.DeviceTalk
 import org.petkitlocal.core.network.dto.DeviceTransport
 import org.petkitlocal.core.network.dto.EntityCategory
 import org.petkitlocal.core.network.dto.EntityChangeDto
@@ -230,6 +231,7 @@ class SchemaContractTest {
         assertEquals(enumOf("AccessoryRef", "kind"), AccessoryKind.KNOWN)
         assertEquals(enumOf("DeviceSummary", "kind"), DeviceKind.KNOWN)
         assertEquals(enumOf("DeviceSummary", "transport"), DeviceTransport.KNOWN)
+        assertEquals(enumOf("DeviceSummary", "talk"), DeviceTalk.KNOWN)
         assertEquals(enumOf("Entity", "component"), EntityComponent.KNOWN)
         assertEquals(enumOf("Entity", "category"), EntityCategory.KNOWN)
         assertEquals(timelineKind, TimelineFilter.KNOWN)

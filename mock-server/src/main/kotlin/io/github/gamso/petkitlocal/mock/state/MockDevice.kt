@@ -22,6 +22,21 @@ import kotlinx.serialization.json.doubleOrNull
 /** Components that carry a value; buttons are the device's `actions` instead. */
 val VALUE_COMPONENTS = setOf("sensor", "binary_sensor", "switch", "number", "select", "text", "time")
 
+/** `DeviceSummary.talk`: the camera can be talked through now. */
+const val TALK_AVAILABLE = "available"
+
+/** `DeviceSummary.talk`: the Two-Way Talk patcher is not applied. */
+const val TALK_NEEDS_PATCHER = "needs_patcher"
+
+/** `DeviceSummary.talk`: the camera has not reported its network address. */
+const val TALK_DEVICE_UNREACHABLE = "device_unreachable"
+
+/** `DeviceSummary.talk`: no camera to talk through. */
+const val TALK_UNSUPPORTED = "unsupported"
+
+/** Every value of `DeviceSummary.talk`. */
+val TALK_VALUES = setOf(TALK_AVAILABLE, TALK_NEEDS_PATCHER, TALK_DEVICE_UNREACHABLE, TALK_UNSUPPORTED)
+
 /** Bluetooth accessories: no network of their own, reached through a parent (`devices/ble/`). */
 val BLE_TYPES = setOf("w5", "w4", "ctw2", "ctw3", "k3")
 
@@ -53,6 +68,13 @@ class MockDevice(
 
     /** Its full product name (`model_name`): its generation's, else its codename's (`model`). */
     val modelName: String get() = Generations.name(type, generation) ?: model.model
+
+    /**
+     * Whether it can be talked through now (`DeviceSummary.talk`), as petkit-local judges it from
+     * what it recorded: `available` for a camera with the Two-Way Talk patcher and a known address,
+     * `needs_patcher`, `device_unreachable`, and `unsupported` for anything without a camera.
+     */
+    var talk: String = if (model.isCamera && !isAccessory) TALK_AVAILABLE else TALK_UNSUPPORTED
 
     /** The accessories this device relays, in the order the server lists them. */
     val accessories: MutableList<MockDevice> = mutableListOf()
@@ -108,6 +130,7 @@ class MockDevice(
             lastSeen = if (type == "k3") null else lastSeen,
             firmware = if (isAccessory) null else firmware,
             isCamera = model.isCamera,
+            talk = talk,
             connection = if (isAccessory) "ble" else "wifi",
             parentId = parent?.id,
             accessories = accessories.map { AccessoryRef(it.id, it.type, it.model.kind) },
@@ -133,6 +156,7 @@ class MockDevice(
             lastSeen = s.lastSeen,
             firmware = s.firmware,
             isCamera = s.isCamera,
+            talk = s.talk,
             connection = s.connection,
             parentId = s.parentId,
             accessories = s.accessories,
