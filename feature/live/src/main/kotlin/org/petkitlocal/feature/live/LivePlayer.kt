@@ -7,7 +7,6 @@ import android.view.PixelCopy
 import android.view.SurfaceView
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -17,16 +16,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.graphics.createBitmap
-import androidx.media3.common.C
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.VideoSize
 import java.io.ByteArrayOutputStream
 import kotlin.coroutines.resume
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import org.petkitlocal.core.domain.video.LiveFailure
@@ -35,14 +30,13 @@ import org.petkitlocal.core.domain.video.LiveFailure
 internal class LivePlayerEvents(
     val onPlaying: (attempt: Int) -> Unit,
     val onFailed: (attempt: Int, failure: LiveFailure) -> Unit,
-    val onDelay: (attempt: Int, delay: Duration?) -> Unit,
 )
 
 /**
  * The player of [playback]: a new one for each attempt, built by [factory], prepared and playing,
  * released when the attempt is over or the screen leaves (which closes its socket). None while
- * there is nothing to play. Its first frame, its failure and, every second, its delay are
- * reported for the attempt it belongs to, so a late report of an older player changes nothing.
+ * there is nothing to play. Its first frame and its failure are reported for the attempt it
+ * belongs to, so a late report of an older player changes nothing.
  */
 @Composable
 internal fun rememberLivePlayer(
@@ -80,48 +74,7 @@ internal fun rememberLivePlayer(
             player?.release()
         }
     }
-    LaunchedEffect(player) {
-        val attempt = playback?.attempt ?: return@LaunchedEffect
-        if (player == null) return@LaunchedEffect
-        while (true) {
-            delay(DELAY_TICK)
-            latest.onDelay(attempt, player.liveDelay())
-        }
-    }
     return player
-}
-
-private val DELAY_TICK = 1_000.milliseconds
-
-/** How far behind the camera [this] player shows the picture, or null before it knows. */
-internal fun Player.liveDelay(): Duration? = liveDelay(
-    liveOffsetMs = currentLiveOffset,
-    live = isCurrentMediaItemLive,
-    durationMs = duration,
-    positionMs = currentPosition,
-    bufferedMs = bufferedPosition,
-)
-
-/**
- * The delay from what the player reports. HLS with wall-clock times gives it as the live offset;
- * other HLS as the distance from the newest segment's end ([durationMs], the window) to
- * [positionMs]. The WebSocket's stream has neither: fragments arrive as the camera makes them,
- * so the delay is what was received and is still waiting to be shown.
- */
-internal fun liveDelay(
-    liveOffsetMs: Long,
-    live: Boolean,
-    durationMs: Long,
-    positionMs: Long,
-    bufferedMs: Long,
-): Duration? {
-    val ms = when {
-        liveOffsetMs != C.TIME_UNSET -> liveOffsetMs
-        live && durationMs != C.TIME_UNSET -> durationMs - positionMs
-        bufferedMs >= positionMs -> bufferedMs - positionMs
-        else -> return null
-    }
-    return ms.coerceAtLeast(0).milliseconds
 }
 
 /**

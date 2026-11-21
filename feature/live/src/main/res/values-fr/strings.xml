@@ -3,7 +3,6 @@
     <string name="live_title">Vidéo en direct</string>
 
     <string name="live_badge">Direct</string>
-    <string name="live_badge_delay">Direct · %1$s s</string>
     <string name="live_hls">HLS</string>
 
     <string name="live_connecting">Connexion…</string>

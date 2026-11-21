@@ -157,7 +157,8 @@ screen).
   any still. Nothing plays until it is tapped: a stream on every page open would cost battery and
   data and take one of the server's few viewer slots. The header has no live button: the card is
   the way in.
-- Full-width player, "live" badge and measured delay, fullscreen, mute, snapshot.
+- Full-width player, "live" badge (no delay figure: it meant nothing to the owner), fullscreen,
+  mute, snapshot.
 - Plays the fMP4-over-WebSocket stream (`/devices/{id}/live`); falls back to HLS automatically on
   close code `1013` or repeated failures.
 - Recent clips below.

@@ -48,7 +48,6 @@ import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.Player
 import androidx.media3.common.VideoSize
-import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.launch
 import org.petkitlocal.core.designsystem.component.PkBackButton
 import org.petkitlocal.core.designsystem.theme.PkTheme
@@ -86,7 +85,7 @@ object LiveTestTags {
     const val SCREEN = "live_screen"
     const val VIDEO = "live_video"
 
-    /** "Live · 0.4 s" while frames are shown. */
+    /** "Live" while frames are shown. */
     const val BADGE = "live_badge"
 
     /** "HLS" while on the fallback. */
@@ -131,7 +130,7 @@ internal fun LiveRoute(
         onStopOrDispose { viewModel.onHidden() }
     }
     val events = remember(viewModel) {
-        LivePlayerEvents(viewModel::onPlaying, viewModel::onPlayerFailed, viewModel::onDelay)
+        LivePlayerEvents(viewModel::onPlaying, viewModel::onPlayerFailed)
     }
     val player = rememberLivePlayer(uiState.playback, viewModel.playerFactory, events)
     LaunchedEffect(player, uiState.soundMuted) { player?.applyMuted(uiState.soundMuted) }
@@ -193,7 +192,7 @@ private fun rememberVideoSize(player: Player?): VideoSize {
 
 /**
  * A camera's live video (SPEC.md §5.7), always dark (docs/DESIGN.md): the picture full width
- * with its badge (live, how far behind, HLS on the fallback) and what the session is doing over
+ * with its badge (live, and HLS on the fallback) and what the session is doing over
  * it, then sound, snapshot and full screen, Talk (held to speak through the camera), and
  * the camera's recent clips, each opening the clip player (which stops the live video). Full
  * screen, the picture takes the whole landscape window with its controls over it.
@@ -307,7 +306,6 @@ private fun VideoBox(
         SessionOverlay(uiState, callbacks.onRetry)
         Badges(
             uiState.session,
-            uiState.delay,
             Modifier
                 .align(Alignment.TopStart)
                 .then(if (fullscreen) Modifier.safeDrawingPadding() else Modifier)
@@ -333,7 +331,6 @@ private fun LiveScreenPlayingPreview() {
             deviceName = "Purobot Max Pro 2",
             availability = LiveAvailability.Camera,
             session = LiveSession(phase = LivePhase.Playing, attempt = 1),
-            delay = 400.milliseconds,
         ),
         LiveCallbacks(),
     )

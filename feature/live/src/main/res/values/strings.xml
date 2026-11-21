@@ -2,9 +2,8 @@
 <resources>
     <string name="live_title">Live video</string>
 
-    <!-- The badge over the picture: how far behind the camera it is, in seconds ("0.4"). -->
+    <!-- The badge over the picture while frames are shown. -->
     <string name="live_badge">Live</string>
-    <string name="live_badge_delay">Live · %1$s s</string>
     <!-- The fallback transport, named as is: a few seconds behind the camera. -->
     <string name="live_hls">HLS</string>
 

@@ -17,7 +17,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
@@ -26,8 +25,6 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import java.util.Locale
-import kotlin.time.Duration
 import org.petkitlocal.core.designsystem.component.PkButton
 import org.petkitlocal.core.designsystem.icon.PkIcons
 import org.petkitlocal.core.designsystem.theme.PkTheme
@@ -128,9 +125,9 @@ private fun failureText(failure: LiveFailure): String = stringResource(
     },
 )
 
-/** "Live · 0.4 s" while frames are shown, and "HLS" while on the fallback. */
+/** "Live" while frames are shown, and "HLS" while on the fallback. */
 @Composable
-internal fun Badges(session: LiveSession, delay: Duration?, modifier: Modifier = Modifier) {
+internal fun Badges(session: LiveSession, modifier: Modifier = Modifier) {
     val playing = session.phase == LivePhase.Playing
     val onHls = session.transport == LiveTransport.Hls &&
         (playing || session.phase == LivePhase.Starting || session.phase is LivePhase.Waiting)
@@ -145,7 +142,7 @@ internal fun Badges(session: LiveSession, delay: Duration?, modifier: Modifier =
                         .background(PkTheme.colors.danger),
                 )
                 Spacer(Modifier.width(6.dp))
-                Text(delayText(delay), style = PkTheme.typography.labelLarge, color = OnPicture)
+                Text(stringResource(R.string.live_badge), style = PkTheme.typography.labelLarge, color = OnPicture)
             }
         }
         if (onHls) {
@@ -155,18 +152,6 @@ internal fun Badges(session: LiveSession, delay: Duration?, modifier: Modifier =
         }
     }
 }
-
-@Composable
-private fun delayText(delay: Duration?): String {
-    if (delay == null) return stringResource(R.string.live_badge)
-    val seconds = String.format(currentLocale(), "%.1f", delay.inWholeMilliseconds / MS_PER_SECOND)
-    return stringResource(R.string.live_badge_delay, seconds)
-}
-
-private const val MS_PER_SECOND = 1000.0
-
-@Composable
-private fun currentLocale(): Locale = LocalConfiguration.current.locales[0]
 
 @Composable
 internal fun Pill(modifier: Modifier = Modifier, content: @Composable () -> Unit) {

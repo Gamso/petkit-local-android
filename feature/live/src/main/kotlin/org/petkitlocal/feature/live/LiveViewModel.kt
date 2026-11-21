@@ -7,7 +7,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Clock
 import java.time.LocalDate
 import javax.inject.Inject
-import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -71,8 +70,6 @@ data class LiveUiState(
     val deviceName: String? = null,
     val availability: LiveAvailability = LiveAvailability.Loading,
     val session: LiveSession = LiveSession(),
-    /** How far behind the camera the picture is, measured by the player while it plays. */
-    val delay: Duration? = null,
     /** Live video starts muted: a camera's sound should not surprise anyone. */
     val muted: Boolean = true,
     val fullscreen: Boolean = false,
@@ -164,12 +161,6 @@ class LiveViewModel @Inject constructor(
 
     /** The player of [attempt] stopped with [failure]. */
     fun onPlayerFailed(attempt: Int, failure: LiveFailure) = updateSession { it.fail(attempt, failure) }
-
-    /** The player of [attempt] measured how far behind the camera it is. */
-    fun onDelay(attempt: Int, delay: Duration?) = local.update { state ->
-        val current = attempt == state.session.attempt && state.session.phase == LivePhase.Playing
-        if (current) state.copy(delay = delay) else state
-    }
 
     /** Reads the camera's newest clips from the server; one refresh at a time, for a camera only. */
     fun onRefreshClips() {
@@ -319,13 +310,10 @@ class LiveViewModel @Inject constructor(
         }
     }
 
-    /** Moves the session on, forgets a delay measured by an older player, and times its waits. */
+    /** Moves the session on and times its waits. */
     private fun updateSession(transform: (LiveSession) -> LiveSession) {
         val before = local.value.session
-        local.update { state ->
-            val session = transform(state.session)
-            state.copy(session = session, delay = state.delay.takeIf { session.phase == LivePhase.Playing })
-        }
+        local.update { state -> state.copy(session = transform(state.session)) }
         val after = local.value.session
         val phase = after.phase
         if (after == before) return
