@@ -17,15 +17,96 @@
     <!-- %1$s is the day without its year ("Nov 12"), %2$s the time of day. -->
     <string name="recent_clips_on_day">%1$s, %2$s</string>
 
-    <!-- The card at the top of a camera's page that opens its live video. -->
-    <string name="live_card_watch">Watch live</string>
+    <!-- The card at the top of a camera's page that plays its live video in place. -->
     <!-- When the card's still was taken; %1$s is the time of day ("14:32"). -->
     <string name="live_card_still_today">Still from %1$s</string>
     <string name="live_card_still_yesterday">Still from yesterday, %1$s</string>
     <!-- %1$s is the day without its year ("Nov 12"), %2$s the time of day. -->
     <string name="live_card_still_on_day">Still from %1$s, %2$s</string>
     <!-- Read by TalkBack; %1$s is the device's name. -->
-    <string name="live_card_description">Watch %1$s live</string>
+    <string name="live_card_description">Live video of %1$s</string>
     <!-- %2$s is when the still was taken, as the card writes it ("Still from 14:32"). -->
-    <string name="live_card_description_still">Watch %1$s live. %2$s</string>
+    <string name="live_card_description_still">Live video of %1$s. %2$s</string>
+
+    <!-- Over a camera's live picture, on its page and on the live video screen. -->
+    <!-- The badge while frames are shown. -->
+    <string name="live_badge">Live</string>
+    <!-- The fallback transport, named as is: a few seconds behind the camera. -->
+    <string name="live_hls">HLS</string>
+    <string name="live_connecting">Connecting…</string>
+    <!-- Still connecting after a while: a camera reached through a relay (a D4SH) takes up to 30 s to open. -->
+    <string name="live_connecting_slow">Waking the camera up… This can take up to 30 seconds.</string>
+    <!-- %1$s says why it stopped, e.g. "The connection to the server broke." -->
+    <string name="live_reconnecting">Reconnecting… %1$s</string>
+    <string name="live_retry">Watch again</string>
+    <string name="live_session_ended">Your session has ended.</string>
+
+    <string name="live_failure_ended">The camera\'s stream ended.</string>
+    <string name="live_failure_too_slow">The phone could not keep up with the stream.</string>
+    <string name="live_failure_replaced">Live video paused: this camera was opened again.</string>
+    <string name="live_failure_camera_busy">The camera is not ready for a new viewer yet.</string>
+    <string name="live_failure_network">The connection to the server broke.</string>
+    <string name="live_failure_playback">This phone cannot play the camera\'s video.</string>
+    <string name="live_failure_no_stream">This camera has no live stream on the server.</string>
+    <string name="live_failure_too_many">Too many people are watching. Try again in a moment.</string>
+    <string name="live_failure_refused">The server refused the live video.</string>
+
+    <string name="live_mute">Mute</string>
+    <string name="live_unmute">Turn sound on</string>
+    <string name="live_fullscreen">Full screen</string>
+
+    <string name="live_gone">This device is no longer on the server.</string>
+    <!-- Talk: held to speak through the camera's speaker, walkie-talkie style. -->
+    <string name="live_talk">Talk</string>
+    <string name="live_talk_hold">Hold to talk</string>
+    <string name="live_talk_connecting">Connecting… keep holding</string>
+    <string name="live_talk_talking">Talking · release to stop</string>
+    <string name="live_talk_stopping">Finishing…</string>
+    <!-- Under the button while the camera plays the phone's microphone. -->
+    <string name="live_talk_indicator">The camera plays what you say. Its own sound is off meanwhile.</string>
+    <!-- Read by TalkBack with the button: what it is doing, and what a double tap does. -->
+    <string name="live_talk_state_connecting">Connecting</string>
+    <string name="live_talk_state_talking">Talking</string>
+    <string name="live_talk_state_stopping">Finishing</string>
+    <string name="live_talk_action_start">start talking</string>
+    <string name="live_talk_action_stop">stop talking</string>
+    <string name="live_talk_action_cancel">stop connecting</string>
+    <!-- Under the button when the server says the camera cannot talk now. -->
+    <string name="live_talk_reason_needs_patcher">Needs the Two-Way Talk patcher.</string>
+    <string name="live_talk_reason_unreachable">The camera cannot be reached.</string>
+    <string name="live_talk_reason_unsupported">This camera cannot talk.</string>
+    <string name="live_talk_reason_server_too_old">Your petkit-local is too old to talk through a camera.</string>
+    <string name="live_talk_reason_unknown">Talking through this camera is not possible now.</string>
+    <!-- Said when the button is pressed anyway: what is missing, and how to fix it. -->
+    <string name="live_talk_fix_needs_patcher">Apply the Two-Way Talk patcher to this camera in the petkit-local panel (Patchers tab), then try again.</string>
+    <string name="live_talk_fix_unreachable">The camera has not reported its network address yet. Check that it is on and connected, then try again.</string>
+    <string name="live_talk_fix_unsupported">This camera cannot talk: petkit-local has no speaker to send your voice to.</string>
+    <string name="live_talk_fix_server_too_old">Update petkit-local to a version that lets the app talk through a camera.</string>
+    <string name="live_talk_fix_unknown">petkit-local says talking through this camera is not possible now. Try again later.</string>
+    <string name="live_talk_mic_reason">Talk needs the microphone to send your voice to the camera.</string>
+    <string name="live_talk_mic_allowed">Microphone allowed. Hold Talk to speak.</string>
+    <string name="live_talk_mic_denied">The microphone is not allowed. Allow it for this app in Android\'s settings to talk through the camera.</string>
+    <string name="live_talk_open_settings">Open settings</string>
+    <string name="live_talk_hold_hint">Keep holding Talk while you speak: it stops when you let go.</string>
+    <string name="live_talk_sound_off">The camera\'s sound comes back when you stop talking.</string>
+    <!-- Why a talk did not start, or stopped by itself. -->
+    <string name="live_talk_error_not_a_camera">This device has no speaker to talk through.</string>
+    <string name="live_talk_error_unreachable">The camera did not answer: it may be off, or another talk is holding it. Try again.</string>
+    <string name="live_talk_error_busy">Someone else is talking through this camera. Try again when they stop.</string>
+    <!-- %1$s is the server's own reason, in English. -->
+    <string name="live_talk_error_transcoder">petkit-local could not convert your voice (%1$s).</string>
+    <string name="live_talk_error_idle">Talk stopped: no sound reached the camera for 15 seconds.</string>
+    <string name="live_talk_error_server_stopping">petkit-local is restarting. Try again in a moment.</string>
+    <string name="live_talk_error_session">Your session has ended.</string>
+    <string name="live_talk_error_refused">The server refused to open the talk.</string>
+    <string name="live_talk_error_network">The connection to the camera was lost. Try again.</string>
+    <string name="live_talk_error_microphone">The microphone could not be opened: another app may be using it.</string>
+    <!-- %1$s is the server's own reason, in English. -->
+    <string name="live_talk_error_other">Talk stopped: %1$s</string>
+
+    <string name="live_snapshot">Save a snapshot</string>
+    <string name="live_snapshot_saved">Snapshot saved in your pictures.</string>
+    <string name="live_snapshot_failed">The snapshot could not be saved.</string>
+    <string name="live_snapshot_no_picture">No picture to save yet.</string>
+    <string name="live_exit_fullscreen">Exit full screen</string>
 </resources>

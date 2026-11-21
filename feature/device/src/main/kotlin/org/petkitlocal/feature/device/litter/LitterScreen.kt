@@ -14,14 +14,15 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.devicepage.DevicePart
 import org.petkitlocal.core.domain.litter.LitterBoxPage
-import org.petkitlocal.core.ui.LiveCardState
 import org.petkitlocal.core.ui.rememberServerLabels
 import org.petkitlocal.feature.device.DeviceNavigation
 import org.petkitlocal.feature.device.common.ActivityCard
 import org.petkitlocal.feature.device.common.CameraLiveCard
+import org.petkitlocal.feature.device.common.CameraLiveFullscreen
 import org.petkitlocal.feature.device.common.DeviceHeader
 import org.petkitlocal.feature.device.common.DeviceStatusLine
 import org.petkitlocal.feature.device.common.DeviceTestTags
+import org.petkitlocal.feature.device.common.LiveCardUi
 import org.petkitlocal.feature.device.common.RecentClipsUi
 import org.petkitlocal.feature.device.common.recentClips
 import org.petkitlocal.feature.device.common.rememberLiveCard
@@ -78,8 +79,8 @@ internal fun LitterScreen(
     initiallyExpanded: Boolean = false,
     /** A camera's recent clips; null shows none. */
     clips: RecentClipsUi? = null,
-    /** What a camera's live card shows. */
-    live: LiveCardState = LiveCardState(),
+    /** A camera's live card: what it shows, and its player. */
+    live: LiveCardUi = LiveCardUi(),
 ) {
     val page = uiState.page
     val tint = PkTheme.colors.heroLitter
@@ -100,6 +101,7 @@ internal fun LitterScreen(
             recentClips(page.device, clips, Modifier.gutter())
         }
     }
+    CameraLiveFullscreen(page?.device, live)
     uiState.openHotspot?.let { hotspot ->
         HotspotDialog(
             hotspot = hotspot,
@@ -120,7 +122,7 @@ private fun LazyListScope.litterContent(
     uiState: LitterUiState,
     navigation: DeviceNavigation,
     callbacks: LitterCallbacks,
-    live: LiveCardState,
+    live: LiveCardUi,
 ) {
     item(key = "top") {
         PageTop(PkTheme.colors.heroLitter) {
@@ -130,13 +132,14 @@ private fun LazyListScope.litterContent(
                 onOpenSettings = { navigation.onOpenSettings(page.device.id) },
             )
             ModeChips(page.modes, uiState.commands.sending, callbacks.onModeToggle)
-            CameraLiveCard(page.device, live, navigation, Modifier.padding(top = PkTheme.spacing.xs))
+            CameraLiveCard(page.device, live, Modifier.padding(top = PkTheme.spacing.xs))
             DeviceHero(
                 hotspots = page.hotspots,
                 anchors = ::litterAnchor,
                 onHotspot = callbacks.onHotspot,
                 modifier = Modifier.padding(top = PkTheme.spacing.xs),
                 photo = heroPhoto(page.device),
+                pictured = !page.device.isCamera,
             ) { LitterBoxIllustration(Modifier.fillMaxSize()) }
         }
     }

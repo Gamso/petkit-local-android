@@ -130,4 +130,37 @@ class LiveSessionTest {
         val waiting = LiveSession().start().fail(1, busy).stop()
         assertEquals(LivePhase.Idle, waiting.phase)
     }
+
+    @Test
+    fun `a slow start is marked for its own attempt only, and goes with the start`() {
+        val starting = LiveSession().start()
+        val slow = starting.slowStart(attempt = 1)
+        assertEquals(true, slow.startingSlowly)
+        assertEquals(LivePhase.Starting, slow.phase)
+        assertEquals(starting, starting.slowStart(attempt = 0), "an older attempt's clock changes nothing")
+        assertEquals(false, slow.playing(1).startingSlowly)
+        assertEquals(false, slow.fail(1, network).startingSlowly)
+        assertEquals(false, slow.stop().startingSlowly)
+        assertEquals(false, slow.retry().startingSlowly)
+        val playing = starting.playing(1)
+        assertEquals(playing, playing.slowStart(attempt = 1), "only a start can be slow")
+    }
+
+    @Test
+    fun `released to another screen, it stops and its next start is a fresh one`() {
+        val stopped = LiveSession().start().fail(1, LiveFailure.StreamEnded)
+        assertEquals(LivePhase.Stopped(LiveFailure.StreamEnded), stopped.start().phase, "only the user restarts it")
+
+        val released = stopped.release()
+        assertEquals(LivePhase.Idle, released.phase)
+        assertEquals(LivePhase.Starting, released.start().phase)
+        assertEquals(2, released.start().attempt)
+
+        val onHls = LiveSession().start().playing(1).fail(1, LiveFailure.TooSlow).release()
+        assertEquals(LiveTransport.WebSocket, onHls.transport)
+        assertEquals(LivePhase.Idle, onHls.phase)
+
+        val ended = LiveSession().start().fail(1, LiveFailure.SessionEnded)
+        assertEquals(ended, ended.release())
+    }
 }

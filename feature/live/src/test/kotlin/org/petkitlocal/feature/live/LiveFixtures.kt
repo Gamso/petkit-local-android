@@ -1,6 +1,5 @@
 package org.petkitlocal.feature.live
 
-import kotlin.time.Duration.Companion.milliseconds
 import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.core.domain.model.TalkAvailability
 import org.petkitlocal.core.domain.talk.TalkFailure
@@ -10,6 +9,10 @@ import org.petkitlocal.core.domain.video.LiveSession
 import org.petkitlocal.core.domain.video.LiveTransport
 import org.petkitlocal.core.testing.Household
 import org.petkitlocal.core.ui.RecentClipsState
+import org.petkitlocal.core.ui.live.SnapshotResult
+import org.petkitlocal.core.ui.talk.TalkNotice
+import org.petkitlocal.core.ui.talk.TalkPhase
+import org.petkitlocal.core.ui.talk.TalkUiState
 
 /** The live screen's states, for its screen and screenshot tests. */
 internal object LiveFixtures {
@@ -35,10 +38,10 @@ internal object LiveFixtures {
 
     val connecting = state(LiveSession(phase = LivePhase.Starting, attempt = 1))
 
-    val playing = state(LiveSession(phase = LivePhase.Playing, attempt = 1)).copy(delay = 400.milliseconds)
+    val playing = state(LiveSession(phase = LivePhase.Playing, attempt = 1))
 
     val playingHls = state(LiveSession(transport = LiveTransport.Hls, phase = LivePhase.Playing, attempt = 2))
-        .copy(delay = 3_200.milliseconds, muted = false, snapshot = SnapshotResult.Saved)
+        .copy(muted = false, snapshot = SnapshotResult.Saved)
 
     val waiting = state(
         LiveSession(

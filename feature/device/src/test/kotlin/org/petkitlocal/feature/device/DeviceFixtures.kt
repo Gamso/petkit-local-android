@@ -17,12 +17,15 @@ import org.petkitlocal.core.domain.model.EntityValue
 import org.petkitlocal.core.domain.repository.CommandDelivery
 import org.petkitlocal.core.domain.video.LatestStill
 import org.petkitlocal.core.testing.Household
+import org.petkitlocal.core.ui.LiveCardCallbacks
 import org.petkitlocal.core.ui.LiveCardState
 import org.petkitlocal.core.ui.RecentClipsState
+import org.petkitlocal.core.ui.talk.TalkCallbacks
 import org.petkitlocal.feature.device.common.CommandFeedback
 import org.petkitlocal.feature.device.common.CommandResult
 import org.petkitlocal.feature.device.common.CommandState
 import org.petkitlocal.feature.device.common.CommandSubject
+import org.petkitlocal.feature.device.common.LiveCardUi
 import org.petkitlocal.feature.device.common.RecentClipsUi
 import org.petkitlocal.feature.device.generic.GenericDeviceUiState
 import org.petkitlocal.feature.device.settings.DeviceSettingsUiState
@@ -49,6 +52,25 @@ object DeviceFixtures {
             today = Household.today,
         )
     }
+
+    /** [state]'s live card on a page, its callbacks written down in [calls] as "live-..." entries. */
+    internal fun liveCardUi(state: LiveCardState, calls: MutableList<String>) = LiveCardUi(
+        state = state,
+        callbacks = LiveCardCallbacks(
+            onRetry = { calls += "live-retry" },
+            onToggleMute = { calls += "live-mute" },
+            onFullscreen = { calls += "live-fullscreen" },
+            onExitFullscreen = { calls += "live-exit" },
+            onSnapshot = { calls += "live-snapshot" },
+            talk = TalkCallbacks(
+                onTalkPressed = { calls += "talk-press" },
+                onTalkReleased = { calls += "talk-release" },
+                onTalkToggled = { calls += "talk-toggle" },
+            ),
+        ),
+        onVisible = { calls += "live-visible" },
+        onHidden = { calls += "live-hidden" },
+    )
 
     val flush = DeviceAction("fountain_flush", "Drain & Flush", destructive = false)
     val refill = DeviceAction("fountain_refill", "Refill", destructive = false)

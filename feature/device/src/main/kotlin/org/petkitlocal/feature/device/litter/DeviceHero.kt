@@ -1,10 +1,13 @@
 package org.petkitlocal.feature.device.litter
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -21,6 +24,7 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.MeasureScope
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -54,7 +58,9 @@ data class PartAnchor(val x: Float, val y: Float, val side: PillSide)
  * The hero of a device page (docs/DESIGN.md, DeviceHero). With the model's [photo], the photo and
  * its pills ([PhotoHero]). Without one, the family's drawing in the middle and one [HotspotPill]
  * per hotspot on either side, each joined by a line to a dot on its part. A pill goes as near its
- * part's height as the others leave room for; the hero grows to fit them.
+ * part's height as the others leave room for; the hero grows to fit them. Not [pictured] (a
+ * camera's page, whose live video is the device's picture, as in PetKit's app): only the pills,
+ * in rows ([HotspotRow]), so the parts and their taps stay without a second picture.
  */
 @Composable
 internal fun DeviceHero(
@@ -63,8 +69,13 @@ internal fun DeviceHero(
     onHotspot: (DevicePart) -> Unit,
     modifier: Modifier = Modifier,
     photo: DevicePhoto? = null,
+    pictured: Boolean = true,
     illustration: @Composable () -> Unit,
 ) {
+    if (!pictured) {
+        HotspotRow(hotspots, onHotspot, modifier)
+        return
+    }
     if (photo != null) {
         PhotoHero(hotspots, photo, onHotspot, modifier)
         return
@@ -99,6 +110,32 @@ internal fun DeviceHero(
         placeHero(measurables, constraints, hotspots.map { anchors(it.part) to it.attention }, links)
     }
 }
+
+/** The parts' pills without a picture, in rows that wrap. */
+@Composable
+internal fun HotspotRow(hotspots: List<Hotspot>, onHotspot: (DevicePart) -> Unit, modifier: Modifier = Modifier) {
+    if (hotspots.isEmpty()) return
+    val labels = rememberServerLabels()
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(PkTheme.spacing.xs),
+        verticalArrangement = Arrangement.spacedBy(PkTheme.spacing.xs),
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag(HERO_PARTS),
+    ) {
+        hotspots.forEach { hotspot ->
+            HotspotPill(
+                label = hotspotLabel(hotspot, labels),
+                value = readingText(hotspot.reading, labels, short = true),
+                attention = hotspot.attention,
+                onClick = { onHotspot(hotspot.part) },
+            )
+        }
+    }
+}
+
+/** The tag of [HotspotRow], a camera page's parts. */
+internal const val HERO_PARTS = "hero_parts"
 
 /**
  * Measures and places the drawing ([measurables] first) and the pills, [parts] giving each pill's
