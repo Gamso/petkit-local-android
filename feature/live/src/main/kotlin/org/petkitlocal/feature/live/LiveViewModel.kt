@@ -7,10 +7,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Clock
 import java.time.LocalDate
 import javax.inject.Inject
-import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,7 +16,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -28,16 +26,19 @@ import org.petkitlocal.core.domain.model.Device
 import org.petkitlocal.core.domain.model.TalkAvailability
 import org.petkitlocal.core.domain.talk.MicrophoneAccess
 import org.petkitlocal.core.domain.talk.OpenTalkUseCase
-import org.petkitlocal.core.domain.talk.TalkEvent
-import org.petkitlocal.core.domain.talk.TalkSession
 import org.petkitlocal.core.domain.video.LiveFailure
-import org.petkitlocal.core.domain.video.LivePhase
 import org.petkitlocal.core.domain.video.LiveSession
-import org.petkitlocal.core.domain.video.LiveTransport
+import org.petkitlocal.core.domain.video.LiveSessionRunner
 import org.petkitlocal.core.domain.video.ObserveRecentClipsUseCase
 import org.petkitlocal.core.domain.video.RefreshRecentClipsUseCase
 import org.petkitlocal.core.domain.video.SaveSnapshotUseCase
 import org.petkitlocal.core.ui.RecentClipsState
+import org.petkitlocal.core.ui.live.LivePlayback
+import org.petkitlocal.core.ui.live.LivePlayerFactory
+import org.petkitlocal.core.ui.live.SnapshotResult
+import org.petkitlocal.core.ui.live.playbackOf
+import org.petkitlocal.core.ui.talk.TalkController
+import org.petkitlocal.core.ui.talk.TalkUiState
 
 /** Whether the screen has a camera to show. */
 enum class LiveAvailability {
@@ -53,17 +54,11 @@ enum class LiveAvailability {
     Gone,
 }
 
-/** What a snapshot came to, said under the controls for a few seconds. */
-enum class SnapshotResult { Saved, Failed, NoPicture }
-
 /** What the screen does once for the ViewModel: Android's own prompts. */
 sealed interface LiveEffect {
     /** Ask Android for the microphone; answer with [LiveViewModel.onMicrophoneResult]. */
     data object RequestMicrophone : LiveEffect
 }
-
-/** The player to have now: a new one for every attempt of the live session. */
-data class LivePlayback(val deviceId: Long, val transport: LiveTransport, val attempt: Int)
 
 /** What the live video screen shows (SPEC.md §5.7). */
 data class LiveUiState(
@@ -71,8 +66,6 @@ data class LiveUiState(
     val deviceName: String? = null,
     val availability: LiveAvailability = LiveAvailability.Loading,
     val session: LiveSession = LiveSession(),
-    /** How far behind the camera the picture is, measured by the player while it plays. */
-    val delay: Duration? = null,
     /** Live video starts muted: a camera's sound should not surprise anyone. */
     val muted: Boolean = true,
     val fullscreen: Boolean = false,
@@ -92,16 +85,14 @@ data class LiveUiState(
 
     /** The player to build, or none: not a camera, in the background, waiting or stopped. */
     val playback: LivePlayback?
-        get() = LivePlayback(deviceId, session.transport, session.attempt).takeIf {
-            availability == LiveAvailability.Camera &&
-                (session.phase == LivePhase.Starting || session.phase == LivePhase.Playing)
-        }
+        get() = session.playbackOf(deviceId).takeIf { availability == LiveAvailability.Camera }
 }
 
 /**
- * The live video of one camera. The [LiveSession] decides which transport to try and when; this
- * ViewModel feeds it what the screen and the player report, counts down its waits, and saves
- * snapshots, and keeps the camera's recent clips under it. The player itself is the screen's (it needs a Context) and follows [LiveUiState.playback].
+ * The live video of one camera. The [LiveSession] decides which transport to try and when, and
+ * its [LiveSessionRunner] counts down its waits (as on a camera page's live card); this ViewModel
+ * feeds it what the screen and the player report, saves snapshots, and keeps the camera's recent
+ * clips under it. The player itself is the screen's (it needs a Context) and follows [LiveUiState.playback].
  */
 @HiltViewModel
 @Suppress("TooManyFunctions") // One function per user intent and player event (ARCHITECTURE.md §3).
@@ -121,55 +112,54 @@ class LiveViewModel @Inject constructor(
     private val local = MutableStateFlow(
         LiveUiState(deviceId, clips = RecentClipsState(zone = clock.zone, today = LocalDate.now(clock))),
     )
-    private var retry: Job? = null
+    private val live = LiveSessionRunner(viewModelScope)
     private var snapshotNotice: Job? = null
     private var clipsRefresh: Job? = null
-    private var talkJob: Job? = null
-    private var talkSession: TalkSession? = null
-    private val effectChannel = Channel<LiveEffect>(Channel.BUFFERED)
+    private val talk = TalkController(viewModelScope, deviceId, openTalk, microphone)
 
     /** One-shot effects, collected once by the screen. */
-    val effects: Flow<LiveEffect> = effectChannel.receiveAsFlow()
+    val effects: Flow<LiveEffect> = talk.requestMicrophone.map { LiveEffect.RequestMicrophone }
 
     val uiState: StateFlow<LiveUiState> = combine(
         observeDevice(deviceId),
         observeRecentClips(deviceId),
         local,
-    ) { device, clips, state ->
+        live.session,
+        talk.state,
+    ) { device, clips, state, session, talking ->
         state.copy(
+            session = session,
             deviceName = device?.modelName,
             availability = device.availability(),
             clips = state.clips.copy(clips = clips, cacheLoaded = true),
-            talk = state.talk.copy(availability = device?.talk ?: TalkAvailability.Unsupported),
+            talk = talking.copy(availability = device?.talk ?: TalkAvailability.Unsupported),
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), local.value)
+
+    /** The player to have now, for a collection that goes on in the background ([uiState]'s stops). */
+    val playback: StateFlow<LivePlayback?> = uiState.map { it.playback }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
 
     init {
         onRefreshClips()
     }
 
     /** The screen is visible: play. */
-    fun onVisible() = updateSession { it.start() }
+    fun onVisible() = live.start()
 
     /** The screen went to the background or away: no player, no socket, no talk. */
     fun onHidden() {
-        updateSession { it.stop() }
-        endTalk()
+        live.stop()
+        talk.end()
     }
 
-    fun onRetry() = updateSession { it.retry() }
+    fun onRetry() = live.retry()
 
     /** The player of [attempt] shows its first frame. */
-    fun onPlaying(attempt: Int) = updateSession { it.playing(attempt) }
+    fun onPlaying(attempt: Int) = live.playing(attempt)
 
     /** The player of [attempt] stopped with [failure]. */
-    fun onPlayerFailed(attempt: Int, failure: LiveFailure) = updateSession { it.fail(attempt, failure) }
-
-    /** The player of [attempt] measured how far behind the camera it is. */
-    fun onDelay(attempt: Int, delay: Duration?) = local.update { state ->
-        val current = attempt == state.session.attempt && state.session.phase == LivePhase.Playing
-        if (current) state.copy(delay = delay) else state
-    }
+    fun onPlayerFailed(attempt: Int, failure: LiveFailure) = live.fail(attempt, failure)
 
     /** Reads the camera's newest clips from the server; one refresh at a time, for a camera only. */
     fun onRefreshClips() {
@@ -192,108 +182,21 @@ class LiveViewModel @Inject constructor(
         local.update { it.copy(clips = transform(it.clips)) }
 
     /** The sound button. While Talk is busy the camera's sound stays off, and the screen says so. */
-    fun onToggleMute() = local.update {
-        if (it.talk.busy) {
-            it.withTalk { talk ->
-                talk.copy(notice = TalkNotice.SoundOffWhileTalking)
-            }
-        } else {
-            it.copy(muted = !it.muted)
-        }
+    fun onToggleMute() {
+        if (talk.busy) talk.onSoundWhileTalking() else local.update { it.copy(muted = !it.muted) }
     }
 
-    /**
-     * Talk is pressed (the finger went down): the talk opens, and the camera's speaker plays the
-     * microphone once it accepted, until [onTalkReleased]. When the camera cannot talk, or the
-     * microphone is not allowed yet, the screen says so instead (and Android is asked).
-     */
-    fun onTalkPressed() {
-        val talk = uiState.value.talk
-        if (local.value.talk.phase != TalkPhase.Idle) return
-        when {
-            talk.availability != TalkAvailability.Available ->
-                updateTalk { it.copy(notice = TalkNotice.Unavailable(talk.availability)) }
-
-            !microphone.granted() -> {
-                updateTalk { it.copy(notice = TalkNotice.MicrophoneReason) }
-                effectChannel.trySend(LiveEffect.RequestMicrophone)
-            }
-
-            else -> startTalk()
-        }
-    }
+    /** Talk is pressed (the finger went down); see [TalkController.onPressed]. */
+    fun onTalkPressed() = talk.onPressed(uiState.value.talk.availability)
 
     /** Talk is let go, or the press was cancelled (the finger slid off): the talk ends. */
-    fun onTalkReleased() {
-        when (local.value.talk.phase) {
-            TalkPhase.Connecting -> cancelTalk(TalkNotice.HoldToTalk)
-            TalkPhase.Talking -> stopTalk()
-            TalkPhase.Idle, TalkPhase.Stopping -> Unit
-        }
-    }
+    fun onTalkReleased() = talk.onReleased()
 
-    /**
-     * Talk activated without a press, by TalkBack's double tap: holding is impractical there, so a
-     * first activation starts talking and the next one stops it.
-     */
-    fun onTalkToggled() {
-        when (local.value.talk.phase) {
-            TalkPhase.Idle -> onTalkPressed()
-            TalkPhase.Connecting -> cancelTalk(notice = null)
-            TalkPhase.Talking -> stopTalk()
-            TalkPhase.Stopping -> Unit
-        }
-    }
+    /** Talk activated without a press, by TalkBack's double tap: starts or stops talking. */
+    fun onTalkToggled() = talk.onToggled(uiState.value.talk.availability)
 
     /** Android's answer about the microphone. Allowed: Talk is pressed again to speak. */
-    fun onMicrophoneResult(granted: Boolean) = updateTalk {
-        it.copy(notice = if (granted) TalkNotice.MicrophoneAllowed else TalkNotice.MicrophoneDenied)
-    }
-
-    private fun startTalk() {
-        val session = openTalk(deviceId)
-        talkSession = session
-        updateTalk { it.copy(phase = TalkPhase.Connecting, notice = null) }
-        talkJob = viewModelScope.launch {
-            session.events.collect { event ->
-                when (event) {
-                    TalkEvent.Talking -> updateTalk { it.copy(phase = TalkPhase.Talking) }
-
-                    is TalkEvent.Ended -> {
-                        talkSession = null
-                        updateTalk { it.copy(phase = TalkPhase.Idle, notice = event.failure?.let(TalkNotice::Failed)) }
-                    }
-                }
-            }
-        }
-    }
-
-    /** Ends the talk cleanly: the camera plays what it received; the socket says when it is over. */
-    private fun stopTalk() {
-        talkSession?.stop()
-        updateTalk { it.copy(phase = TalkPhase.Stopping) }
-    }
-
-    /** Ends the talk now, before the camera accepted it. */
-    private fun cancelTalk(notice: TalkNotice?) {
-        talkJob?.cancel()
-        talkJob = null
-        talkSession = null
-        updateTalk { it.copy(phase = TalkPhase.Idle, notice = notice) }
-    }
-
-    /** Leaving: whatever the talk is doing, it ends. */
-    private fun endTalk() {
-        when (local.value.talk.phase) {
-            TalkPhase.Connecting -> cancelTalk(notice = null)
-            TalkPhase.Talking -> stopTalk()
-            TalkPhase.Idle, TalkPhase.Stopping -> Unit
-        }
-    }
-
-    private fun updateTalk(transform: (TalkUiState) -> TalkUiState) = local.update { it.withTalk(transform) }
-
-    private fun LiveUiState.withTalk(transform: (TalkUiState) -> TalkUiState) = copy(talk = transform(talk))
+    fun onMicrophoneResult(granted: Boolean) = talk.onMicrophoneResult(granted)
 
     fun onFullscreen(on: Boolean) = local.update { it.copy(fullscreen = on) }
 
@@ -316,25 +219,6 @@ class LiveViewModel @Inject constructor(
         snapshotNotice = viewModelScope.launch {
             delay(SNAPSHOT_NOTICE)
             local.update { it.copy(snapshot = null) }
-        }
-    }
-
-    /** Moves the session on, forgets a delay measured by an older player, and times its waits. */
-    private fun updateSession(transform: (LiveSession) -> LiveSession) {
-        val before = local.value.session
-        local.update { state ->
-            val session = transform(state.session)
-            state.copy(session = session, delay = state.delay.takeIf { session.phase == LivePhase.Playing })
-        }
-        val after = local.value.session
-        val phase = after.phase
-        if (after == before) return
-        retry?.cancel()
-        if (phase is LivePhase.Waiting) {
-            retry = viewModelScope.launch {
-                delay(phase.retryIn)
-                updateSession { it.retryDue() }
-            }
         }
     }
 

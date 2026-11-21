@@ -4,6 +4,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
@@ -32,10 +33,10 @@ import org.petkitlocal.core.e2e.MockServer.Certificate
 import org.petkitlocal.core.e2e.TestServer
 import org.petkitlocal.core.e2e.TestServerRule
 import org.petkitlocal.core.ui.LiveCardTestTags
+import org.petkitlocal.core.ui.live.LiveVideoTestTags
 import org.petkitlocal.feature.auth.SignInTestTags
 import org.petkitlocal.feature.device.common.DeviceTestTags
 import org.petkitlocal.feature.home.HomeTestTags
-import org.petkitlocal.feature.live.LiveTestTags
 import org.petkitlocal.feature.settings.SettingsTestTags
 
 /**
@@ -75,13 +76,11 @@ class CertificateTrustFlowTest {
         waitUntil("the live updates and notification sockets") {
             mockCount("sockets") >= 1 && mockCount("notification_sockets") == 1
         }
+        // The camera's page plays its live video in place.
         openDevice(PUROBOT)
-        compose.onNodeWithTag(LiveCardTestTags.CARD).performClick()
-        waitFor(hasTestTag(LiveTestTags.BADGE))
+        waitFor(hasTestTag(LiveVideoTestTags.BADGE) and hasAnyAncestor(hasTestTag(LiveCardTestTags.CARD)))
         waitUntil("one live socket") { mockCount("live_sockets") == 1 }
 
-        compose.onNodeWithContentDescription("Back").performClick()
-        waitFor(hasTestTag(DeviceTestTags.STATUS))
         compose.onNodeWithContentDescription("Back").performClick()
         waitFor(hasTestTag(HomeTestTags.LIST))
         signOut()

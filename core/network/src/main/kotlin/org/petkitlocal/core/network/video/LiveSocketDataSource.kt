@@ -232,8 +232,13 @@ class LiveSocketDataSource(
         /** The init segment of a high-bitrate camera and a few seconds of fragments. */
         const val MAX_BUFFERED_BYTES = 2L * 1024 * 1024
 
-        /** Opening the camera's stream takes go2rtc a moment; this is far beyond it. */
-        val START_TIMEOUT: Duration = 15.seconds
+        /**
+         * Opening the camera's stream takes go2rtc a moment, but the first open of a camera
+         * reached through a relay (a D4SH) takes up to ~30 s while the relay retries
+         * (petkit-local#122/#125): this is beyond both, so a slow start is waited for rather than
+         * failed and retried, which would only start the wait again.
+         */
+        val START_TIMEOUT: Duration = 40.seconds
 
         private const val PIPE_POLL_MS = 200L
         private const val MAX_ERROR_BODY_BYTES = 16L * 1024

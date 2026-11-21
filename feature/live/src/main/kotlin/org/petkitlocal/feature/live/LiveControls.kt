@@ -21,6 +21,15 @@ import androidx.compose.ui.text.style.TextAlign
 import org.petkitlocal.core.designsystem.component.PkIconButton
 import org.petkitlocal.core.designsystem.icon.PkIcons
 import org.petkitlocal.core.designsystem.theme.PkTheme
+import org.petkitlocal.core.ui.live.LIVE_PILL_ALPHA
+import org.petkitlocal.core.ui.live.LiveExitFullscreenButton
+import org.petkitlocal.core.ui.live.LiveFullscreenButton
+import org.petkitlocal.core.ui.live.LiveMuteButton
+import org.petkitlocal.core.ui.live.LivePicture
+import org.petkitlocal.core.ui.live.LiveSnapshotButton
+import org.petkitlocal.core.ui.live.LiveSnapshotNotice
+import org.petkitlocal.core.ui.live.OnLivePicture
+import org.petkitlocal.core.ui.talk.TalkControls
 /** Under the picture: sound, snapshot, full screen; what the snapshot came to; then Talk. */
 @Composable
 internal fun LiveControls(uiState: LiveUiState, callbacks: LiveCallbacks) {
@@ -32,12 +41,12 @@ internal fun LiveControls(uiState: LiveUiState, callbacks: LiveCallbacks) {
             .padding(PkTheme.spacing.gutter),
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(PkTheme.spacing.m)) {
-            MuteButton(uiState.soundMuted, callbacks.onToggleMute)
-            SnapshotButton(uiState.savingSnapshot, callbacks.onSnapshot)
-            PkIconButton(PkIcons.Fullscreen, stringResource(R.string.live_fullscreen), { callbacks.onFullscreen(true) })
+            LiveMuteButton(uiState.soundMuted, callbacks.onToggleMute)
+            LiveSnapshotButton(uiState.savingSnapshot, callbacks.onSnapshot)
+            LiveFullscreenButton({ callbacks.onFullscreen(true) })
         }
-        SnapshotNotice(uiState.snapshot)
-        TalkControls(uiState.talk, callbacks)
+        LiveSnapshotNotice(uiState.snapshot)
+        TalkControls(uiState.talk, callbacks.talk)
     }
 }
 
@@ -52,50 +61,14 @@ internal fun BoxScope.FullscreenControls(uiState: LiveUiState, callbacks: LiveCa
             .safeDrawingPadding()
             .padding(PkTheme.spacing.m),
     ) {
-        SnapshotNotice(
+        LiveSnapshotNotice(
             uiState.snapshot,
-            Modifier.clip(PkTheme.shapes.chip).background(Picture.copy(alpha = PILL_ALPHA)),
+            Modifier.clip(PkTheme.shapes.chip).background(LivePicture.copy(alpha = LIVE_PILL_ALPHA)),
         )
         Row(horizontalArrangement = Arrangement.spacedBy(PkTheme.spacing.s)) {
-            MuteButton(uiState.soundMuted, callbacks.onToggleMute)
-            SnapshotButton(uiState.savingSnapshot, callbacks.onSnapshot)
-            PkIconButton(PkIcons.FullscreenExit, stringResource(R.string.live_exit_fullscreen), {
-                callbacks.onFullscreen(false)
-            })
+            LiveMuteButton(uiState.soundMuted, callbacks.onToggleMute)
+            LiveSnapshotButton(uiState.savingSnapshot, callbacks.onSnapshot)
+            LiveExitFullscreenButton({ callbacks.onFullscreen(false) })
         }
     }
-}
-
-@Composable
-private fun MuteButton(muted: Boolean, onToggle: () -> Unit) {
-    if (muted) {
-        PkIconButton(PkIcons.VolumeOff, stringResource(R.string.live_unmute), onToggle)
-    } else {
-        PkIconButton(PkIcons.VolumeUp, stringResource(R.string.live_mute), onToggle)
-    }
-}
-
-/** Takes a snapshot; one at a time, while the last one is still being saved. */
-@Composable
-private fun SnapshotButton(saving: Boolean, onSnapshot: () -> Unit) {
-    PkIconButton(PkIcons.PhotoCamera, stringResource(R.string.live_snapshot), { if (!saving) onSnapshot() })
-}
-
-@Composable
-internal fun SnapshotNotice(result: SnapshotResult?, modifier: Modifier = Modifier) {
-    if (result == null) return
-    val text = when (result) {
-        SnapshotResult.Saved -> R.string.live_snapshot_saved
-        SnapshotResult.Failed -> R.string.live_snapshot_failed
-        SnapshotResult.NoPicture -> R.string.live_snapshot_no_picture
-    }
-    Text(
-        stringResource(text),
-        style = PkTheme.typography.bodyMedium,
-        color = OnPicture,
-        textAlign = TextAlign.Center,
-        modifier = modifier
-            .padding(horizontal = PkTheme.spacing.s, vertical = PkTheme.spacing.xxs)
-            .semantics { liveRegion = LiveRegionMode.Polite },
-    )
 }

@@ -79,6 +79,10 @@ sealed interface LivePhase {
  *
  * Every start is a new [attempt]: a new player and a new socket. Events name the attempt they are
  * about, so a late failure from a player already replaced changes nothing.
+ *
+ * A start that takes longer than [SLOW_START] is [startingSlowly]: a camera reached through a
+ * relay (a D4SH) can take up to ~30 s to open its first stream (petkit-local#122/#125), which is
+ * progress to show, not an error.
  */
 data class LiveSession(
     val transport: LiveTransport = LiveTransport.WebSocket,
@@ -86,6 +90,8 @@ data class LiveSession(
     /** Starts that failed in a row on [transport], since it last played or switched. */
     val failedStarts: Int = 0,
     val attempt: Int = 0,
+    /** This attempt has been starting for longer than [SLOW_START] ([slowStart]). */
+    val startingSlowly: Boolean = false,
 ) {
     /** The screen is visible: start, on the transport it had, unless the user must decide. */
     fun start(): LiveSession = when (phase) {
@@ -102,16 +108,38 @@ data class LiveSession(
 
     /** The screen left or went to the background: no player, no socket. */
     fun stop(): LiveSession = when (phase) {
-        LivePhase.Starting, LivePhase.Playing, is LivePhase.Waiting -> copy(phase = LivePhase.Idle)
+        LivePhase.Starting, LivePhase.Playing, is LivePhase.Waiting -> copy(
+            phase = LivePhase.Idle,
+            startingSlowly = false,
+        )
+
         LivePhase.Idle, is LivePhase.Stopped, LivePhase.SessionEnded -> this
+    }
+
+    /**
+     * The viewer slot is handed to another screen (a camera page's live card opening the live
+     * screen): no player, no socket, and the next [start] is a fresh one on the WebSocket, even
+     * after a failure only the user could retry, since the other screen started anew meanwhile.
+     */
+    fun release(): LiveSession = if (phase == LivePhase.SessionEnded) {
+        this
+    } else {
+        copy(transport = LiveTransport.WebSocket, phase = LivePhase.Idle, failedStarts = 0, startingSlowly = false)
     }
 
     /** [LivePhase.Waiting] is over. */
     fun retryDue(): LiveSession = if (phase is LivePhase.Waiting) starting() else this
 
+    /** [SLOW_START] went by and [attempt] is still starting. */
+    fun slowStart(attempt: Int): LiveSession = if (attempt == this.attempt && phase == LivePhase.Starting) {
+        copy(startingSlowly = true)
+    } else {
+        this
+    }
+
     /** The player of [attempt] shows frames. */
     fun playing(attempt: Int): LiveSession = if (attempt == this.attempt && phase == LivePhase.Starting) {
-        copy(phase = LivePhase.Playing, failedStarts = 0)
+        copy(phase = LivePhase.Playing, failedStarts = 0, startingSlowly = false)
     } else {
         this
     }
@@ -119,25 +147,27 @@ data class LiveSession(
     /** The player of [attempt] failed with [failure]. */
     fun fail(attempt: Int, failure: LiveFailure): LiveSession {
         if (attempt != this.attempt || (phase != LivePhase.Starting && phase != LivePhase.Playing)) return this
-        return when (failure) {
-            LiveFailure.SessionEnded -> copy(phase = LivePhase.SessionEnded)
+        return copy(startingSlowly = false).failedWith(failure)
+    }
 
-            LiveFailure.StreamEnded, LiveFailure.Replaced -> copy(phase = LivePhase.Stopped(failure))
+    private fun failedWith(failure: LiveFailure): LiveSession = when (failure) {
+        LiveFailure.SessionEnded -> copy(phase = LivePhase.SessionEnded)
 
-            LiveFailure.TooSlow -> if (transport == LiveTransport.WebSocket) {
-                copy(transport = LiveTransport.Hls, failedStarts = 0).starting()
-            } else {
-                failedToStart(failure)
-            }
+        LiveFailure.StreamEnded, LiveFailure.Replaced -> copy(phase = LivePhase.Stopped(failure))
 
-            is LiveFailure.Refused -> when (failure.error) {
-                is DomainError.SessionEnded -> copy(phase = LivePhase.SessionEnded)
-                is DomainError.NotFound, is DomainError.RateLimited -> copy(phase = LivePhase.Stopped(failure))
-                else -> failedToStart(failure)
-            }
-
-            is LiveFailure.StreamError, is LiveFailure.Network, is LiveFailure.Playback -> failedToStart(failure)
+        LiveFailure.TooSlow -> if (transport == LiveTransport.WebSocket) {
+            copy(transport = LiveTransport.Hls, failedStarts = 0).starting()
+        } else {
+            failedToStart(failure)
         }
+
+        is LiveFailure.Refused -> when (failure.error) {
+            is DomainError.SessionEnded -> copy(phase = LivePhase.SessionEnded)
+            is DomainError.NotFound, is DomainError.RateLimited -> copy(phase = LivePhase.Stopped(failure))
+            else -> failedToStart(failure)
+        }
+
+        is LiveFailure.StreamError, is LiveFailure.Network, is LiveFailure.Playback -> failedToStart(failure)
     }
 
     /**
@@ -157,7 +187,8 @@ data class LiveSession(
         }
     }
 
-    private fun starting(): LiveSession = copy(phase = LivePhase.Starting, attempt = attempt + 1)
+    private fun starting(): LiveSession =
+        copy(phase = LivePhase.Starting, attempt = attempt + 1, startingSlowly = false)
 
     companion object {
         /** Failed starts in a row on the WebSocket before HLS is tried (ADR 0005). */
@@ -168,5 +199,8 @@ data class LiveSession(
 
         /** "Retry after a few seconds" (api/openapi.yaml, `/devices/{id}/live`). */
         val RETRY_DELAY: Duration = 3.seconds
+
+        /** How long a start takes before the screen says the camera is taking its time. */
+        val SLOW_START: Duration = 8.seconds
     }
 }

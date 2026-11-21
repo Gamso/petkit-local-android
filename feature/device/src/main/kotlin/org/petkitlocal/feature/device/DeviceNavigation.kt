@@ -31,8 +31,6 @@ data class DeviceNavigation(
     val onOpenHistory: (deviceId: Long) -> Unit = {},
     /** Another device's screen: a Bluetooth accessory's from its parent, and the other way round. */
     val onOpenDevice: (deviceId: Long) -> Unit = {},
-    /** The live video of a device with a camera, from the live card at the top of its page. */
-    val onOpenLive: (deviceId: Long) -> Unit = {},
     /** One of a camera's recent clips, in the clip player. */
     val onOpenClip: (MediaFile) -> Unit = {},
 )

@@ -38,6 +38,9 @@ import org.petkitlocal.core.testing.FakeTalkRepository
 import org.petkitlocal.core.testing.FakeTimelineRepository
 import org.petkitlocal.core.testing.Household
 import org.petkitlocal.core.testing.MainDispatcherExtension
+import org.petkitlocal.core.ui.live.LivePlayback
+import org.petkitlocal.core.ui.live.LivePlayerFactory
+import org.petkitlocal.core.ui.live.SnapshotResult
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class LiveViewModelTest {
@@ -158,18 +161,12 @@ class LiveViewModelTest {
     }
 
     @Test
-    fun `the delay is the playing player's own, and goes with it`() = runTest(main.dispatcher) {
+    fun `a frame from a player already replaced changes nothing`() = runTest(main.dispatcher) {
         val viewModel = started()
-        viewModel.onDelay(1, 300.milliseconds)
-        assertNull(viewModel.uiState.value.delay, "not playing yet")
-
         viewModel.onPlaying(1)
-        viewModel.onDelay(1, 300.milliseconds)
-        viewModel.onDelay(0, 9_000.milliseconds)
-        assertEquals(300.milliseconds, viewModel.uiState.value.delay)
+        assertEquals(LivePhase.Playing, viewModel.uiState.value.session.phase)
 
         viewModel.onPlayerFailed(1, LiveFailure.TooSlow)
-        assertNull(viewModel.uiState.value.delay)
         viewModel.onPlaying(1)
         assertEquals(LivePhase.Starting, viewModel.uiState.value.session.phase, "an old player's frame changes nothing")
     }

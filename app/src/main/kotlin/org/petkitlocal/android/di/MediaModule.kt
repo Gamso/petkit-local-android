@@ -15,8 +15,8 @@ import dagger.hilt.components.SingletonComponent
 import okhttp3.OkHttpClient
 import org.petkitlocal.core.network.MediaDataSources
 import org.petkitlocal.core.network.auth.SessionEndListener
+import org.petkitlocal.core.ui.live.LivePlayerFactory
 import org.petkitlocal.feature.history.ClipPlayerFactory
-import org.petkitlocal.feature.live.LivePlayerFactory
 
 /**
  * The app's video players, both Media3's ExoPlayer on the app's one OkHttp client, so every

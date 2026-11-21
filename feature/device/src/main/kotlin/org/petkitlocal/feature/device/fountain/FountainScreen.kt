@@ -19,17 +19,18 @@ import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.devicepage.DevicePart
 import org.petkitlocal.core.domain.fountain.FountainPage
 import org.petkitlocal.core.domain.model.EntityValue
-import org.petkitlocal.core.ui.LiveCardState
 import org.petkitlocal.core.ui.rememberServerLabels
 import org.petkitlocal.feature.device.DeviceNavigation
 import org.petkitlocal.feature.device.R
 import org.petkitlocal.feature.device.common.ActivityCard
 import org.petkitlocal.feature.device.common.CameraLiveCard
+import org.petkitlocal.feature.device.common.CameraLiveFullscreen
 import org.petkitlocal.feature.device.common.DayChartCard
 import org.petkitlocal.feature.device.common.DayDot
 import org.petkitlocal.feature.device.common.DeviceHeader
 import org.petkitlocal.feature.device.common.DeviceStatusLine
 import org.petkitlocal.feature.device.common.DeviceTestTags
+import org.petkitlocal.feature.device.common.LiveCardUi
 import org.petkitlocal.feature.device.common.RecentClipsUi
 import org.petkitlocal.feature.device.common.UntimedWords
 import org.petkitlocal.feature.device.common.recentClips
@@ -40,6 +41,7 @@ import org.petkitlocal.feature.device.litter.DevicePageScaffold
 import org.petkitlocal.feature.device.litter.HotspotDialog
 import org.petkitlocal.feature.device.litter.PageCommandCallbacks
 import org.petkitlocal.feature.device.litter.PageTop
+import org.petkitlocal.feature.device.litter.PartAlerts
 import org.petkitlocal.feature.device.litter.RefreshBanner
 import org.petkitlocal.feature.device.litter.gutter
 import org.petkitlocal.feature.device.litter.heroPhoto
@@ -121,8 +123,8 @@ internal fun FountainScreen(
     initiallyExpanded: Boolean = false,
     /** A camera's recent clips; null shows none. */
     clips: RecentClipsUi? = null,
-    /** What a camera's live card shows. */
-    live: LiveCardState = LiveCardState(),
+    /** A camera's live card: what it shows, and its player. */
+    live: LiveCardUi = LiveCardUi(),
 ) {
     val page = uiState.page
     val tint = PkTheme.colors.heroFountain
@@ -133,7 +135,8 @@ internal fun FountainScreen(
         onRefresh = callbacks.onRefresh,
         callbacks = callbacks.commands,
         modifier = modifier,
-        hotspots = page?.hotspots.orEmpty(),
+        // A camera's page has no pills: their actions are the sheet's.
+        hotspots = page?.takeUnless { it.device.isCamera }?.hotspots.orEmpty(),
         initiallyExpanded = initiallyExpanded,
         sheetRow = page?.modeBar?.let { bar ->
             {
@@ -157,6 +160,7 @@ internal fun FountainScreen(
             recentClips(page.device, clips, Modifier.gutter())
         }
     }
+    CameraLiveFullscreen(page?.device, live)
     uiState.openHotspot?.let { hotspot ->
         HotspotDialog(
             hotspot = hotspot,
@@ -199,7 +203,7 @@ private fun LazyListScope.fountainContent(
     uiState: FountainUiState,
     navigation: DeviceNavigation,
     callbacks: FountainCallbacks,
-    live: LiveCardState,
+    live: LiveCardUi,
 ) {
     item(key = "top") { FountainTop(page, uiState.now, navigation, live, callbacks.onHotspot) }
     item(key = "status") {
@@ -213,6 +217,7 @@ private fun LazyListScope.fountainContent(
                 // The relay's line at the top says when it was seen.
                 showLastSeen = page.relay == null,
             )
+            if (page.device.isCamera) PartAlerts(page.hotspots, callbacks.onHotspot)
             RefreshBanner(uiState.offline, uiState.refreshError)
         }
     }
@@ -254,7 +259,7 @@ private fun FountainTop(
     page: FountainPage,
     now: Instant,
     navigation: DeviceNavigation,
-    live: LiveCardState,
+    live: LiveCardUi,
     onHotspot: (DevicePart?) -> Unit,
 ) {
     PageTop(PkTheme.colors.heroFountain) {
@@ -273,14 +278,16 @@ private fun FountainTop(
                 modifier = Modifier.padding(top = PkTheme.spacing.xs),
             )
         }
-        CameraLiveCard(page.device, live, navigation, Modifier.padding(top = PkTheme.spacing.xs))
-        DeviceHero(
-            hotspots = page.hotspots,
-            anchors = ::fountainAnchor,
-            onHotspot = onHotspot,
-            modifier = Modifier.padding(top = PkTheme.spacing.xs),
-            photo = heroPhoto(page.device),
-        ) { FountainIllustration(Modifier.fillMaxSize()) }
+        CameraLiveCard(page.device, live, Modifier.padding(top = PkTheme.spacing.xs))
+        if (!page.device.isCamera) {
+            DeviceHero(
+                hotspots = page.hotspots,
+                anchors = ::fountainAnchor,
+                onHotspot = onHotspot,
+                modifier = Modifier.padding(top = PkTheme.spacing.xs),
+                photo = heroPhoto(page.device),
+            ) { FountainIllustration(Modifier.fillMaxSize()) }
+        }
     }
 }
 

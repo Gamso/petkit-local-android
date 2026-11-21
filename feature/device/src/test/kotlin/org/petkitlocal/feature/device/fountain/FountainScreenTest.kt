@@ -33,7 +33,6 @@ import org.junit.runner.RunWith
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.core.domain.devicepage.DevicePart
-import org.petkitlocal.core.ui.LiveCardState
 import org.petkitlocal.core.ui.LiveCardTestTags
 import org.petkitlocal.feature.device.DeviceFixtures
 import org.petkitlocal.feature.device.DeviceNavigation
@@ -41,7 +40,9 @@ import org.petkitlocal.feature.device.common.ActivityTestTags
 import org.petkitlocal.feature.device.common.CONFIRM_ARM_MS
 import org.petkitlocal.feature.device.common.CommandState
 import org.petkitlocal.feature.device.common.DeviceTestTags
+import org.petkitlocal.feature.device.common.LiveCardUi
 import org.petkitlocal.feature.device.common.QuickActionsTestTags
+import org.petkitlocal.feature.device.litter.PART_ALERTS
 import org.petkitlocal.feature.device.litter.PageCommandCallbacks
 import org.petkitlocal.feature.device.litter.PageTestTags
 import org.petkitlocal.feature.device.settings.SettingEditorState
@@ -62,7 +63,6 @@ class FountainScreenTest {
         onOpenSettings = { calls += "settings:$it" },
         onOpenHistory = { calls += "history" },
         onOpenDevice = { calls += "device:$it" },
-        onOpenLive = { calls += "live:$it" },
     )
 
     private val callbacks = FountainCallbacks(
@@ -80,7 +80,7 @@ class FountainScreenTest {
         ),
     )
 
-    private fun show(state: FountainUiState, live: LiveCardState = LiveCardState()) {
+    private fun show(state: FountainUiState, live: LiveCardUi = LiveCardUi()) {
         compose.setContent { PkTheme { FountainScreen(state, navigation, callbacks, live = live) } }
     }
 
@@ -89,31 +89,30 @@ class FountainScreenTest {
     }
 
     @Test
-    fun `a camera fountain's live card leads to its live video, even before any still`() {
-        show(FountainFixtures.content, live = DeviceFixtures.liveCard.copy(still = null))
+    fun `a camera fountain's live card goes full screen in place, even before any still`() {
+        val live = DeviceFixtures.liveCardUi(DeviceFixtures.liveCard.copy(still = null), calls)
+        show(FountainFixtures.content, live = live)
 
-        compose.onNodeWithTag(LiveCardTestTags.CARD)
-            .assertContentDescriptionEquals("Watch EverSweet Ultra AI live")
-            .performClick()
-        compose.onNodeWithContentDescription("Live video").assertDoesNotExist()
-        assertEquals(listOf("live:3001"), calls)
+        compose.onNodeWithTag(LiveCardTestTags.CARD).assertContentDescriptionEquals("Live video of EverSweet Ultra AI")
+        compose.onNodeWithContentDescription("Full screen").performClick()
+        assertEquals(listOf("live-visible", "live-fullscreen"), calls)
     }
 
     @Test
     fun `a Bluetooth fountain has no live card`() {
-        show(FountainFixtures.bluetooth, live = DeviceFixtures.liveCard)
+        show(FountainFixtures.bluetooth, live = LiveCardUi(DeviceFixtures.liveCard))
         compose.onNodeWithTag(LiveCardTestTags.CARD).assertDoesNotExist()
     }
 
     @Test
-    fun `a W7H shows its tray, tanks and pump, and today's drinks against yesterday, per pet`() {
+    fun `a W7H, a camera, shows no part that is fine, and today's drinks against yesterday, per pet`() {
         show(FountainFixtures.content)
 
         compose.onNodeWithText("EverSweet Ultra AI").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Drinking tray, OK").assertExists()
-        compose.onNodeWithContentDescription("Clean water tank, OK").assertExists()
-        compose.onNodeWithContentDescription("Waste water tank, OK").assertExists()
-        compose.onNodeWithContentDescription("Pump, Running").assertExists()
+        // Its live video is its picture (issue #101): tray, tanks and pump are fine, so not shown.
+        compose.onNodeWithTag(PART_ALERTS).assertDoesNotExist()
+        compose.onNodeWithContentDescription("Drinking tray, OK").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Pump, Running").assertDoesNotExist()
         // No filter, water flag or battery on this model.
         compose.onNodeWithContentDescription("Filter", substring = true).assertDoesNotExist()
         compose.onNodeWithContentDescription("Battery", substring = true).assertDoesNotExist()
