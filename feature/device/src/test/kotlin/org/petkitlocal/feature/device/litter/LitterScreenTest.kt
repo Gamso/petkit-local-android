@@ -1,5 +1,6 @@
 package org.petkitlocal.feature.device.litter
 
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
@@ -17,6 +18,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performSemanticsAction
 import java.util.Locale
 import kotlin.time.toKotlinInstant
 import org.junit.Assert.assertEquals
@@ -27,16 +29,17 @@ import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.core.domain.devicepage.DevicePart
 import org.petkitlocal.core.testing.Household
-import org.petkitlocal.core.ui.LiveCardState
 import org.petkitlocal.core.ui.LiveCardTestTags
 import org.petkitlocal.core.ui.RecentClipsTestTags
 import org.petkitlocal.core.ui.formatTimeOfDay
+import org.petkitlocal.core.ui.talk.TalkTestTags
 import org.petkitlocal.feature.device.DeviceFixtures
 import org.petkitlocal.feature.device.DeviceNavigation
 import org.petkitlocal.feature.device.common.ActivityTestTags
 import org.petkitlocal.feature.device.common.CONFIRM_ARM_MS
 import org.petkitlocal.feature.device.common.CommandState
 import org.petkitlocal.feature.device.common.DeviceTestTags
+import org.petkitlocal.feature.device.common.LiveCardUi
 import org.petkitlocal.feature.device.common.RecentClipsUi
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
@@ -55,7 +58,6 @@ class LitterScreenTest {
         onOpenSettings = { calls += "settings:$it" },
         onOpenHistory = { calls += "history:$it" },
         onOpenDevice = { calls += "device:$it" },
-        onOpenLive = { calls += "live:$it" },
     )
 
     private val callbacks = LitterCallbacks(
@@ -70,7 +72,7 @@ class LitterScreenTest {
         ),
     )
 
-    private fun show(state: LitterUiState, clips: RecentClipsUi? = null, live: LiveCardState = LiveCardState()) {
+    private fun show(state: LitterUiState, clips: RecentClipsUi? = null, live: LiveCardUi = LiveCardUi()) {
         compose.setContent { PkTheme { LitterScreen(state, navigation, callbacks, clips = clips, live = live) } }
     }
 
@@ -225,34 +227,71 @@ class LitterScreenTest {
     }
 
     @Test
-    fun `a camera's live card shows its latest still and leads to its live video`() {
-        show(LitterFixtures.trouble, live = DeviceFixtures.liveCard)
+    fun `a camera's live card plays in place, with sound, full screen and Talk, and never navigates`() {
+        show(LitterFixtures.trouble, live = DeviceFixtures.liveCardUi(DeviceFixtures.liveCard, calls))
+        // Shown on a started page: it plays.
+        assertEquals(listOf("live-visible"), calls)
 
         compose.onNodeWithTag(LiveCardTestTags.CARD)
             .assertIsDisplayed()
-            .assertContentDescriptionEquals("Watch Purobot Ultra live. Still from ${time(5, 10)}")
-            .performClick()
-        // The card is the way to the live video: the header keeps only the gear.
-        compose.onNodeWithContentDescription("Live video").assertDoesNotExist()
-        compose.onNodeWithContentDescription("Settings").assertExists()
+            .assertContentDescriptionEquals("Live video of Purobot Ultra. Still from ${time(5, 10)}")
+            .assert(hasClickAction().not())
+        compose.onNodeWithTag(LiveCardTestTags.CARD).performClick()
+        assertEquals("tapping the video does nothing", listOf("live-visible"), calls)
 
-        assertEquals(listOf("live:1004"), calls)
+        compose.onNodeWithContentDescription("Turn sound on").performClick()
+        compose.onNodeWithContentDescription("Full screen").performClick()
+        compose.onNodeWithTag(TalkTestTags.TALK).performSemanticsAction(SemanticsActions.OnClick)
+        // Full screen is in place: no navigation, the page asks its ViewModel.
+        assertEquals(listOf("live-visible", "live-mute", "live-fullscreen", "talk-toggle"), calls)
+        compose.onNodeWithContentDescription("Settings").assertExists()
     }
 
     @Test
-    fun `a camera with no still yet still has its live card`() {
+    fun `a camera with no still yet still has its live card, and no picture of the device`() {
         show(LitterFixtures.trouble)
 
-        compose.onNodeWithTag(LiveCardTestTags.CARD)
-            .assertContentDescriptionEquals("Watch Purobot Ultra live")
-            .performClick()
+        compose.onNodeWithTag(LiveCardTestTags.CARD).assertContentDescriptionEquals("Live video of Purobot Ultra")
+    }
 
-        assertEquals(listOf("live:1004"), calls)
+    @Test
+    fun `a camera's page shows only the parts that need attention, each opening its dialog`() {
+        val page = LitterFixtures.trouble.page!!
+        val alerts = page.hotspots.filter { it.attention }
+        check(alerts.isNotEmpty() && alerts.size < page.hotspots.size) { "the fixture needs both kinds" }
+        show(LitterFixtures.trouble)
+
+        val pills = compose.onAllNodes(hasAnyAncestor(hasTestTag(PART_ALERTS)) and hasClickAction())
+        assertEquals(alerts.size, pills.fetchSemanticsNodes().size)
+        pills.onFirst().performClick()
+        assertEquals(listOf("hotspot:${alerts.first().part}"), calls)
+    }
+
+    @Test
+    fun `a camera's page whose parts are all fine shows none of them`() {
+        val page = LitterFixtures.trouble.page!!
+        val fine = page.copy(hotspots = page.hotspots.map { it.copy(attention = false) })
+        show(LitterFixtures.trouble.copy(page = fine))
+
+        compose.onNodeWithTag(PART_ALERTS).assertDoesNotExist()
+    }
+
+    @Test
+    fun `full screen is the same card over the page, with its own way back, snapshot and Talk`() {
+        val fullscreen = DeviceFixtures.liveCard.copy(fullscreen = true)
+        show(LitterFixtures.trouble, live = DeviceFixtures.liveCardUi(fullscreen, calls))
+
+        compose.onNodeWithTag(LiveCardTestTags.FULLSCREEN_VIEW).assertIsDisplayed()
+        // The card and its full screen both show the video: the ViewModel counts them.
+        assertEquals(listOf("live-visible", "live-visible"), calls)
+        compose.onNodeWithTag(LiveCardTestTags.EXIT_FULLSCREEN).performClick()
+        compose.onNodeWithContentDescription("Save a snapshot").performClick()
+        assertEquals(listOf("live-visible", "live-visible", "live-exit", "live-snapshot"), calls)
     }
 
     @Test
     fun `a box without a camera has no live video`() {
-        show(LitterFixtures.content, live = DeviceFixtures.liveCard)
+        show(LitterFixtures.content, live = LiveCardUi(DeviceFixtures.liveCard))
 
         compose.onNodeWithTag(LiveCardTestTags.CARD).assertDoesNotExist()
     }

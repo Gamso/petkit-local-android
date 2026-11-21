@@ -1,10 +1,13 @@
 package org.petkitlocal.feature.device.litter
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -21,6 +24,7 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.MeasureScope
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -54,7 +58,8 @@ data class PartAnchor(val x: Float, val y: Float, val side: PillSide)
  * The hero of a device page (docs/DESIGN.md, DeviceHero). With the model's [photo], the photo and
  * its pills ([PhotoHero]). Without one, the family's drawing in the middle and one [HotspotPill]
  * per hotspot on either side, each joined by a line to a dot on its part. A pill goes as near its
- * part's height as the others leave room for; the hero grows to fit them.
+ * part's height as the others leave room for; the hero grows to fit them. A camera's page has no
+ * hero: its live video is the device's picture ([PartAlerts] says what needs attention).
  */
 @Composable
 internal fun DeviceHero(
@@ -99,6 +104,37 @@ internal fun DeviceHero(
         placeHero(measurables, constraints, hotspots.map { anchors(it.part) to it.attention }, links)
     }
 }
+
+/**
+ * A camera's page, which has no hero (issue #101): the parts that need attention (a hopper empty, a
+ * desiccant due, the bin full...), as their pills under the status line, each opening its part's
+ * dialog. Nothing while every part is fine.
+ */
+@Composable
+internal fun PartAlerts(hotspots: List<Hotspot>, onHotspot: (DevicePart) -> Unit, modifier: Modifier = Modifier) {
+    val alerts = hotspots.filter { it.attention }
+    if (alerts.isEmpty()) return
+    val labels = rememberServerLabels()
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(PkTheme.spacing.xs),
+        verticalArrangement = Arrangement.spacedBy(PkTheme.spacing.xs),
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag(PART_ALERTS),
+    ) {
+        alerts.forEach { hotspot ->
+            HotspotPill(
+                label = hotspotLabel(hotspot, labels),
+                value = readingText(hotspot.reading, labels, short = true),
+                attention = true,
+                onClick = { onHotspot(hotspot.part) },
+            )
+        }
+    }
+}
+
+/** The tag of [PartAlerts]. */
+internal const val PART_ALERTS = "part_alerts"
 
 /**
  * Measures and places the drawing ([measurables] first) and the pills, [parts] giving each pill's

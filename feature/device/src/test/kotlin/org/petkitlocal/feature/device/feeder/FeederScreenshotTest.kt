@@ -15,10 +15,10 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.testing.ScreenshotVariant
-import org.petkitlocal.core.ui.LiveCardState
 import org.petkitlocal.core.ui.PreviewImages
 import org.petkitlocal.feature.device.DeviceFixtures
 import org.petkitlocal.feature.device.DeviceNavigation
+import org.petkitlocal.feature.device.common.LiveCardUi
 import org.petkitlocal.feature.device.common.RecentClipsUi
 import org.robolectric.ParameterizedRobolectricTestRunner
 import org.robolectric.annotation.Config
@@ -43,7 +43,9 @@ class FeederScreenshotTest(private val variant: ScreenshotVariant) {
     @Test
     @Config(qualifiers = "w360dp-h2800dp-xhdpi", sdk = [36])
     fun dualPaused() = capture("feeder_dual_paused") {
-        PreviewImages { Screen(FeederFixtures.dualPaused, DeviceFixtures.recentClips, DeviceFixtures.liveCard) }
+        PreviewImages {
+            Screen(FeederFixtures.dualPaused, DeviceFixtures.recentClips, LiveCardUi(DeviceFixtures.liveCard))
+        }
     }
 
     /** A YumShare Dual-Hopper 2 (app issue #81): its own name, photo and pills. */
@@ -80,7 +82,7 @@ class FeederScreenshotTest(private val variant: ScreenshotVariant) {
     }
 
     @Composable
-    private fun Screen(state: FeederUiState, clips: RecentClipsUi? = null, live: LiveCardState = LiveCardState()) =
+    private fun Screen(state: FeederUiState, clips: RecentClipsUi? = null, live: LiveCardUi = LiveCardUi()) =
         FeederScreen(state, DeviceNavigation(), FeederCallbacks(), clips = clips, live = live)
 
     private fun capture(name: String, content: @Composable () -> Unit) {

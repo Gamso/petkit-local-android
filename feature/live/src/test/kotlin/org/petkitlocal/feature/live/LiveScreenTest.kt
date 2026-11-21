@@ -62,12 +62,13 @@ class LiveScreenTest {
     }
 
     @Test
-    fun `playing, the badge says how far behind it is, and the controls reach their callbacks`() {
+    fun `playing, the badge says live, with no delay, and the controls reach their callbacks`() {
         show(LiveFixtures.playing)
 
         compose.onNodeWithText("Purobot Max Pro 2").assertIsDisplayed()
         compose.onNodeWithTag(LiveTestTags.BADGE).assertIsDisplayed()
-        compose.onNodeWithText("Live · 0.4 s").assertIsDisplayed()
+        compose.onNodeWithText("Live").assertIsDisplayed()
+        compose.onNodeWithText("Live · ", substring = true).assertDoesNotExist()
         compose.onNodeWithTag(LiveTestTags.TRANSPORT).assertDoesNotExist()
         compose.onNodeWithTag(LiveTestTags.STATUS).assertDoesNotExist()
 
@@ -230,7 +231,7 @@ class LiveScreenTest {
         show(LiveFixtures.playingHls)
 
         compose.onNodeWithText("HLS").assertIsDisplayed()
-        compose.onNodeWithText("Live · 3.2 s").assertIsDisplayed()
+        compose.onNodeWithText("Live").assertIsDisplayed()
         compose.onNodeWithContentDescription("Mute").assertIsDisplayed()
         compose.onNodeWithText("Snapshot saved in your pictures.").performScrollTo().assertIsDisplayed()
     }
@@ -273,7 +274,7 @@ class LiveScreenTest {
 
         compose.onNodeWithContentDescription("Back").assertDoesNotExist()
         compose.onNodeWithText("Talk").assertDoesNotExist()
-        compose.onNodeWithText("Live · 0.4 s").assertIsDisplayed()
+        compose.onNodeWithText("Live").assertIsDisplayed()
         compose.onNodeWithContentDescription("Exit full screen").performClick()
         assertEquals(listOf("fullscreen:false"), calls)
     }
@@ -289,9 +290,10 @@ class LiveScreenTest {
 
     @Test
     @Config(qualifiers = "fr-w411dp-h900dp")
-    fun `in French, the delay has a decimal comma`() {
+    fun `in French, the badge says Direct, with no delay`() {
         show(LiveFixtures.playing)
 
-        compose.onNodeWithText("Direct · 0,4 s").assertIsDisplayed()
+        compose.onNodeWithTag(LiveTestTags.BADGE).assertIsDisplayed()
+        compose.onNodeWithText("Direct").assertIsDisplayed()
     }
 }

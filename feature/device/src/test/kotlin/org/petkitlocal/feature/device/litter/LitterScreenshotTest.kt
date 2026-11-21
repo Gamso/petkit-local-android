@@ -16,10 +16,10 @@ import org.junit.runner.RunWith
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.devicepage.DevicePart
 import org.petkitlocal.core.testing.ScreenshotVariant
-import org.petkitlocal.core.ui.LiveCardState
 import org.petkitlocal.core.ui.PreviewImages
 import org.petkitlocal.feature.device.DeviceFixtures
 import org.petkitlocal.feature.device.DeviceNavigation
+import org.petkitlocal.feature.device.common.LiveCardUi
 import org.petkitlocal.feature.device.common.RecentClipsUi
 import org.robolectric.ParameterizedRobolectricTestRunner
 import org.robolectric.annotation.Config
@@ -50,7 +50,7 @@ class LitterScreenshotTest(private val variant: ScreenshotVariant) {
                         LitterFixtures.trouble,
                         expanded = true,
                         clips = DeviceFixtures.recentClips,
-                        live = DeviceFixtures.liveCard,
+                        live = LiveCardUi(DeviceFixtures.liveCard),
                     )
                 }
             }
@@ -102,7 +102,7 @@ class LitterScreenshotTest(private val variant: ScreenshotVariant) {
         state: LitterUiState,
         expanded: Boolean = false,
         clips: RecentClipsUi? = null,
-        live: LiveCardState = LiveCardState(),
+        live: LiveCardUi = LiveCardUi(),
     ) = LitterScreen(
         state,
         DeviceNavigation(),

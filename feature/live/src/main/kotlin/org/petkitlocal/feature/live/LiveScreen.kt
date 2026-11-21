@@ -1,10 +1,6 @@
 package org.petkitlocal.feature.live
 
 import android.Manifest
-import android.content.Context
-import android.content.Intent
-import android.net.Uri
-import android.provider.Settings
 import android.view.SurfaceView
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -25,8 +21,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,7 +31,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -46,9 +41,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.media3.common.Player
-import androidx.media3.common.VideoSize
-import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.launch
 import org.petkitlocal.core.designsystem.component.PkBackButton
 import org.petkitlocal.core.designsystem.theme.PkTheme
@@ -58,7 +50,21 @@ import org.petkitlocal.core.domain.video.LivePhase
 import org.petkitlocal.core.domain.video.LiveSession
 import org.petkitlocal.core.domain.video.LiveTransport
 import org.petkitlocal.core.ui.RecentClipsCard
-import org.petkitlocal.core.ui.startFirst
+import org.petkitlocal.core.ui.live.DEFAULT_LIVE_ASPECT
+import org.petkitlocal.core.ui.live.DarkSystemBars
+import org.petkitlocal.core.ui.live.ImmersiveLandscape
+import org.petkitlocal.core.ui.live.LiveBadges
+import org.petkitlocal.core.ui.live.LivePicture
+import org.petkitlocal.core.ui.live.LivePlayerEvents
+import org.petkitlocal.core.ui.live.LiveVideoSurface
+import org.petkitlocal.core.ui.live.LiveVideoTestTags
+import org.petkitlocal.core.ui.live.applyMuted
+import org.petkitlocal.core.ui.live.aspectRatioOf
+import org.petkitlocal.core.ui.live.rememberLivePlayer
+import org.petkitlocal.core.ui.live.rememberVideoSize
+import org.petkitlocal.core.ui.talk.TalkCallbacks
+import org.petkitlocal.core.ui.talk.TalkTestTags
+import org.petkitlocal.core.ui.talk.openAppSettings
 
 /** What the live screen's user can do; the route wires each to the ViewModel. */
 data class LiveCallbacks(
@@ -80,30 +86,33 @@ data class LiveCallbacks(
     val onTalkToggled: () -> Unit = {},
     /** This app's page in Android's settings, where the microphone can be allowed. */
     val onOpenAppSettings: () -> Unit = {},
-)
+) {
+    /** What Talk does here, for core:ui's [org.petkitlocal.core.ui.talk.TalkControls]. */
+    val talk: TalkCallbacks get() = TalkCallbacks(onTalkPressed, onTalkReleased, onTalkToggled, onOpenAppSettings)
+}
 
 object LiveTestTags {
     const val SCREEN = "live_screen"
     const val VIDEO = "live_video"
 
-    /** "Live · 0.4 s" while frames are shown. */
-    const val BADGE = "live_badge"
+    /** "Live" while frames are shown. */
+    const val BADGE = LiveVideoTestTags.BADGE
 
     /** "HLS" while on the fallback. */
-    const val TRANSPORT = "live_transport"
-    const val STATUS = "live_status"
+    const val TRANSPORT = LiveVideoTestTags.TRANSPORT
+    const val STATUS = LiveVideoTestTags.STATUS
 
     /** Talk, held to speak through the camera. */
-    const val TALK = "live_talk"
+    const val TALK = TalkTestTags.TALK
 
     /** Under Talk while talking: the red dot and what is happening. */
-    const val TALK_INDICATOR = "live_talk_indicator"
+    const val TALK_INDICATOR = TalkTestTags.INDICATOR
 
     /** Under Talk: what was said last (why it cannot talk, the microphone, an error). */
-    const val TALK_NOTICE = "live_talk_notice"
+    const val TALK_NOTICE = TalkTestTags.NOTICE
 
     /** Under Talk: why the server says the camera cannot talk now. */
-    const val TALK_REASON = "live_talk_reason"
+    const val TALK_REASON = TalkTestTags.REASON
 }
 
 @Composable
@@ -131,9 +140,11 @@ internal fun LiveRoute(
         onStopOrDispose { viewModel.onHidden() }
     }
     val events = remember(viewModel) {
-        LivePlayerEvents(viewModel::onPlaying, viewModel::onPlayerFailed, viewModel::onDelay)
+        LivePlayerEvents(viewModel::onPlaying, viewModel::onPlayerFailed)
     }
-    val player = rememberLivePlayer(uiState.playback, viewModel.playerFactory, events)
+    // Not lifecycle-aware: the session's stop at ON_STOP must still reach the player (rememberLivePlayer).
+    val playback by viewModel.playback.collectAsState()
+    val player = rememberLivePlayer(playback, viewModel.playerFactory, events)
     LaunchedEffect(player, uiState.soundMuted) { player?.applyMuted(uiState.soundMuted) }
     val videoSize = rememberVideoSize(player)
     var surface by remember { mutableStateOf<SurfaceView?>(null) }
@@ -167,33 +178,9 @@ internal fun LiveRoute(
     ) { modifier -> LiveVideoSurface(player, onView = { surface = it }, modifier = modifier) }
 }
 
-/** This app's page in Android's settings, where a refused microphone can be allowed. */
-private fun openAppSettings(context: Context) {
-    startFirst(
-        context,
-        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null)),
-    )
-}
-
-/** The size of [player]'s video, followed as it changes; unknown (0 x 0) before the first frame. */
-@Composable
-private fun rememberVideoSize(player: Player?): VideoSize {
-    var size by remember(player) { mutableStateOf(player?.videoSize ?: VideoSize.UNKNOWN) }
-    DisposableEffect(player) {
-        val listener = object : Player.Listener {
-            override fun onVideoSizeChanged(videoSize: VideoSize) {
-                size = videoSize
-            }
-        }
-        player?.addListener(listener)
-        onDispose { player?.removeListener(listener) }
-    }
-    return size
-}
-
 /**
  * A camera's live video (SPEC.md §5.7), always dark (docs/DESIGN.md): the picture full width
- * with its badge (live, how far behind, HLS on the fallback) and what the session is doing over
+ * with its badge (live, and HLS on the fallback) and what the session is doing over
  * it, then sound, snapshot and full screen, Talk (held to speak through the camera), and
  * the camera's recent clips, each opening the clip player (which stops the live video). Full
  * screen, the picture takes the whole landscape window with its controls over it.
@@ -205,7 +192,7 @@ internal fun LiveScreen(
     uiState: LiveUiState,
     callbacks: LiveCallbacks,
     modifier: Modifier = Modifier,
-    aspectRatio: Float = DEFAULT_ASPECT,
+    aspectRatio: Float = DEFAULT_LIVE_ASPECT,
     video: @Composable (Modifier) -> Unit = {},
 ) {
     PkTheme(darkTheme = true) {
@@ -255,8 +242,6 @@ internal fun LiveScreen(
     }
 }
 
-private const val DEFAULT_ASPECT = 16f / 9f
-
 @Composable
 private fun LiveHeader(deviceName: String?, onBack: () -> Unit) {
     Row(
@@ -299,15 +284,14 @@ private fun VideoBox(
         contentAlignment = Alignment.Center,
         modifier = modifier
             .clip(if (fullscreen) RectangleShape else PkTheme.shapes.tile)
-            .background(Picture),
+            .background(LivePicture),
     ) {
         if (uiState.availability == LiveAvailability.Camera) {
             video(Modifier.aspectRatio(aspectRatio).testTag(LiveTestTags.VIDEO))
         }
         SessionOverlay(uiState, callbacks.onRetry)
-        Badges(
+        LiveBadges(
             uiState.session,
-            uiState.delay,
             Modifier
                 .align(Alignment.TopStart)
                 .then(if (fullscreen) Modifier.safeDrawingPadding() else Modifier)
@@ -316,12 +300,6 @@ private fun VideoBox(
         if (fullscreen) FullscreenControls(uiState, callbacks)
     }
 }
-
-/** The picture's own colours, whatever the theme: black around it, white on it. */
-internal val Picture = Color.Black
-internal val OnPicture = Color.White
-internal const val SCRIM_ALPHA = 0.6f
-internal const val PILL_ALPHA = 0.55f
 
 @Preview(name = "Playing", widthDp = 360, heightDp = 640)
 @Preview(name = "French", widthDp = 360, heightDp = 640, locale = "fr")
@@ -333,7 +311,6 @@ private fun LiveScreenPlayingPreview() {
             deviceName = "Purobot Max Pro 2",
             availability = LiveAvailability.Camera,
             session = LiveSession(phase = LivePhase.Playing, attempt = 1),
-            delay = 400.milliseconds,
         ),
         LiveCallbacks(),
     )

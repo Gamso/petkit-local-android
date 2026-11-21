@@ -141,13 +141,17 @@ private fun AccessorySection(accessory: Device, shownKey: String, onOpen: () -> 
             Text(entityValueText(entity, labels, ZoneId.systemDefault()), style = PkTheme.typography.bodyMedium)
         }
     }
+    OpenAccessoryButton(accessory, Modifier.fillMaxWidth(), onOpen)
+}
+
+/** The way to [accessory]'s own page: its N60 pill's dialog, or a camera page, which has no pills. */
+@Composable
+internal fun OpenAccessoryButton(accessory: Device, modifier: Modifier = Modifier, onOpen: () -> Unit) {
     PkButton(
         stringResource(R.string.page_open_accessory, accessory.modelName),
         onClick = onOpen,
         style = PkButtonStyle.Secondary,
         icon = PkIcons.ChevronRight,
-        modifier = Modifier
-            .fillMaxWidth()
-            .testTag(DeviceTestTags.OPEN_ACCESSORY),
+        modifier = modifier.testTag(DeviceTestTags.OPEN_ACCESSORY),
     )
 }

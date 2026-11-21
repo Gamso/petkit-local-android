@@ -40,8 +40,9 @@ import org.petkitlocal.feature.device.litter.PageTestTags
 import org.petkitlocal.feature.home.HomeTestTags
 
 /**
- * The fountain page end to end, against the mock server: the EverSweet Ultra AI's pump follows a
- * button over `/ws` and a new drink reaches its pet's count; the EverSweet 3 Pro, relayed by the
+ * The fountain page end to end, against the mock server: the EverSweet Ultra AI, a camera, shows no
+ * pill for a part that is fine, takes its pump reset from the sheet, and a new drink reaches its
+ * pet's count; the EverSweet 3 Pro, relayed by the
  * YumShare Dual-Hopper (MQTT), says when it was seen and that its relay is online, changes mode
  * from its bottom bar (selected once the fountain reports it), has no More (its one button is on
  * its filter's pill) and takes a confirmed filter reset, its filter pill following the server; the
@@ -60,21 +61,19 @@ class FountainFlowTest {
     val compose = createAndroidComposeRule<MainActivity>()
 
     @Test
-    fun theUltraAiFollowsItsPumpAndItsDrinksLive() {
+    fun theUltraAiTakesItsPumpResetFromTheSheetAndFollowsItsDrinksLive() {
         signIn()
         open(ULTRA_AI)
         waitFor(hasText("EverSweet Ultra AI"))
-        waitFor(hasContentDescription("Pump, Running"))
+        // A camera's page (issue #101): no pill for a part that is fine, its pump among them.
+        compose.onNode(hasContentDescription("Pump, Running")).assertDoesNotExist()
 
-        // Reset Circulation Pump can be undone: behind More but sent at once. The mock stops the
-        // pump for a few seconds, and the pill follows both reports.
+        // The pump pill's Reset Circulation Pump is in the sheet, behind More, sent at once.
         compose.onNodeWithTag(DeviceTestTags.SHEET_MORE).performClick()
         compose.onNode(
             hasText("Reset Circulation Pump") and hasAnyAncestor(hasTestTag(DeviceTestTags.ACTION_SHEET)),
         ).performClick()
         waitFor(hasTestTag(DeviceTestTags.FEEDBACK) and hasText("Sent to the device."))
-        waitFor(hasContentDescription("Pump, Stopped"))
-        waitFor(hasContentDescription("Pump, Running"))
 
         // Mochi drinks: the camera recognises her, and her count of the day goes up.
         val mochi = hasTestTag(FountainTestTags.pet(MOCHI))
