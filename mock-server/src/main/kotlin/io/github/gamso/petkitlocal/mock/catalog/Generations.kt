@@ -11,6 +11,7 @@ object Generations {
             "t4" to mapOf(1 to "Pura Max", 2 to "Pura Max 2", 3 to "Pura Max 3"),
             "d4sh" to mapOf(1 to "YumShare Dual-Hopper", 2 to "YumShare Dual-Hopper 2"),
             "d4h" to mapOf(1 to "YumShare Solo", 2 to "YumShare Solo 2"),
+            "ctw3" to mapOf(1 to "EverSweet Max Cordless", 2 to "EverSweet Max 2"),
         )
 
     /** The name of [generation] of codename [type], or null when the server would not name it. */

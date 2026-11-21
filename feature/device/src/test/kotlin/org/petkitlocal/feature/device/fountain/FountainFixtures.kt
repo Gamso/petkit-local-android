@@ -29,8 +29,8 @@ import org.petkitlocal.feature.device.common.CommandSubject
 /**
  * Fountains as the mock serves them (mock-server/README.md), with the entity and action keys
  * petkit-local defines: the EverSweet Ultra AI (W7H, on mains) with its drinks and its flow mode,
- * the EverSweet 3 Pro (W5) relayed by the YumShare Dual-Hopper, and an EverSweet Max Cordless
- * (CTW3) in trouble, then running on battery. Each has a settable mode, so each page has the mode
+ * the EverSweet 3 Pro (W5) relayed by the YumShare Dual-Hopper, and an EverSweet Max 2 (CTW3,
+ * generation 2) in trouble, then running on battery. Each has a settable mode, so each page has the mode
  * selector; the CTW3's also has Pause and its battery mode, as PetKit's bar does.
  */
 object FountainFixtures {
@@ -98,7 +98,7 @@ object FountainFixtures {
     fun ctw3(mode: Int = 2, working: Boolean = true) = Household.device(
         3003,
         "ctw3",
-        "EverSweet Max Cordless",
+        "EverSweet Max 2",
         DeviceFamily.Fountain,
         sensor("ctw3_filter", EntityValue.Number(12.0), unit = "%", name = "Filter"),
         sensor("ctw3_battery", EntityValue.Number(9.0), unit = "%", name = "Battery"),
@@ -116,6 +116,7 @@ object FountainFixtures {
         actions = listOf(DeviceAction("ctw3_reset_filter", "Reset Filter", true)),
         connection = DeviceConnection.Ble,
         parentId = 2001,
+        generation = 2,
     ).copy(lastSeen = Instant.parse("2026-11-15T08:41:00Z"))
 
     val ctw3 = ctw3()

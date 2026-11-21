@@ -34,12 +34,14 @@ enum class DevicePhoto(@param:DrawableRes val drawable: Int) {
     companion object {
         /**
          * The photo of each generation of each codename, first generation first (petkit-local,
-         * `utils/const.py` `DEVICE_NAMES` and `MODEL_GENERATIONS`). PetKit sells several
-         * generations that look different under `t4` (Pura Max, Pura Max 2, Pura Max 3), `d4h`
-         * (YumShare Solo, Solo 2) and `d4sh` (YumShare Dual-Hopper, Dual-Hopper 2); every other
-         * codename is one product. A generation with no photo here (a Pura Max 3) keeps our drawing.
+         * `utils/const.py` `DEVICE_NAMES` and `MODEL_GENERATIONS`); null for a generation the app
+         * has no photo of. PetKit sells several generations that look different under `t4` (Pura
+         * Max, Pura Max 2, Pura Max 3), `d4h` (YumShare Solo, Solo 2), `d4sh` (YumShare
+         * Dual-Hopper, Dual-Hopper 2) and `ctw3` (EverSweet Max Cordless, EverSweet Max 2); every
+         * other codename is one product. A generation with no photo here (a Pura Max 3, an
+         * EverSweet Max Cordless) keeps our drawing.
          */
-        private val BY_GENERATION: Map<String, List<DevicePhoto>> = mapOf(
+        private val BY_GENERATION: Map<String, List<DevicePhoto?>> = mapOf(
             "t3" to listOf(PuraX),
             "t4" to listOf(PuraMax, PuraMax2),
             "t5" to listOf(PurobotMaxPro2),
@@ -52,7 +54,8 @@ enum class DevicePhoto(@param:DrawableRes val drawable: Int) {
             "w7h" to listOf(EverSweetUltraAi),
             "w5" to listOf(EverSweet3Pro),
             "ctw2" to listOf(EverSweetSolo2),
-            "ctw3" to listOf(EverSweetMax2),
+            // The photo is the Max 2 (the name is on its side); none of the Max Cordless.
+            "ctw3" to listOf(null, EverSweetMax2),
             "k3" to listOf(PuraAir),
         )
 
@@ -63,8 +66,9 @@ enum class DevicePhoto(@param:DrawableRes val drawable: Int) {
          *
          * A null [generation] (the server does not know it, the codename has one product, or the
          * server predates generations) is the first: the server then names the device by its
-         * codename alone ("Pura Max"), which is the first generation's name, so the photo still
-         * matches the name shown (issue #69).
+         * codename alone ("Pura Max", "EverSweet Max Cordless"), which is the first generation's
+         * name, so the photo still matches the name shown (issue #69). A `ctw3` of unknown
+         * generation is thus named an EverSweet Max Cordless and keeps our drawing.
          */
         fun of(type: String, generation: Int?): DevicePhoto? =
             BY_GENERATION[type.lowercase()]?.getOrNull((generation ?: 1) - 1)

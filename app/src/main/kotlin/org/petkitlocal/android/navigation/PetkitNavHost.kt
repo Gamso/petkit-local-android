@@ -8,6 +8,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hasRoute
@@ -92,7 +93,7 @@ fun PetkitNavHost(
     onTargetHandled: () -> Unit = {},
     navController: NavHostController = rememberNavController(),
 ) {
-    val back: () -> Unit = { navController.popBackStack() }
+    val back: () -> Unit = { navController.navigateBack() }
     // The start is chosen once; later changes of the session navigate (below).
     val start: Any = remember { if (signedIn) HomeDestination else SignInDestination }
     NavHost(navController = navController, startDestination = start, modifier = modifier) {
@@ -148,6 +149,24 @@ fun PetkitNavHost(
         if (signedIn) navController.open(target)
         onTargetHandled()
     }
+}
+
+/**
+ * The way back of every page (its back arrow, and any page that closes itself): one page back,
+ * only from a page that is settled on screen, and never past the first page.
+ *
+ * A bare `popBackStack()` did neither. The page being left stays on screen, its back arrow taking
+ * taps, for the whole exit transition, so a second quick tap popped again: from a page opened from
+ * Home, Home itself went, and the NavHost was left with nothing to draw, an empty page. Once a pop
+ * has started, the new top entry is not RESUMED until its transition has finished, which is what
+ * drops that second tap. The system back needs none of this: the NavHost's own handler never pops
+ * the last entry, and Android closes the app from it.
+ */
+internal fun NavController.navigateBack() {
+    val top = currentBackStackEntry ?: return
+    if (top.lifecycle.currentState != Lifecycle.State.RESUMED) return
+    if (previousBackStackEntry == null) return
+    popBackStack()
 }
 
 /** A notification's page: its device, or its device's History on the day it happened. */

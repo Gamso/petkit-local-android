@@ -43,7 +43,7 @@ import org.petkitlocal.feature.settings.SettingsTestTags
  * Copy button puts its serial number on the clipboard, its settings are written through
  * `PUT /entities/{key}` and come back from the server's answer, its actions report how they
  * were delivered, and a session ended from the server while the socket is open (close code
- * 4401) sends the app back to sign-in.
+ * 4401) sends the app back to sign-in. Two quick backs from its page land on Home.
  */
 @MockOnly("the mock's EverSweet Ultra AI, taken offline and back through the control API")
 @OptIn(ExperimentalTestApi::class) // waitUntil...Exists
@@ -116,6 +116,35 @@ class DeviceFlowTest {
         waitFor(hasTestTag(HomeTestTags.LIST))
         compose.onNodeWithTag(HomeTestTags.LIST).performScrollToIndex(0)
         signOut()
+    }
+
+    /**
+     * Two quick backs from a device page land on Home, never on an empty page: the second comes
+     * while the page is still leaving (the frame clock is held), its back arrow still on screen.
+     * Both ways back: the page's own arrow, then the system's.
+     */
+    @Test
+    fun twoQuickBacksFromADevicePageLandOnHome() {
+        signIn()
+
+        openFountain()
+        val arrow = compose.onNode(hasContentDescription("Back") and hasClickAction())
+        compose.mainClock.autoAdvance = false
+        arrow.performClick()
+        arrow.performClick()
+        compose.mainClock.autoAdvance = true
+        waitFor(hasTestTag(HomeTestTags.device(FOUNTAIN)))
+
+        // Home as it was left, scrolled to the fountain: back to the top, where openFountain starts.
+        compose.onNodeWithTag(HomeTestTags.LIST).performScrollToIndex(0)
+        openFountain()
+        compose.mainClock.autoAdvance = false
+        compose.activityRule.scenario.onActivity { activity ->
+            activity.onBackPressedDispatcher.onBackPressed()
+            activity.onBackPressedDispatcher.onBackPressed()
+        }
+        compose.mainClock.autoAdvance = true
+        waitFor(hasTestTag(HomeTestTags.device(FOUNTAIN)))
     }
 
     @Test

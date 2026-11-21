@@ -45,7 +45,7 @@ import org.petkitlocal.feature.home.HomeTestTags
  * YumShare Dual-Hopper (MQTT), says when it was seen and that its relay is online, changes mode
  * from its bottom bar (selected once the fountain reports it), has no More (its one button is on
  * its filter's pill) and takes a confirmed filter reset, its filter pill following the server; the
- * EverSweet Max Cordless, its relay put on MQTT, pauses and runs again from its bar, and once
+ * EverSweet Max 2, its relay put on MQTT, pauses and runs again from its bar, and once
  * unplugged shows its battery mode and refuses a mode with the server's reason, the mode tiles
  * staying enabled (Gamso/petkit-local#116).
  */

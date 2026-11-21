@@ -24,7 +24,6 @@ class DevicePhotoTest {
         "w7h, EverSweetUltraAi",
         "w5, EverSweet3Pro",
         "ctw2, EverSweetSolo2",
-        "ctw3, EverSweetMax2",
         "k3, PuraAir",
         "T5, PurobotMaxPro2",
     )
@@ -44,6 +43,7 @@ class DevicePhotoTest {
         "d4h, 2, YumShareSolo2",
         "d4sh, 1, YumShareDualHopper",
         "d4sh, 2, YumShareDualHopper2",
+        "ctw3, 2, EverSweetMax2",
         "T4, 2, PuraMax2",
     )
     fun `a generation gets its own photo`(type: String, generation: Int, photo: DevicePhoto) {
@@ -62,13 +62,22 @@ class DevicePhotoTest {
 
     /**
      * A generation the app has no photo of keeps the drawing, never another generation's photo:
-     * a Pura Max 3, a third Solo or Dual-Hopper, a second generation of a one-product codename,
-     * and numbers no generation has.
+     * a Pura Max 3, a third Solo or Dual-Hopper, an EverSweet Max Cordless (the photo is the Max
+     * 2), a second generation of a one-product codename, and numbers no generation has.
      */
     @ParameterizedTest(name = "{0} {1}")
-    @CsvSource("t4, 3", "d4h, 3", "d4sh, 3", "t4, 20", "t5, 2", "w5, 2", "t4, 0", "t4, -1")
+    @CsvSource("t4, 3", "d4h, 3", "d4sh, 3", "ctw3, 1", "ctw3, 3", "t4, 20", "t5, 2", "w5, 2", "t4, 0", "t4, -1")
     fun `no photo for a generation without one`(type: String, generation: Int) {
         assertNull(DevicePhoto.of(type, generation))
+    }
+
+    /**
+     * A `ctw3` of unknown generation is the first, which the server names EverSweet Max Cordless:
+     * no photo, as the one the app has is the Max 2's.
+     */
+    @Test
+    fun `no generation of a ctw3 keeps the drawing`() {
+        assertNull(DevicePhoto.of("ctw3", generation = null))
     }
 
     /** Models petkit-local does not support yet, and codenames nobody knows, keep the drawing. */

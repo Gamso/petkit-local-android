@@ -456,7 +456,8 @@ class Seed(
         val DEVICES =
             listOf(
                 SeedDevice(T3, "t3", "20230612T3000417", "1.322"),
-                // The owner's two second generations; the Solo's generation is unknown.
+                // The owner's second generations (with the CTW3, an EverSweet Max 2); the Solo's
+                // generation is unknown.
                 SeedDevice(T4, "t4", "20240305T4001288", "1.652", generation = 2),
                 // Talk: the T5 and the D4H can be talked through; the T6, the D4SH and the W7H lack
                 // the Two-Way Talk patcher; the T7 has not reported its address yet.
@@ -469,7 +470,7 @@ class Seed(
                 SeedDevice(D4SH, "d4sh", "20240903DSH00128", "1.867", generation = 2, talk = TALK_NEEDS_PATCHER),
                 SeedDevice(W7H, "w7h", "20250610W7H00077", "1.263", talk = TALK_NEEDS_PATCHER),
                 SeedDevice(W5, "w5", null, "1.18"),
-                SeedDevice(CTW3, "ctw3", null, "2.06"),
+                SeedDevice(CTW3, "ctw3", null, "2.06", generation = 2),
                 SeedDevice(K3, "k3", null, "1.03"),
             )
 
