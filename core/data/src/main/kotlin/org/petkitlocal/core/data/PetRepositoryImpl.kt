@@ -9,6 +9,8 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.serializer
 import okhttp3.HttpUrl
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.petkitlocal.core.database.dao.PetDao
 import org.petkitlocal.core.database.model.PetActivityRow
 import org.petkitlocal.core.database.model.PetRow
@@ -18,15 +20,31 @@ import org.petkitlocal.core.domain.Outcome
 import org.petkitlocal.core.domain.map
 import org.petkitlocal.core.domain.model.Pet
 import org.petkitlocal.core.domain.model.PetActivity
+import org.petkitlocal.core.domain.model.PetFace
 import org.petkitlocal.core.domain.model.PetStats
 import org.petkitlocal.core.domain.model.TimelineCategory
 import org.petkitlocal.core.domain.model.WeightSample
+import org.petkitlocal.core.domain.pets.FaceUpload
+import org.petkitlocal.core.domain.pets.FaceWarning
+import org.petkitlocal.core.domain.pets.PetChanges
+import org.petkitlocal.core.domain.pets.PetDraft
+import org.petkitlocal.core.domain.pets.PetFaces
+import org.petkitlocal.core.domain.pets.PetsSource
+import org.petkitlocal.core.domain.pets.PetsSourceSetting
 import org.petkitlocal.core.domain.repository.PetRepository
 import org.petkitlocal.core.network.PetkitApi
 import org.petkitlocal.core.network.PetkitJson
 import org.petkitlocal.core.network.ServerAddressProvider
+import org.petkitlocal.core.network.dto.PetCreateRequestDto
 import org.petkitlocal.core.network.dto.PetDetailDto
 import org.petkitlocal.core.network.dto.PetDto
+import org.petkitlocal.core.network.dto.PetFaceDto
+import org.petkitlocal.core.network.dto.PetFaceWarning
+import org.petkitlocal.core.network.dto.PetUpdateRequestDto
+import org.petkitlocal.core.network.dto.PetWriteResponseDto
+import org.petkitlocal.core.network.dto.PetsSourceDto
+import org.petkitlocal.core.network.dto.PetsSourceRequestDto
+import org.petkitlocal.core.network.dto.PetsSourceValue
 import org.petkitlocal.core.network.dto.TimelineItemDto
 import org.petkitlocal.core.network.error.apiCall
 
@@ -67,10 +85,7 @@ class PetRepositoryImpl @Inject constructor(
                 dao.writePet(pet.toRow(), pet.toActivityRow(clock.millis()))
             }
 
-            // Only the server's own word that the pet is gone; any other 404 says nothing of it.
-            is Outcome.Failure -> if ((result.error as? DomainError.NotFound)?.code == PET_NOT_FOUND) {
-                dao.deletePet(petId)
-            }
+            is Outcome.Failure -> result.forgetIfGone(petId)
         }
         return result.map { }
     }
@@ -116,8 +131,102 @@ class PetRepositoryImpl @Inject constructor(
         return Outcome.Success(Unit)
     }
 
+    override suspend fun createPet(draft: PetDraft): Outcome<Pet> {
+        val body = PetCreateRequestDto(draft.name, draft.weightG, draft.deviceIds)
+        return writePet(apiCall { api.createPet(body) })
+    }
+
+    override suspend fun updatePet(petId: Long, changes: PetChanges): Outcome<Pet> {
+        val body = PetUpdateRequestDto(
+            name = changes.name,
+            weightG = changes.weightG,
+            deviceIds = changes.deviceIds,
+            clearWeight = changes.clearWeight,
+        )
+        val result = apiCall { api.updatePet(petId, body) }
+        result.forgetIfGone(petId)
+        return writePet(result)
+    }
+
+    /** The pet as the server answered a write, in the cache; the activity stays as it was read. */
+    private suspend fun writePet(result: Outcome<PetWriteResponseDto>): Outcome<Pet> = result.map { response ->
+        val row = response.pet.toRow(position = 0)
+        dao.upsertPet(row)
+        row.toDomain(serverAddress.apiBaseUrl())
+    }
+
+    override suspend fun deletePet(petId: Long): Outcome<Unit> {
+        val result = apiCall { api.deletePet(petId) }
+        // Gone either way: deleted now, or already by someone else.
+        if (result is Outcome.Success || result.isPetGone()) dao.deletePet(petId)
+        return result.map { }
+    }
+
+    override suspend fun refreshFaces(petId: Long): Outcome<PetFaces> {
+        val result = apiCall { api.listPetFaces(petId) }
+        result.forgetIfGone(petId)
+        return result.map { list ->
+            dao.updateFaces(petId, encodeFaces(list.faces), petPhotoPath(petId, list.faces))
+            val base = serverAddress.apiBaseUrl()
+            PetFaces(list.faces.map { it.toDomain(base) }, list.maxFaces)
+        }
+    }
+
+    override suspend fun addFace(petId: Long, jpeg: ByteArray): Outcome<FaceUpload> {
+        val result = apiCall { api.addPetFace(petId, jpeg.toRequestBody(JPEG)) }
+        result.forgetIfGone(petId)
+        if (result is Outcome.Success) refreshFaces(petId) // The `/ws` `pet` message would too, later.
+        val base = serverAddress.apiBaseUrl()
+        return result.map {
+            FaceUpload(it.face.toDomain(base), it.quality?.warnings.orEmpty().mapNotNull(WARNINGS::get))
+        }
+    }
+
+    override suspend fun deleteFace(petId: Long, faceId: Long): Outcome<Unit> {
+        val result = apiCall { api.deletePetFace(petId, faceId) }
+        result.forgetIfGone(petId)
+        // A photo already gone is gone: the list is read again either way.
+        if (result is Outcome.Success || (result.notFoundCode() == FACE_NOT_FOUND)) refreshFaces(petId)
+        return result.map { }
+    }
+
+    override suspend fun petsSource(): Outcome<PetsSourceSetting> = apiCall {
+        api.getPetsSource()
+    }.map { it.toDomain() }
+
+    override suspend fun setPetsSource(source: PetsSource): Outcome<PetsSourceSetting> {
+        val body = PetsSourceRequestDto(
+            if (source ==
+                PetsSource.Local
+            ) {
+                PetsSourceValue.LOCAL
+            } else {
+                PetsSourceValue.PETKIT
+            },
+        )
+        return apiCall { api.setPetsSource(body) }.map { it.toDomain() }
+    }
+
+    /** Only the server's own word that the pet is gone drops it; any other 404 says nothing of it. */
+    private suspend fun Outcome<*>.forgetIfGone(petId: Long) {
+        if (isPetGone()) dao.deletePet(petId)
+    }
+
+    private fun Outcome<*>.isPetGone(): Boolean = notFoundCode() == PET_NOT_FOUND
+
+    private fun Outcome<*>.notFoundCode(): String? = ((this as? Outcome.Failure)?.error as? DomainError.NotFound)?.code
+
     private companion object {
         const val PET_NOT_FOUND = "pet_not_found"
+        const val FACE_NOT_FOUND = "face_not_found"
+        val JPEG = "image/jpeg".toMediaType()
+
+        val WARNINGS = mapOf(
+            PetFaceWarning.BLURRY to FaceWarning.Blurry,
+            PetFaceWarning.TOO_DARK to FaceWarning.TooDark,
+            PetFaceWarning.OVEREXPOSED to FaceWarning.Overexposed,
+            PetFaceWarning.NOT_SQUARE to FaceWarning.NotSquare,
+        )
 
         /** The most `GET /timeline` allows. */
         const val WEIGHT_PAGE_SIZE = 100
@@ -128,6 +237,36 @@ class PetRepositoryImpl @Inject constructor(
 }
 
 private val longList = ListSerializer(Long.serializer())
+private val faceList = ListSerializer(PetFaceDto.serializer())
+
+private fun encodeFaces(faces: List<PetFaceDto>?): String = PetkitJson.encodeToString(faceList, faces.orEmpty())
+
+/** `Pet.photo` as the server writes it: its first face photo's, when it has one. */
+private fun petPhotoPath(petId: Long, faces: List<PetFaceDto>): String? =
+    if (faces.isEmpty()) null else "${API_PREFIX}pets/$petId/photo"
+
+private fun decodeFaces(json: String): List<PetFaceDto> = try {
+    PetkitJson.decodeFromString(faceList, json)
+} catch (_: IllegalArgumentException) { // SerializationException is one
+    emptyList()
+}
+
+internal fun PetFaceDto.toDomain(apiBase: HttpUrl?) = PetFace(id, apiUrl(apiBase, photo), acceptedBy, waitingFor)
+
+private fun PetsSourceDto.toDomain(): PetsSourceSetting {
+    fun source(value: String): PetsSource? = when (value) {
+        PetsSourceValue.LOCAL -> PetsSource.Local
+        PetsSourceValue.PETKIT -> PetsSource.PetKit
+        else -> null
+    }
+    return PetsSourceSetting(
+        // A value this app does not know yet reads as the default, PetKit's.
+        source = source(petsSource) ?: PetsSource.PetKit,
+        proxyMode = proxyMode,
+        effective = source(effective) ?: PetsSource.PetKit,
+        options = options.mapNotNull(::source).ifEmpty { PetsSource.entries },
+    )
+}
 private val timelineItems = ListSerializer(TimelineItemDto.serializer())
 
 internal fun PetDto.toRow(position: Int) = PetRow(
@@ -139,10 +278,11 @@ internal fun PetDto.toRow(position: Int) = PetRow(
     weightG = weightG,
     weightLearned = weightLearned,
     photo = photo,
+    facesJson = encodeFaces(faces),
 )
 
 internal fun PetDetailDto.toRow() =
-    PetDto(id, name, deviceIds, enteredWeightG, weightG, weightLearned, photo).toRow(position = 0)
+    PetDto(id, name, deviceIds, enteredWeightG, weightG, weightLearned, photo, faces).toRow(position = 0)
 
 internal fun PetDetailDto.toActivityRow(fetchedAtMillis: Long) = PetActivityRow(
     petId = id,
@@ -201,8 +341,13 @@ internal fun PetRow.toDomain(apiBase: HttpUrl?) = Pet(
     enteredWeightG = enteredWeightG,
     weightG = weightG ?: enteredWeightG,
     weightLearned = weightLearned,
-    photoUrl = photo?.let { apiUrl(apiBase, it) },
-)
+    photoUrl = null,
+    faces = decodeFaces(facesJson).map { it.toDomain(apiBase) },
+).let { pet ->
+    // The first face's own address rather than the pet's: it is the same photo, but its address
+    // changes with it, so the image cache never shows a photo that was deleted.
+    pet.copy(photoUrl = pet.faces.firstOrNull()?.photoUrl ?: photo?.let { apiUrl(apiBase, it) })
+}
 
 private const val API_PREFIX = "/app/v1/"
 

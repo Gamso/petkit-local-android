@@ -70,6 +70,10 @@ class OpenApiSpec private constructor(private val root: Map<String, Any?>) {
         val requestBodySchema: Map<String, Any?>? = node["requestBody"]?.asMap()?.let(spec::resolve)
             ?.map("content")?.get(JSON)?.asMap()?.get("schema")?.asMap()
 
+        /** Every content type the request body may have; empty when the operation takes none. */
+        val requestBodyContentTypes: Set<String> = node["requestBody"]?.asMap()?.let(spec::resolve)
+            ?.get("content").asMapOrEmpty().keys
+
         val requestBodyRequired: Boolean =
             node["requestBody"]?.asMap()?.let(spec::resolve)?.get("required") == true
 

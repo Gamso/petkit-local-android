@@ -40,6 +40,8 @@ import org.petkitlocal.core.network.dto.DeviceDetailDto
 import org.petkitlocal.core.network.dto.DeviceSummaryDto
 import org.petkitlocal.core.network.dto.EntityChangeDto
 import org.petkitlocal.core.network.dto.EntityDto
+import org.petkitlocal.core.network.dto.PetDto
+import org.petkitlocal.core.network.dto.PetFaceDto
 import org.petkitlocal.core.network.dto.TimelineItemDto
 import org.petkitlocal.core.network.dto.UpdateMessageDto
 import org.robolectric.RobolectricTestRunner
@@ -72,6 +74,7 @@ class LiveUpdatesRepositoryImplTest {
         api = server.api,
         devices = server.db.deviceDao(),
         timeline = server.db.timelineDao(),
+        pets = server.db.petDao(),
         clock = clock,
         backoff = backoff,
         scope = backgroundScope,
@@ -142,6 +145,36 @@ class LiveUpdatesRepositoryImplTest {
             socket.awaitDelivered()
 
             assertEquals(listOf(101L, 102L), timeline.observeDay(today).first().map { it.id })
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `pet and pet_removed patch the pets, each in its place`() = runTest {
+        val repository = repository()
+        val pets = PetRepositoryImpl(server.api, server.db.petDao(), clock) { server.base }
+
+        repository.status.test(timeout = ROOM_TIMEOUT) {
+            skipItems(1)
+            socket.send(hello())
+            skipItems(1)
+            socket.send(UpdateMessageDto.Pet(petDto(1, "Mochi")))
+            socket.send(UpdateMessageDto.Pet(petDto(2, "Tigrou")))
+            socket.send(
+                UpdateMessageDto.Pet(
+                    petDto(
+                        1,
+                        "Moka",
+                        faces = listOf(PetFaceDto(5, "/app/v1/pets/1/faces/5/photo", listOf(1003), emptyList())),
+                    ),
+                ),
+            )
+            socket.send(UpdateMessageDto.PetRemoved(2))
+            socket.awaitDelivered()
+
+            val cached = pets.observePets().first()
+            assertEquals(listOf("Moka"), cached.map { it.name })
+            assertEquals(listOf(5L), cached.single().faces.map { it.id })
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -302,6 +335,9 @@ class LiveUpdatesRepositoryImplTest {
 
     private fun hello(vararg devices: DeviceDetailDto) = UpdateMessageDto.Hello(0.0, 25.0, devices.toList())
 
+    private fun petDto(id: Long, name: String, faces: List<PetFaceDto> = emptyList()) =
+        PetDto(id, name, listOf(1002), 4200.0, 4200.0, weightLearned = false, photo = null, faces = faces)
+
     private fun summary(id: Long, online: Boolean = true) = DeviceSummaryDto(
         id = id,
         type = "w5",
@@ -315,6 +351,7 @@ class LiveUpdatesRepositoryImplTest {
         firmware = "1.0",
         isCamera = false,
         talk = "unsupported",
+        supportsAi = false,
         connection = "wifi",
         parentId = null,
         accessories = emptyList(),
@@ -333,6 +370,7 @@ class LiveUpdatesRepositoryImplTest {
         firmware = "1.0",
         isCamera = false,
         talk = "unsupported",
+        supportsAi = false,
         connection = "wifi",
         parentId = null,
         accessories = emptyList(),

@@ -39,9 +39,23 @@ abstract class PetDao {
     @Transaction
     open suspend fun writePet(pet: PetRow, activity: PetActivityRow) {
         val position = positionOf(pet.id) ?: ((lastPosition() ?: -1) + 1)
-        upsertPet(pet.copy(position = position))
+        upsertPetRow(pet.copy(position = position))
         upsertActivity(activity)
     }
+
+    /**
+     * One pet as the server answered a write or announced it (`/ws` `pet`): its row only, in its
+     * place in the list, or after the others when it is new. Its activity stays as it was read.
+     */
+    @Transaction
+    open suspend fun upsertPet(pet: PetRow) {
+        val position = positionOf(pet.id) ?: ((lastPosition() ?: -1) + 1)
+        upsertPetRow(pet.copy(position = position))
+    }
+
+    /** A pet's face photos as the server listed them, and its photo (the first of them). */
+    @Query("UPDATE pets SET faces_json = :facesJson, photo = :photo WHERE id = :petId")
+    abstract suspend fun updateFaces(petId: Long, facesJson: String, photo: String?)
 
     /** A pet the server no longer has, and everything the cache holds of it. */
     @Transaction
@@ -78,7 +92,7 @@ abstract class PetDao {
     protected abstract suspend fun lastPosition(): Int?
 
     @Upsert
-    protected abstract suspend fun upsertPet(pet: PetRow)
+    protected abstract suspend fun upsertPetRow(pet: PetRow)
 
     @Upsert
     protected abstract suspend fun upsertActivity(activity: PetActivityRow)

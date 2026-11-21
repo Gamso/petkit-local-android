@@ -6,6 +6,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
 import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.core.domain.Outcome
 import org.petkitlocal.core.domain.history.HistoryCursor
@@ -15,8 +16,16 @@ import org.petkitlocal.core.domain.model.Device
 import org.petkitlocal.core.domain.model.EventDetail
 import org.petkitlocal.core.domain.model.Pet
 import org.petkitlocal.core.domain.model.PetActivity
+import org.petkitlocal.core.domain.model.PetFace
 import org.petkitlocal.core.domain.model.TimelineItem
 import org.petkitlocal.core.domain.model.WeightSample
+import org.petkitlocal.core.domain.pets.FaceUpload
+import org.petkitlocal.core.domain.pets.FaceWarning
+import org.petkitlocal.core.domain.pets.PetChanges
+import org.petkitlocal.core.domain.pets.PetDraft
+import org.petkitlocal.core.domain.pets.PetFaces
+import org.petkitlocal.core.domain.pets.PetsSource
+import org.petkitlocal.core.domain.pets.PetsSourceSetting
 import org.petkitlocal.core.domain.repository.DeviceRepository
 import org.petkitlocal.core.domain.repository.PetRepository
 import org.petkitlocal.core.domain.repository.TimelineRepository
@@ -93,6 +102,95 @@ class FakePetRepository(initial: List<Pet> = emptyList()) :
         weightRequests += petId to since
         weightsGate?.await()
         return weightsResult
+    }
+
+    // --- writes: a small server of its own. A failure set below is answered instead, once each
+    // gate (when set) opens; nothing is written then.
+
+    /** Every write asked for, in order, as text: `create Moka`, `update 1 PetChanges(...)`, `delete 1`... */
+    val writes = mutableListOf<String>()
+    var writeGate: CompletableDeferred<Unit>? = null
+    var writeFailure: DomainError? = null
+    var maxFaces = 6
+
+    /** The warnings the next upload answers with. */
+    var uploadWarnings: List<FaceWarning> = emptyList()
+    var uploadFailure: DomainError? = null
+    var facesFailure: DomainError? = null
+    private var nextFaceId = 100L
+
+    /** The setting [petsSource] answers; null answers [petsSourceFailure]. */
+    var petsSourceSetting: PetsSourceSetting? =
+        PetsSourceSetting(PetsSource.PetKit, proxyMode = false, PetsSource.Local, PetsSource.entries)
+    var petsSourceFailure: DomainError = DomainError.Network()
+
+    override suspend fun createPet(draft: PetDraft): Outcome<Pet> = write("create ${draft.name}") {
+        val pet = Pet(
+            id = (pets.value.maxOfOrNull { it.id } ?: 0) + 1,
+            name = draft.name,
+            deviceIds = draft.deviceIds,
+            enteredWeightG = draft.weightG,
+            weightG = draft.weightG,
+            weightLearned = false,
+            photoUrl = null,
+        )
+        pets.update { it + pet }
+        pet
+    }
+
+    override suspend fun updatePet(petId: Long, changes: PetChanges): Outcome<Pet> = write("update $petId $changes") {
+        val pet = pets.value.first { it.id == petId }
+        val weight = if (changes.clearWeight) null else changes.weightG ?: pet.enteredWeightG
+        val changed = pet.copy(
+            name = changes.name ?: pet.name,
+            deviceIds = changes.deviceIds ?: pet.deviceIds,
+            enteredWeightG = weight,
+            weightG = if (weight != pet.enteredWeightG) weight else pet.weightG,
+        )
+        pets.update { list -> list.map { if (it.id == petId) changed else it } }
+        changed
+    }
+
+    override suspend fun deletePet(petId: Long): Outcome<Unit> = write("delete $petId") {
+        pets.update { list -> list.filterNot { it.id == petId } }
+    }
+
+    override suspend fun refreshFaces(petId: Long): Outcome<PetFaces> {
+        writes += "faces $petId"
+        facesFailure?.let { return Outcome.Failure(it) }
+        return Outcome.Success(PetFaces(pets.value.first { it.id == petId }.faces, maxFaces))
+    }
+
+    override suspend fun addFace(petId: Long, jpeg: ByteArray): Outcome<FaceUpload> {
+        writes += "upload $petId ${jpeg.size}"
+        writeGate?.await()
+        uploadFailure?.let { return Outcome.Failure(it) }
+        val id = nextFaceId++
+        val face = PetFace(id, "https://petkit.invalid/app/v1/pets/$petId/faces/$id/photo")
+        pets.update { list -> list.map { if (it.id == petId) it.copy(faces = it.faces + face) else it } }
+        return Outcome.Success(FaceUpload(face, uploadWarnings))
+    }
+
+    override suspend fun deleteFace(petId: Long, faceId: Long): Outcome<Unit> = write("delete face $faceId") {
+        pets.update { list ->
+            list.map { pet -> if (pet.id == petId) pet.copy(faces = pet.faces.filterNot { it.id == faceId }) else pet }
+        }
+    }
+
+    override suspend fun petsSource(): Outcome<PetsSourceSetting> =
+        petsSourceSetting?.let { Outcome.Success(it) } ?: Outcome.Failure(petsSourceFailure)
+
+    override suspend fun setPetsSource(source: PetsSource): Outcome<PetsSourceSetting> = write("source $source") {
+        val current = checkNotNull(petsSourceSetting)
+        current.copy(source = source, effective = if (current.proxyMode) source else PetsSource.Local)
+            .also { petsSourceSetting = it }
+    }
+
+    private suspend fun <T> write(label: String, apply: () -> T): Outcome<T> {
+        writes += label
+        writeGate?.await()
+        writeFailure?.let { return Outcome.Failure(it) }
+        return Outcome.Success(apply())
     }
 }
 

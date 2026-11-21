@@ -47,6 +47,19 @@ sealed interface UpdateMessageDto {
         @SerialName("replaces") val replaces: List<Long>,
     ) : UpdateMessageDto
 
+    /**
+     * `pet`: a pet that is new or changed (renamed, its weight or devices, a face photo added or
+     * removed), from the app or the panel. Replaces the pet with the same id.
+     */
+    @Serializable
+    @SerialName("pet")
+    data class Pet(@SerialName("pet") val pet: PetDto) : UpdateMessageDto
+
+    /** `pet_removed`. */
+    @Serializable
+    @SerialName("pet_removed")
+    data class PetRemoved(@SerialName("pet_id") val petId: Long) : UpdateMessageDto
+
     /** `pong`: the answer to [ClientUpdateMessageDto.Ping]. */
     @Serializable
     @SerialName("pong")

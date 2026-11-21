@@ -18,4 +18,10 @@ data class PetRow(
     @ColumnInfo(name = "weight_learned") val weightLearned: Boolean,
     /** The photo's API path (`/app/v1/pets/{id}/photo`), as the server sent it. */
     val photo: String?,
+    /**
+     * Its reference face photos, oldest first: the JSON array of `PetFace` the server sent
+     * (`[{"id":1,"photo":"/app/v1/pets/1/faces/1/photo"}]`). `[]` from a server that does not
+     * send them.
+     */
+    @ColumnInfo(name = "faces_json", defaultValue = "'[]'") val facesJson: String = "[]",
 )

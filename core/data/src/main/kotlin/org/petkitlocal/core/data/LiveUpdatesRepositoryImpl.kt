@@ -23,6 +23,7 @@ import kotlinx.serialization.json.JsonElement
 import org.petkitlocal.core.data.di.LiveUpdatesCoroutineScope
 import org.petkitlocal.core.database.dao.DeviceDao
 import org.petkitlocal.core.database.dao.EntityValuePatch
+import org.petkitlocal.core.database.dao.PetDao
 import org.petkitlocal.core.database.dao.TimelineDao
 import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.core.domain.Outcome
@@ -52,6 +53,7 @@ class LiveUpdatesRepositoryImpl @Inject constructor(
     private val api: PetkitApi,
     private val devices: DeviceDao,
     private val timeline: TimelineDao,
+    private val pets: PetDao,
     private val clock: Clock,
     private val backoff: LiveUpdatesBackoff,
     @LiveUpdatesCoroutineScope scope: CoroutineScope,
@@ -128,6 +130,11 @@ class LiveUpdatesRepositoryImpl @Inject constructor(
                 val day = item.localDay(clock.zone, LocalDate.now(clock))
                 timeline.upsertLive(item.toRow(day.toString()), message.replaces)
             }
+
+            // A pet keeps its place in the list, and what was read of its activity.
+            is UpdateMessageDto.Pet -> pets.upsertPet(message.pet.toRow(position = 0))
+
+            is UpdateMessageDto.PetRemoved -> pets.deletePet(message.petId)
 
             UpdateMessageDto.Pong -> Unit
         }

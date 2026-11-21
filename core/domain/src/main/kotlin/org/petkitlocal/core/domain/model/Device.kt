@@ -45,6 +45,12 @@ data class Device(
     val generation: Int? = null,
     /** Whether the camera can be talked through now, as the server judges it. */
     val talk: TalkAvailability = TalkAvailability.Unsupported,
+    /**
+     * Whether it recognises pets by their face on its own camera (`supports_ai`): the devices a
+     * pet's reference photos are sent to. It can turn true later, once the device first asks for
+     * its recognition settings.
+     */
+    val supportsAi: Boolean = false,
 ) {
     fun entity(key: String): Entity? = entities.firstOrNull { it.key == key }
 

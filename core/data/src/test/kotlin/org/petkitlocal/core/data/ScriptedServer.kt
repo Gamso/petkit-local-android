@@ -23,6 +23,9 @@ class ScriptedServer : ExternalResource() {
     private val routes = ConcurrentHashMap<String, MockResponse>()
     val requests = CopyOnWriteArrayList<String>()
 
+    /** Every request as `METHOD path body` (the body as text, or `<n bytes type>` when it is not JSON). */
+    val calls = CopyOnWriteArrayList<String>()
+
     lateinit var base: HttpUrl
         private set
     lateinit var api: PetkitApi
@@ -36,6 +39,13 @@ class ScriptedServer : ExternalResource() {
                 val path = request.url.encodedPath.removePrefix(base.encodedPath) +
                     (request.url.encodedQuery?.let { "?$it" } ?: "")
                 requests += path
+                val body = request.body
+                val type = request.headers["Content-Type"].orEmpty()
+                calls += when {
+                    body == null || body.size == 0 -> "${request.method} $path"
+                    type.startsWith("application/json") -> "${request.method} $path ${body.utf8()}"
+                    else -> "${request.method} $path <${body.size} bytes $type>"
+                }
                 return routes[path]
                     ?: MockResponse.Builder().code(404).body("""{"error":"not_found","message":"$path"}""").build()
             }

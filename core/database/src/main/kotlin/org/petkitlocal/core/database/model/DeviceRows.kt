@@ -44,6 +44,8 @@ data class DeviceRow(
     @ColumnInfo(name = "accessories_json") val accessoriesJson: String = "[]",
     /** Whether it can be talked through (`available`, `needs_patcher`...); null from a server that does not say. */
     val talk: String? = null,
+    /** Whether it recognises pets by their face (`supports_ai`); false from a server that does not say. */
+    @ColumnInfo(name = "supports_ai", defaultValue = "0") val supportsAi: Boolean = false,
 )
 
 /** One `Entity` of a device. */
