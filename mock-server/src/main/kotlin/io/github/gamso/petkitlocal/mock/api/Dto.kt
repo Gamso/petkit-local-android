@@ -106,6 +106,7 @@ data class DeviceSummary(
     val firmware: String?,
     @SerialName("is_camera") val isCamera: Boolean,
     val talk: String,
+    @SerialName("supports_ai") val supportsAi: Boolean,
     val connection: String,
     @SerialName("parent_id") val parentId: Int?,
     val accessories: List<AccessoryRef>,
@@ -132,6 +133,7 @@ data class DeviceDetail(
     val firmware: String?,
     @SerialName("is_camera") val isCamera: Boolean,
     val talk: String,
+    @SerialName("supports_ai") val supportsAi: Boolean,
     val connection: String,
     @SerialName("parent_id") val parentId: Int?,
     val accessories: List<AccessoryRef>,
@@ -331,6 +333,41 @@ data class PetDto(
     @SerialName("weight_g") val weightG: Double?,
     @SerialName("weight_learned") val weightLearned: Boolean,
     val photo: String?,
+    val faces: List<PetFaceDto>,
+)
+
+@Serializable
+data class PetFaceDto(
+    val id: Int,
+    val photo: String,
+    @SerialName("accepted_by") val acceptedBy: List<Int>,
+    @SerialName("waiting_for") val waitingFor: List<Int>,
+)
+
+@Serializable
+data class PhotoQuality(
+    val checked: Boolean,
+    val warnings: List<String>,
+)
+
+@Serializable
+data class PetFaceResult(
+    val face: PetFaceDto,
+    val quality: PhotoQuality,
+)
+
+@Serializable
+data class PetFaceList(
+    val faces: List<PetFaceDto>,
+    @SerialName("max_faces") val maxFaces: Int,
+)
+
+@Serializable
+data class PetsSource(
+    @SerialName("pets_source") val petsSource: String,
+    @SerialName("proxy_mode") val proxyMode: Boolean,
+    val effective: String,
+    val options: List<String>,
 )
 
 @Serializable
@@ -352,6 +389,7 @@ data class PetDetail(
     @SerialName("weight_g") val weightG: Double?,
     @SerialName("weight_learned") val weightLearned: Boolean,
     val photo: String?,
+    val faces: List<PetFaceDto>,
     val stats: PetStats,
     @SerialName("recent_visits") val recentVisits: List<TimelineItemDto>,
 )
@@ -396,6 +434,20 @@ data class UpdateTimeline(
     @EncodeDefault val type: String = "timeline",
     val item: TimelineItemDto,
     val replaces: List<Int>,
+)
+
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+data class UpdatePet(
+    @EncodeDefault val type: String = "pet",
+    val pet: PetDto,
+)
+
+@OptIn(ExperimentalSerializationApi::class)
+@Serializable
+data class UpdatePetRemoved(
+    @EncodeDefault val type: String = "pet_removed",
+    @SerialName("pet_id") val petId: Int,
 )
 
 // --- /notifications/ws messages -----------------------------------------------------------------

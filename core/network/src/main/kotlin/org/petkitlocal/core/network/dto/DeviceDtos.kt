@@ -104,6 +104,12 @@ data class DeviceSummaryDto(
      * null then.
      */
     @SerialName("talk") val talk: String?,
+    /**
+     * Whether it recognises pets by their face on its own camera: the devices a pet's face photos
+     * are worth assigning to. Required by the contract; null from a server older than
+     * petkit-local#131, which cannot assign photos either.
+     */
+    @SerialName("supports_ai") val supportsAi: Boolean?,
     /** One of [DeviceConnection.KNOWN]. */
     @SerialName("connection") val connection: String,
     /** The device relaying this accessory; null for a WiFi device or an unlinked accessory. */
@@ -129,6 +135,8 @@ data class DeviceDetailDto(
     @SerialName("is_camera") val isCamera: Boolean,
     /** As in [DeviceSummaryDto.talk]: null from a server that predates it. */
     @SerialName("talk") val talk: String?,
+    /** As in [DeviceSummaryDto.supportsAi]: null from a server that predates it. */
+    @SerialName("supports_ai") val supportsAi: Boolean?,
     @SerialName("connection") val connection: String,
     @SerialName("parent_id") val parentId: Long?,
     @SerialName("accessories") val accessories: List<AccessoryRefDto>,

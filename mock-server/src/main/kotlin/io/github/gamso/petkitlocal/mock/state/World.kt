@@ -93,6 +93,18 @@ class World(
     /** Notification kinds switched off in the "panel" (control API): sent to no phone. */
     val disabledKinds = mutableSetOf<String>()
 
+    /** The next pet id: above every pet the seed made. */
+    var nextPetId = 1
+
+    /** The next face id: one counter for every pet's faces, so a face id is unique across pets. */
+    var nextFaceId = 1
+
+    /** petkit-local's proxy mode, set in its panel only: here, by the control API. */
+    var proxyMode = false
+
+    /** `PetsSource.pets_source`: whose pets a device recognises while proxy mode is on. */
+    var petsSource = PETS_SOURCE_DEFAULT
+
     /** The scenario engine's dice; history has its own, so both replay the same for one seed. */
     var random = Random(config.seed + 1)
         private set
@@ -119,12 +131,16 @@ class World(
             media.clear()
             failures.clear()
             disabledKinds.clear()
+            nextFaceId = 1
+            proxyMode = false
+            petsSource = PETS_SOURCE_DEFAULT
             live.reset()
             talk.reset()
             notify.reset()
             tls?.takeIf { it.current != MockTls.Certificate.PRIMARY }?.use(MockTls.Certificate.PRIMARY)
             random = Random(config.seed + 1)
             Seed(this, Random(config.seed)).build()
+            nextPetId = (pets.keys.maxOrNull() ?: 0) + 1
             log.info("world reset: {} devices, {} pets, {} timeline cards", devices.size, pets.size, timeline.cards.size)
         }
 
@@ -327,7 +343,7 @@ class World(
         val (todayStart, todayEnd) = clock.dayBounds(clock.today())
         val last = visits.firstOrNull()
         val since = clock.now() - 7 * 86400
-        val dto = pet.dto()
+        val dto = pet.dto(recognisers())
         return PetDetail(
             id = dto.id,
             name = dto.name,
@@ -336,6 +352,7 @@ class World(
             weightG = dto.weightG,
             weightLearned = dto.weightLearned,
             photo = dto.photo,
+            faces = dto.faces,
             stats =
                 PetStats(
                     medianWeightG = weighed.takeIf { it.isNotEmpty() }?.sorted()?.let { it[it.size / 2] },
@@ -374,6 +391,10 @@ class World(
     }
 
     companion object {
+        const val PETS_SOURCE_DEFAULT = "petkit"
+
+        /** Every value `pets_source` takes, in the order to offer them. */
+        val PETS_SOURCES = listOf("petkit", "local")
         const val MEDIAN_OF = 10
         const val RECENT_VISITS = 20
         val VIDEO_SLOTS = setOf("highlight", "playback", "timelapse")

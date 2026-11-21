@@ -45,6 +45,21 @@ class PetDaoTest {
     }
 
     @Test
+    fun `a pet the server announces keeps its place and its activity, and a new one goes last`() = runTest {
+        dao.replaceAll(listOf(pet(1, "Mochi", 0), pet(2, "Tigrou", 1)))
+        dao.writePet(pet(1, "Mochi", 0), activity(1))
+
+        dao.upsertPet(pet(1, "Moka", position = 9).copy(facesJson = """[{"id":3,"photo":"/p"}]"""))
+        dao.upsertPet(pet(5, "Nala", position = 0))
+
+        val pets = dao.observePets().first()
+        assertEquals(listOf("Moka", "Tigrou", "Nala"), pets.map { it.name })
+        assertEquals(listOf(0, 1, 2), pets.map { it.position })
+        assertEquals("""[{"id":3,"photo":"/p"}]""", pets[0].facesJson)
+        assertEquals(1L, dao.observeActivity(1).first()?.petId)
+    }
+
+    @Test
     fun `a pet the list no longer has takes its activity and weights with it`() = runTest {
         dao.replaceAll(listOf(pet(1, "Mochi", 0), pet(2, "Tigrou", 1)))
         dao.writePet(pet(2, "Tigrou", 1), activity(2))

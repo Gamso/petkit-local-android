@@ -1,5 +1,6 @@
 package org.petkitlocal.core.network
 
+import okhttp3.RequestBody
 import okhttp3.ResponseBody
 import org.petkitlocal.core.network.dto.ActionRequestDto
 import org.petkitlocal.core.network.dto.ActionResultDto
@@ -22,8 +23,15 @@ import org.petkitlocal.core.network.dto.LoginResponseDto
 import org.petkitlocal.core.network.dto.NotificationKindsRequestDto
 import org.petkitlocal.core.network.dto.NotificationSettingsDto
 import org.petkitlocal.core.network.dto.OkDto
+import org.petkitlocal.core.network.dto.PetCreateRequestDto
+import org.petkitlocal.core.network.dto.PetFaceListDto
+import org.petkitlocal.core.network.dto.PetFaceResultDto
 import org.petkitlocal.core.network.dto.PetListResponseDto
 import org.petkitlocal.core.network.dto.PetResponseDto
+import org.petkitlocal.core.network.dto.PetUpdateRequestDto
+import org.petkitlocal.core.network.dto.PetWriteResponseDto
+import org.petkitlocal.core.network.dto.PetsSourceDto
+import org.petkitlocal.core.network.dto.PetsSourceRequestDto
 import org.petkitlocal.core.network.dto.TimelinePageDto
 import org.petkitlocal.core.network.dto.WriteResultDto
 import retrofit2.Response
@@ -31,6 +39,7 @@ import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Header
+import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
@@ -162,7 +171,42 @@ interface PetkitApi {
     @GET("pets/{id}")
     suspend fun getPet(@Path("id") id: Long): PetResponseDto
 
+    /** Answers 201 with the pet as created. */
+    @POST("pets")
+    suspend fun createPet(@Body body: PetCreateRequestDto): PetWriteResponseDto
+
+    /** Only the fields sent change. */
+    @PATCH("pets/{id}")
+    suspend fun updatePet(@Path("id") id: Long, @Body body: PetUpdateRequestDto): PetWriteResponseDto
+
+    /** The pet and every face photo it has; its visits stay in the history, unnamed. */
+    @DELETE("pets/{id}")
+    suspend fun deletePet(@Path("id") id: Long): OkDto
+
     @Streaming
     @GET("pets/{id}/photo")
     suspend fun getPetPhoto(@Path("id") id: Long): ResponseBody
+
+    @GET("pets/{id}/faces")
+    suspend fun listPetFaces(@Path("id") id: Long): PetFaceListDto
+
+    /** [photo] is the raw bytes of one JPEG, sent as `image/jpeg` (not a form). */
+    @POST("pets/{id}/faces")
+    suspend fun addPetFace(@Path("id") id: Long, @Body photo: RequestBody): PetFaceResultDto
+
+    @DELETE("pets/{id}/faces/{face_id}")
+    suspend fun deletePetFace(@Path("id") id: Long, @Path("face_id") faceId: Long): OkDto
+
+    @Streaming
+    @GET("pets/{id}/faces/{face_id}/photo")
+    suspend fun getPetFacePhoto(@Path("id") id: Long, @Path("face_id") faceId: Long): ResponseBody
+
+    // settings
+
+    /** Whose pets the devices recognise while proxy mode is on. */
+    @GET("settings/pets-source")
+    suspend fun getPetsSource(): PetsSourceDto
+
+    @PATCH("settings/pets-source")
+    suspend fun setPetsSource(@Body body: PetsSourceRequestDto): PetsSourceDto
 }

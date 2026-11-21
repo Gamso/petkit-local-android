@@ -148,6 +148,7 @@ class PetScreenTest {
     @Test
     fun `an empty household says where pets are added`() {
         compose.setContent { PkTheme { PetsScreen(PetsUiState(pets = emptyList()), {}, PetsNavigation()) } }
-        compose.onNodeWithText("No pets yet. Add them in petkit-local's panel.").assertIsDisplayed()
+        compose.onNodeWithText("No pets yet. Add the first one below.").assertIsDisplayed()
+        compose.onNodeWithText("Add a pet").assertIsDisplayed()
     }
 }

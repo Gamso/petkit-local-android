@@ -128,6 +128,24 @@ screen).
 - Switch between pets at the top; avatar (`GET /pets/{id}/photo`), name, how it is recognised.
 - Tiles: weight (median of the last weighed visits), visits today, last visit.
 - Weight chart over 30 days / 6 months; recent visits linking to History.
+- **Managing pets** (issue #98, petkit-local#131):
+  - The list adds a pet; a pet's page edits it (the header's pencil). The editor sets the name,
+    the weight (optional, in kg) and the devices that recognise it by its face: only those the
+    server says can (`supports_ai`) are offered, and a device set in the panel that the editor does
+    not offer stays assigned. Only what changed is sent. Deleting asks first; its visits stay in
+    History, unnamed.
+  - Its **reference photos** (from the page's "Recognition photos" card): listed, deleted after a
+    confirmation, and added from the camera app or the gallery (the photo picker; neither needs a
+    permission). Before the camera or the gallery, a tips screen shows a good example and bad ones
+    as drawings, not photos (one pet, head facing the camera, close-up, good light, no blur). The
+    photo is then cropped to a square around the head (drag and pinch, or the zoom buttons for
+    TalkBack); a square under 224 px is refused with its size. When the server checks the photo
+    (petkit-local#132), its warnings are said in words, with "Keep anyway" and "Retake" (which
+    deletes it). When the server says which devices took a photo in, each says "Recognised by X" or
+    "Waiting for X". At the server's limit, Add stays enabled and says why when pressed.
+  - **Pets for recognition** (petkit-local#130): while the server is in proxy mode, the list shows
+    whether the cameras recognise PetKit's app's pets or these, and changes it; with PetKit, it
+    says that the pets edited here are not used for recognition. Proxy mode itself is the panel's.
 
 ### 6 · Feeder
 - Header and hero as for the litter box (hotspots: food level, desiccant, hoppers on dual feeders).
@@ -252,7 +270,8 @@ screen).
 
 - **Live updates.** While a screen that shows devices is visible, the app keeps one `GET /ws`
   socket open:
-  - the `hello` message replaces local state; `state`, `device`, `device_removed` and `timeline` messages patch it;
+  - the `hello` message replaces local state; `state`, `device`, `device_removed`, `timeline`,
+    `pet` and `pet_removed` messages patch it;
   - on close, it reconnects with backoff, except on code `4401`, which ends the session;
   - it is closed in the background, so no battery is spent.
 - **Offline and errors.**

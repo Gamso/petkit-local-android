@@ -128,13 +128,44 @@ the commit recorded in `api/SOURCE`.
   - Cards newest first, with the server's opaque `(ts, id)` cursor.
   - Filters: `device`, `day` (cut at local midnight), `kind` and `pet`.
   - Steps, `GET /timeline/{event_id}` for a card or any of its steps.
-- **Media and pets**
-  - Media are generated placeholder JPEGs and one bundled 9 KB synthetic MP4. Both support `Range`
-    (206).
-  - Thumbnails, pets, pet detail with statistics and recent visits, and a pet photo for the first cat.
+- **Media:** generated placeholder JPEGs and one bundled 9 KB synthetic MP4. Both support `Range`
+  (206), and thumbnails.
+- **Pets** (`app_api/handlers/pets.py`)
+  - List, detail with statistics and recent visits, create (`POST /pets`, 201, appended with the
+    next id), edit (`PATCH`, only the fields sent) and delete.
+  - Validation: 400 `invalid_pet` for a `name` missing, blank or not a string (trimmed otherwise), a
+    `weight_g` not null-or-number in (0, 100000] (a boolean is not a number), `device_ids` not a list
+    of integers (duplicates are dropped, order kept), a `reset_learned_weight` not a boolean; 400
+    `bad_request` for an edit naming none of the four fields (`reset_learned_weight: false` alone
+    names none); `bad_json`, 415, 404 `pet_not_found`.
+  - A `weight_g` that changes the entered weight, or `reset_learned_weight: true`, forgets the
+    learned weight. `weight_g: null` clears the entered weight.
+  - A deleted pet's visits stay in the timeline under its id, with `pet.name` null.
+  - `supports_ai` on every device: true for the cameras that recognise pets (see the household),
+    always false for an accessory.
+- **Face photos**
+  - `GET /pets/{id}/faces` (`max_faces` 6), `POST` with the raw JPEG as the body (201), `DELETE
+    /pets/{id}/faces/{face_id}`, `GET .../{face_id}/photo`. `Pet.faces` lists them oldest first;
+    `Pet.photo` is `/app/v1/pets/{id}/photo` while there is one, which serves the first.
+  - Upload refusals: 400 `bad_request` (empty body), 413 `photo_too_large` (over 16 MiB), 415
+    `not_jpeg` when the body does not start with `FF D8 FF` whatever its content type, 422
+    `photo_too_small` under 224 px on the short side (read from the JPEG's start-of-frame header,
+    as petkit-local does; a body without one is taken), 409 `too_many_faces` at six. A face of
+    another pet is 404 `face_not_found`.
+  - The upload answers `{face, quality}`. The mock decodes nothing, so `quality.checked` is false
+    and its only warning is `not_square` (over 1.6:1), which petkit-local also reads from the header.
+  - Each face says which of its pet's devices that recognise faces hold it (`accepted_by`) and
+    which are still to fetch it (`waiting_for`). Seeded: Mochi's first photo is held by all her
+    cameras (T5, T6, T7, W7H), her second by the T5 only. An uploaded one waits for all of them.
+  - The mock does not keep or crop what it is sent: each face is a generated 224x224 placeholder,
+    the same bytes on every GET. Face ids come from one counter, unique across pets.
+- **Pets source:** `GET`/`PATCH /settings/pets-source`. `pets_source` is `petkit` until changed;
+  `effective` is `pets_source` while proxy mode is on, `local` otherwise. Proxy mode is set in
+  petkit-local's panel only, here by `PUT /mock/proxy`. A bad value is 400 `bad_parameter`.
 - **`/ws`**
   - Messages: `hello` first; `state` with only the entities that changed; `device` when the summary
-    changes; `device_removed`; and `timeline` with `replaces`.
+    changes; `device_removed`; `timeline` with `replaces`; `pet` after every pet write (create,
+    edit, face added or deleted) and `pet_removed` after a delete. `hello` carries no pets.
   - A visit opens an in-progress card that its summary then replaces. Its recording and its cleaning
     cycle later change the same card.
   - `{"type":"ping"}` gets a `pong`.
@@ -185,20 +216,23 @@ the commit recorded in `api/SOURCE`.
 |---|---|---|---|---|---|
 | 1001 | t3 | Pura X | litter box | http | An error and its clearing three days ago. |
 | 1002 | t4 | Pura Max 2 | litter box | http | The owner's model, generation 2; cleans every night at 03:00. |
-| 1003 | t5 | Purobot Max Pro 2 | litter box | mqtt | Camera; also logs cats passing by. |
-| 1004 | t6 | Purobot Ultra | litter box | mqtt | Camera, waste bags, PTZ. |
-| 1005 | t7 | Purobot Crystal Duo | litter box | mqtt | Camera. |
+| 1003 | t5 | Purobot Max Pro 2 | litter box | mqtt | Camera, `supports_ai`; also logs cats passing by. |
+| 1004 | t6 | Purobot Ultra | litter box | mqtt | Camera, `supports_ai`, waste bags, PTZ. |
+| 1005 | t7 | Purobot Crystal Duo | litter box | mqtt | Camera, `supports_ai`. |
 | 2001 | d4 | Fresh Element Solo | feeder | http | 3 meals a day; desiccant nearly spent. |
 | 2002 | d4s | Fresh Element Gemini | feeder | http | Dual hopper; plan paused for two days. |
-| 2003 | d4h | YumShare Solo | feeder | mqtt | Camera, generation unknown; weekday and weekend plans; a one-off feed tomorrow. |
-| 2004 | d4sh | YumShare Dual-Hopper 2 | feeder | mqtt | Camera, generation 2; hopper 2 empty. |
-| 3001 | w7h | EverSweet Ultra AI | fountain | mqtt | Camera; recognises the cats' drinks. |
+| 2003 | d4h | YumShare Solo | feeder | mqtt | Camera, generation unknown, so no `supports_ai`; weekday and weekend plans; a one-off feed tomorrow. |
+| 2004 | d4sh | YumShare Dual-Hopper 2 | feeder | mqtt | Camera, generation 2, `supports_ai`; hopper 2 empty. |
+| 3001 | w7h | EverSweet Ultra AI | fountain | mqtt | Camera, `supports_ai`; recognises the cats' drinks. |
 | 3002 | w5 | EverSweet 3 Pro | fountain | ble, via 2004 | Relayed over MQTT: writes go through. Last frame three hours ago. |
 | 3003 | ctw3 | EverSweet Max 2 | fountain | ble, via 2001 | The owner's model, generation 2. Battery, plugged in, smart mode. Its parent polls HTTP: writes get 409 until `PUT /mock/devices/2001/transport` puts it on MQTT. `PUT /mock/devices/3003/state {"states.mode": 3, "states.batteryMode": 1}` unplugs it. |
 | 4001 | k3 | Pura Air K3 | purifier | ble, via 1002 | The Pura Max 2's K3: liquid (N60) and battery only, no actions. |
 
-- **Pets:** Mochi (id 1, 4.2 kg entered, learned weight in use, has a photo) and Tigrou (id 2,
-  6 kg, heavier, no photo).
+- **Pets:** Mochi (id 1, 4.2 kg entered, learned weight in use, two face photos, ids 1 and 2, the
+  second still awaited by the T6, T7 and W7H) and
+  Tigrou (id 2, 6 kg, heavier, no face photo). A new pet gets id 3, a new face id 3.
+- **`supports_ai`:** true for the T5, T6, T7, D4SH and W7H; false for every other device, the D4H
+  (generation unknown) and every accessory included.
 - **History:** seven days of it, about 210 cards. It holds visits with weights and durations,
   auto, periodic and manual cleanings, scheduled meals, drinks, cats seen by a camera, cats
   eating at the two camera feeders (Mochi at the YumShare Solo, Tigrou at the Dual-Hopper, and a
@@ -255,8 +289,8 @@ Under `/mock`, no authentication, JSON in and out. It is meant for the app's end
 
 | Route | Body | Effect |
 |---|---|---|
-| `GET /mock` | | Routes, clock offset, scenario state, open sockets (`/ws`, notifications, live video, HLS views, talks) and `talk_bytes`, the audio bytes every talk received since the last reset. |
-| `POST /mock/reset` | | Back to the seed: devices, pets, history, password. Sessions are dropped. |
+| `GET /mock` | | Routes, clock offset, scenario state, open sockets (`/ws`, notifications, live video, HLS views, talks), `talk_bytes` (the audio bytes every talk received since the last reset), `proxy_mode` and `pets_source`. |
+| `POST /mock/reset` | | Back to the seed: devices, pets and their faces (and the pet and face id counters), history, password, proxy mode off and `pets_source` `petkit`. Sessions are dropped. |
 | `POST /mock/devices/{id}/visit` | `pet_id?`, `weight_g?`, `duration_sec?`, `auto_clean?`, `health_alert?` | A live visit on a litter box. |
 | `POST /mock/devices/{id}/meal` | `amount?`, `amount1?`, `amount2?` | A feeder serves a meal. |
 | `POST /mock/devices/{id}/drink` | `pet_id?`, `duration_sec?` | A drink at a fountain. |
@@ -266,6 +300,7 @@ Under `/mock`, no authentication, JSON in and out. It is meant for the app's end
 | `POST /mock/devices/{id}/offline`, `/online` | | Sends a `device` message; an MQTT device falls back to `http` while offline. |
 | `POST /mock/devices/{id}/remove` | | Sends `device_removed`; a reset brings the device back. |
 | `PUT /mock/devices/{id}/talk` | `talk`: `available`, `needs_patcher`, `device_unreachable` or `unsupported` | Sets whether the device can be talked through, with a `device` message. |
+| `PUT /mock/devices/{id}/supports-ai` | `supports_ai`: boolean | Sets whether the device recognises pets, with a `device` message. 400 for an accessory (always false). |
 | `PUT /mock/devices/{id}/transport` | `transport`: `mqtt` or `http` | Moves a device (not an accessory) to that transport, with `device` messages for it and the accessories it relays: an accessory is written only through a parent on MQTT. Back online after `offline`, a device returns to its seeded transport. |
 | `PUT /mock/devices/{id}/state` | `{"<value_path>": value, ...}` | Sets raw state behind any entity, for example `{"consumables.liquid": 5}`. |
 | `POST /mock/clock/advance` | `seconds` | Moves the fake clock forward, for session expiry and lockouts. |
@@ -275,6 +310,7 @@ Under `/mock`, no authentication, JSON in and out. It is meant for the app's end
 | `POST /mock/notifications` | `kind`, `device_id?`, `pet_id?`, `code?`, `ts?` | Sends one notification, through the panel's switches and each session's kinds. Answers its `id`, or `null` when no phone using the socket wanted it. |
 | `POST /mock/notifications/close` | `code?` (default 1001), `reason?` | Closes every notification socket with that code (1001, 1013, 4401...). |
 | `DELETE /mock/notifications/log` | | Loses the catch-up log: ids start again from 1, and the next `hello` with a higher `after` says `gap`. |
+| `PUT /mock/proxy` | `proxy_mode`: boolean | Turns petkit-local's proxy mode on or off, as its panel does; answers `proxy_mode`, `pets_source` and `effective`. Only with it on does `pets_source` apply (`effective`). |
 | `PUT /mock/password` | `password`: string or `null` | Sets it as the panel does and drops every session. `null` means no password. |
 | `POST /mock/fail` | `method`, `path`, `status`, `error?`, `message?`, `retry_after?`, `times?` | The next `times` (default 1) requests to that route get this error. `path` is a spec template (`/devices/{id}`) or a concrete path. |
 | `DELETE /mock/fail` | | Clears forced failures. |
@@ -318,6 +354,7 @@ The other tests cover:
 - talk: `ready`, the audio counted, `stop`, the refusals, `busy`, the control API's errors and closes;
 - the control API;
 - the write validation;
+- pets, their face photos, the pets source and the `pet` / `pet_removed` messages;
 - the determinism of the seed.
 
 To update the contract, run `scripts/update-openapi.sh <petkit-local ref>` from the repo root,

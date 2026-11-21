@@ -42,6 +42,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil3.compose.AsyncImage
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.Locale
@@ -66,6 +67,12 @@ object PetsTestTags {
     const val SCREEN = "pet"
     const val PAGE = "pet_page"
     const val CHART = "pet_weight_chart"
+    const val ADD = "pets_add"
+    const val SOURCE = "pets_source"
+    const val EDIT = "pet_edit_button"
+    const val PHOTOS = "pet_photos_button"
+
+    fun source(value: String) = "pets_source_$value"
 
     fun card(petId: Long) = "pets_card_$petId"
 
@@ -376,3 +383,63 @@ internal fun PetListCard(
         }
     }
 }
+
+/**
+ * The pet's reference photos, a few of them, and the way to manage them: what the cameras that
+ * recognise faces compare a visit with.
+ */
+@Composable
+internal fun PhotosCard(pet: Pet, onOpen: () -> Unit, modifier: Modifier = Modifier) {
+    val colors = PkTheme.colors
+    PkCard(modifier.fillMaxWidth()) {
+        Text(
+            stringResource(R.string.pet_photos_card),
+            style = PkTheme.typography.titleMedium,
+            modifier = Modifier.semantics { heading() },
+        )
+        Text(
+            if (pet.faces.isEmpty()) {
+                stringResource(R.string.pet_photos_none)
+            } else {
+                pluralStringResource(R.plurals.pet_photos_count, pet.faces.size, pet.faces.size)
+            },
+            style = PkTheme.typography.bodyMedium,
+            color = colors.onSurfaceMuted,
+            modifier = Modifier.padding(top = PkTheme.spacing.xxs),
+        )
+        if (pet.faces.isNotEmpty()) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(PkTheme.spacing.xs),
+                modifier = Modifier.padding(top = PkTheme.spacing.s),
+            ) {
+                pet.faces.take(MAX_THUMBNAILS).forEach { face ->
+                    Box(
+                        Modifier
+                            .size(THUMBNAIL)
+                            .clip(PkTheme.shapes.tile)
+                            .background(colors.surfaceMuted),
+                    ) {
+                        AsyncImage(
+                            model = face.photoUrl,
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.size(THUMBNAIL),
+                        )
+                    }
+                }
+            }
+        }
+        PkButton(
+            stringResource(R.string.pet_photos_manage),
+            onClick = onOpen,
+            style = PkButtonStyle.Text,
+            icon = PkIcons.PhotoCamera,
+            modifier = Modifier
+                .padding(top = PkTheme.spacing.xs)
+                .testTag(PetsTestTags.PHOTOS),
+        )
+    }
+}
+
+private const val MAX_THUMBNAILS = 4
+private val THUMBNAIL = 56.dp

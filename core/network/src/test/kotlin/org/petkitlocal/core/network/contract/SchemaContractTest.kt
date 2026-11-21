@@ -55,10 +55,19 @@ import org.petkitlocal.core.network.dto.NotificationKindsRequestDto
 import org.petkitlocal.core.network.dto.NotificationSettingsDto
 import org.petkitlocal.core.network.dto.NotificationSocketMessageDto
 import org.petkitlocal.core.network.dto.OkDto
+import org.petkitlocal.core.network.dto.PetCreateRequestDto
 import org.petkitlocal.core.network.dto.PetDetailDto
 import org.petkitlocal.core.network.dto.PetDto
+import org.petkitlocal.core.network.dto.PetFaceDto
+import org.petkitlocal.core.network.dto.PetFaceListDto
+import org.petkitlocal.core.network.dto.PetFaceWarning
 import org.petkitlocal.core.network.dto.PetRefDto
 import org.petkitlocal.core.network.dto.PetStatsDto
+import org.petkitlocal.core.network.dto.PetUpdateRequestDto
+import org.petkitlocal.core.network.dto.PetsSourceDto
+import org.petkitlocal.core.network.dto.PetsSourceRequestDto
+import org.petkitlocal.core.network.dto.PetsSourceValue
+import org.petkitlocal.core.network.dto.PhotoQualityDto
 import org.petkitlocal.core.network.dto.PushMessageDto
 import org.petkitlocal.core.network.dto.PushRegistrationDto
 import org.petkitlocal.core.network.dto.ServedAmountsDto
@@ -119,6 +128,13 @@ class SchemaContractTest {
         "Pet" to PetDto.serializer(),
         "PetStats" to PetStatsDto.serializer(),
         "PetDetail" to PetDetailDto.serializer(),
+        "PetFace" to PetFaceDto.serializer(),
+        "PetFaceList" to PetFaceListDto.serializer(),
+        "PhotoQuality" to PhotoQualityDto.serializer(),
+        "PetCreateRequest" to PetCreateRequestDto.serializer(),
+        "PetUpdateRequest" to PetUpdateRequestDto.serializer(),
+        "PetsSource" to PetsSourceDto.serializer(),
+        "PetsSourceRequest" to PetsSourceRequestDto.serializer(),
         "UpdateMessage" to UpdateMessageDto.serializer(),
         "NotificationSocketMessage" to NotificationSocketMessageDto.serializer(),
         "PushMessage" to PushMessageDto.serializer(),
@@ -139,6 +155,8 @@ class SchemaContractTest {
         "UpdateDevice" to UpdateMessageDto.Device.serializer(),
         "UpdateDeviceRemoved" to UpdateMessageDto.DeviceRemoved.serializer(),
         "UpdateTimeline" to UpdateMessageDto.Timeline.serializer(),
+        "UpdatePet" to UpdateMessageDto.Pet.serializer(),
+        "UpdatePetRemoved" to UpdateMessageDto.PetRemoved.serializer(),
         "UpdatePong" to UpdateMessageDto.Pong.serializer(),
         "NotificationHello" to NotificationSocketMessageDto.Hello.serializer(),
         "NotificationDelivery" to NotificationSocketMessageDto.Delivery.serializer(),
@@ -149,6 +167,7 @@ class SchemaContractTest {
     private val stringEnums: Map<String, Set<String>> = mapOf(
         "Delivered" to Delivered.KNOWN,
         "NotificationKind" to NotificationKind.KNOWN,
+        "PetsSourceValue" to PetsSourceValue.KNOWN,
     )
 
     @Test
@@ -205,13 +224,25 @@ class SchemaContractTest {
 
     @Test
     fun `what older servers may leave out is still required and never null in the document`() {
+        // The inline schemas named by their DTO (PendingContract).
+        val inline = mapOf("PetFaceResultDto" to spec.operation("POST", "/pets/{id}/faces")!!.successJsonSchema!!)
         PendingContract.ABSENT_FROM_OLDER_SERVERS.forEach { (schema, properties) ->
-            val shape = schemaShape(schema) as Shape.Object
+            val shape = (inline[schema]?.let { shapes.read(it) } ?: schemaShape(schema)) as Shape.Object
             properties.forEach { property ->
                 assertTrue(property in shape.required) { "$schema.$property is no longer required" }
                 assertTrue(shape.properties[property]?.nullable == false) { "$schema.$property may be null now" }
             }
         }
+    }
+
+    @Test
+    fun `an update request clears the weight with an explicit null, and sends nothing else unasked`() {
+        val serializer = PetUpdateRequestDto.serializer()
+        val clear = PetkitJson.encodeToString(serializer, PetUpdateRequestDto(clearWeight = true))
+        val rename = PetkitJson.encodeToString(serializer, PetUpdateRequestDto(name = "Moka"))
+        assertEquals("""{"weight_g":null}""", clear)
+        assertEquals("""{"name":"Moka"}""", rename)
+        assertEquals(PetUpdateRequestDto(clearWeight = true), PetkitJson.decodeFromString(serializer, clear))
     }
 
     @Test
@@ -235,6 +266,9 @@ class SchemaContractTest {
         assertEquals(enumOf("Entity", "component"), EntityComponent.KNOWN)
         assertEquals(enumOf("Entity", "category"), EntityCategory.KNOWN)
         assertEquals(timelineKind, TimelineFilter.KNOWN)
+        assertEquals(enumOf("PetsSourceValue"), PetsSourceValue.KNOWN)
+        val warnings = spec.schemas.getValue("PhotoQuality").map("properties").map("warnings").map("items")
+        assertEquals(warnings["enum"].asList().toSet(), PetFaceWarning.KNOWN)
     }
 
     private fun schemaShape(name: String): Shape = shapes.read(spec.schemas.getValue(name), name)

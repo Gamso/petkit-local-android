@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- A pet's reference photo taken with the camera app: it writes the photo into a file of
+         ours in the cache, which only this provider exposes, and only for that one capture
+         (PetPhotoFiles). No camera permission: the camera app takes the photo, not this app. -->
+    <application>
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.petphotos"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/pet_photo_paths" />
+        </provider>
+    </application>
+
+</manifest>

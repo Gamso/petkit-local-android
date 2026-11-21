@@ -17,8 +17,12 @@ import org.junit.jupiter.api.extension.RegisterExtension
 import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.core.domain.Outcome
 import org.petkitlocal.core.domain.home.TodayUseCase
+import org.petkitlocal.core.domain.pets.GetPetsSourceUseCase
 import org.petkitlocal.core.domain.pets.ObservePetsUseCase
+import org.petkitlocal.core.domain.pets.PetsSource
+import org.petkitlocal.core.domain.pets.PetsSourceSetting
 import org.petkitlocal.core.domain.pets.RefreshPetsUseCase
+import org.petkitlocal.core.domain.pets.SetPetsSourceUseCase
 import org.petkitlocal.core.testing.FakePetRepository
 import org.petkitlocal.core.testing.FakeTimelineRepository
 import org.petkitlocal.core.testing.Household
@@ -38,6 +42,8 @@ class PetsViewModelTest {
         ObservePetsUseCase(pets, timeline),
         RefreshPetsUseCase(pets, timeline),
         TodayUseCase(Household.clock),
+        GetPetsSourceUseCase(pets),
+        SetPetsSourceUseCase(pets),
     )
 
     private fun TestScope.collect(viewModel: PetsViewModel) {
@@ -78,5 +84,58 @@ class PetsViewModelTest {
         viewModel.onRefresh()
         advanceUntilIdle()
         assertNull(viewModel.uiState.value.refreshError)
+    }
+
+    @Test
+    fun `whose pets the devices recognise is shown only in proxy mode`() = runTest(main.dispatcher) {
+        val viewModel = viewModel()
+        collect(viewModel)
+        advanceUntilIdle()
+        assertFalse(viewModel.uiState.value.showsPetsSource)
+
+        pets.petsSourceSetting = PROXIED
+        viewModel.onRefresh()
+        advanceUntilIdle()
+        assertTrue(viewModel.uiState.value.showsPetsSource)
+        assertEquals(PetsSource.PetKit, viewModel.uiState.value.petsSource?.source)
+    }
+
+    @Test
+    fun `a server without the setting shows none, and the list still loads`() = runTest(main.dispatcher) {
+        pets.petsSourceSetting = null
+        val viewModel = viewModel()
+        collect(viewModel)
+        advanceUntilIdle()
+
+        assertNull(viewModel.uiState.value.petsSource)
+        assertEquals(2, viewModel.uiState.value.pets?.size)
+    }
+
+    @Test
+    fun `a choice shows as taken once the server answers, and a refusal says why`() = runTest(main.dispatcher) {
+        pets.petsSourceSetting = PROXIED
+        val viewModel = viewModel()
+        collect(viewModel)
+        advanceUntilIdle()
+
+        val gate = CompletableDeferred<Unit>().also { pets.writeGate = it }
+        viewModel.onPetsSource(PetsSource.Local)
+        advanceUntilIdle()
+        assertEquals(PetsSource.Local, viewModel.uiState.value.settingSource)
+        assertEquals(PetsSource.PetKit, viewModel.uiState.value.petsSource?.source)
+        gate.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(PetsSource.Local, viewModel.uiState.value.petsSource?.source)
+        assertNull(viewModel.uiState.value.settingSource)
+
+        pets.writeFailure = DomainError.Network()
+        viewModel.onPetsSource(PetsSource.PetKit)
+        advanceUntilIdle()
+        assertEquals(PetsSource.Local, viewModel.uiState.value.petsSource?.source)
+        assertEquals(DomainError.Network(), viewModel.uiState.value.sourceError)
+    }
+
+    private companion object {
+        val PROXIED = PetsSourceSetting(PetsSource.PetKit, proxyMode = true, PetsSource.PetKit, PetsSource.entries)
     }
 }

@@ -1,8 +1,10 @@
 package io.github.gamso.petkitlocal.mock
 
+import io.github.gamso.petkitlocal.mock.media.MediaFactory
 import io.github.gamso.petkitlocal.mock.seed.Seed
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
+import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.double
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
@@ -144,6 +146,68 @@ class ControlApiTest {
             assertEquals(13, world.devices.size)
             assertEquals(401, api.get("/devices", token = token).status)
             assertNotEquals(token, api.login("demo"))
+        }
+
+    @Test
+    fun `proxy mode is switched from the control API and reported by the index`() =
+        mockTest { _, api ->
+            api.login()
+            val on = api.client.control(HttpMethod.Put, "/proxy", """{"proxy_mode":true}""")
+            assertEquals(200, on.status)
+            val said = listOf("proxy_mode", "pets_source", "effective").map { on[it].jsonPrimitive.content }
+            assertEquals(listOf("true", "petkit", "petkit"), said)
+            api.patch("/settings/pets-source", body = """{"pets_source":"local"}""")
+            val index = api.client.control(HttpMethod.Get, "")
+            assertEquals(true, index["proxy_mode"].jsonPrimitive.boolean)
+            assertEquals("local", index["pets_source"].jsonPrimitive.content)
+            assertEquals(400, api.client.control(HttpMethod.Put, "/proxy", """{"proxy_mode":"yes"}""").status)
+        }
+
+    @Test
+    fun `supports_ai can be switched on a device, with a device message, never on an accessory`() =
+        mockTest { world, api ->
+            api.login()
+            assertEquals(200, api.client.control(HttpMethod.Put, "/devices/${Seed.D4H}/supports-ai", """{"supports_ai":true}""").status)
+            val d4h = api.get("/devices/{id}", "/devices/${Seed.D4H}")["device"].jsonObject
+            assertEquals(true, d4h["supports_ai"]!!.jsonPrimitive.boolean)
+            assertEquals(400, api.client.control(HttpMethod.Put, "/devices/${Seed.W5}/supports-ai", """{"supports_ai":true}""").status)
+            assertEquals(400, api.client.control(HttpMethod.Put, "/devices/${Seed.D4H}/supports-ai", """{}""").status)
+            assertEquals(404, api.client.control(HttpMethod.Put, "/devices/77/supports-ai", """{"supports_ai":true}""").status)
+            world.reset()
+            assertEquals(
+                false,
+                world.devices
+                    .getValue(Seed.D4H)
+                    .summary()
+                    .supportsAi,
+            )
+        }
+
+    @Test
+    fun `reset brings back the pets, their faces and the pets source`() =
+        mockTest { world, api ->
+            api.login()
+            api.post("/pets", body = """{"name":"Pixel"}""")
+            api.delete("/pets/{id}", "/pets/1")
+            api.upload("/pets/{id}/faces", "/pets/2/faces", MediaFactory.jpeg(240, 240, 1))
+            api.client.control(HttpMethod.Put, "/proxy", """{"proxy_mode":true}""")
+            api.patch("/settings/pets-source", body = """{"pets_source":"local"}""")
+            api.client.control(HttpMethod.Post, "/reset")
+            api.login()
+            val pets = api.get("/pets")["pets"].jsonArray.map { it.jsonObject }
+            assertEquals(listOf("Mochi", "Tigrou"), pets.map { it.str("name") })
+            assertEquals(listOf(1, 2), pets[0].arr("faces").map { it.jsonObject["id"]!!.jsonPrimitive.int })
+            assertEquals(0, pets[1].arr("faces").size)
+            assertEquals(3, world.nextFaceId)
+            assertEquals(
+                3,
+                api
+                    .post("/pets", body = """{"name":"Pixel"}""")["pet"]
+                    .jsonObject["id"]!!
+                    .jsonPrimitive.int,
+            )
+            val source = api.get("/settings/pets-source").json
+            assertEquals(listOf("petkit", "false"), listOf(source.str("pets_source"), source["proxy_mode"]!!.jsonPrimitive.content))
         }
 
     @Test

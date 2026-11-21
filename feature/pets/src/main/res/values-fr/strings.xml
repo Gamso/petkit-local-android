@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="pets_title">Animaux</string>
-    <string name="pets_empty">Aucun animal pour l\'instant. Ajoutez-les dans le panneau de petkit-local.</string>
+    <string name="pets_empty">Aucun animal pour l\'instant. Ajoutez le premier ci-dessous.</string>
     <string name="pets_unreachable">Le serveur est injoignable.</string>
     <string name="pets_session_ended">Votre session a pris fin. Reconnectez-vous.</string>
     <string name="pets_server_error">Le serveur n\'a pas pu répondre. Réessayez dans un instant.</string>

@@ -21,16 +21,17 @@ object DatabaseModule {
     fun database(@ApplicationContext context: Context): PetkitDatabase =
         Room.databaseBuilder(context, PetkitDatabase::class.java, PetkitDatabase.NAME)
             .addMigrations(*PetkitDatabase.MIGRATIONS)
-            // Nothing is released yet: a schema change raises the version without a migration, and
-            // a development install holding an older one is rebuilt here. It is only a cache,
-            // refetched from the server. This must go with the first release, from which every
-            // change is a real migration (PetkitDatabase).
-            // It also covers a downgrade. Do not add `fallbackToDestructiveMigrationOnDowngrade`
-            // after it: that call turns required migrations back on for upgrades, and an
-            // installed app with an older schema then crashes on start. From the first release,
-            // it replaces this line (a downgrade keeps nothing it cannot read).
-            .fallbackToDestructiveMigration(dropAllTables = true)
+            // A released schema is migrated, never dropped (PetkitDatabase). Only a development
+            // install from before the first release, whose schema no migration starts from, is
+            // rebuilt: it is only a cache, refetched from the server.
+            .fallbackToDestructiveMigrationFrom(dropAllTables = true, *PRE_RELEASE_VERSIONS)
+            // A downgrade keeps nothing it cannot read. Unlike `fallbackToDestructiveMigration`,
+            // this leaves the migrations of an upgrade required.
+            .fallbackToDestructiveMigrationOnDowngrade(dropAllTables = true)
             .build()
+
+    /** The schemas of development builds from before the first release. */
+    private val PRE_RELEASE_VERSIONS: IntArray = (1 until PetkitDatabase.OLDEST_SUPPORTED_VERSION).toList().toIntArray()
 
     @Provides
     fun deviceDao(database: PetkitDatabase): DeviceDao = database.deviceDao()

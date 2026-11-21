@@ -63,6 +63,7 @@ internal fun DeviceSummaryDto.toRow(position: Int, serial: String?) = DeviceRow(
     parentId = parentId,
     accessoriesJson = PetkitJson.encodeToString(accessoryList, accessories),
     talk = talk,
+    supportsAi = supportsAi == true,
 )
 
 /** The row of a `DeviceDetail` (a `hello` lists them), which is a `DeviceSummary` with more. */
@@ -84,6 +85,7 @@ internal fun DeviceDetailDto.toRow(position: Int) = DeviceRow(
     parentId = parentId,
     accessoriesJson = PetkitJson.encodeToString(accessoryList, accessories),
     talk = talk,
+    supportsAi = supportsAi == true,
 )
 
 /** A row's accessories; text that is not the list the server sent (it never should be) is none. */
@@ -147,6 +149,7 @@ internal fun DeviceWithDetails.toDomain() = Device(
     accessories = decodeAccessories(device.accessoriesJson),
     // None from a server too old to say; a value this app does not know yet is Unknown.
     talk = device.talk?.let { TALK[it] ?: TalkAvailability.Unknown } ?: TalkAvailability.ServerTooOld,
+    supportsAi = device.supportsAi,
 )
 
 private val TALK = mapOf(

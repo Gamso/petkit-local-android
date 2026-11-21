@@ -4,6 +4,7 @@ import io.github.gamso.petkitlocal.mock.api.AccessoryRef
 import io.github.gamso.petkitlocal.mock.catalog.Catalog
 import io.github.gamso.petkitlocal.mock.seed.Seed
 import io.github.gamso.petkitlocal.mock.state.World
+import io.github.gamso.petkitlocal.mock.state.recognisers
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -125,7 +126,7 @@ class SeedTest {
     @Test
     fun `two pets, one heavier, attributed to the devices that see them`() {
         val (mochi, tigrou) = world.pets.values.toList()
-        assertTrue(tigrou.weightG > mochi.weightG + 1000)
+        assertTrue(tigrou.weightG!! > mochi.weightG!! + 1000)
         assertTrue(mochi.weightLearned)
         assertTrue(Seed.T4 in mochi.deviceIds && Seed.T4 in tigrou.deviceIds)
         val visits =
@@ -133,6 +134,43 @@ class SeedTest {
                 .filter { it.kind == "visit" && it.petId != null }
         val byPet = visits.groupBy { it.petId!! }.mapValues { (_, v) -> v.mapNotNull { it.weightG }.average() }
         assertTrue(byPet.getValue(2) > byPet.getValue(1) + 1000)
+    }
+
+    @Test
+    fun `the camera devices that recognise pets support AI, an accessory never`() {
+        val supported =
+            world.devices.values
+                .filter { it.summary().supportsAi }
+                .map { it.id }
+        assertEquals(listOf(Seed.T5, Seed.T6, Seed.T7, Seed.D4SH, Seed.W7H), supported)
+        // The YumShare Solo's generation is unknown: it has not been found to recognise pets yet.
+        assertEquals(
+            false,
+            world.devices
+                .getValue(Seed.D4H)
+                .detail()
+                .supportsAi,
+        )
+        world.devices.values.filter { it.isAccessory }.forEach {
+            it.supportsAi = true
+            assertEquals(false, it.summary().supportsAi, it.type)
+        }
+    }
+
+    @Test
+    fun `Mochi has two face photos and Tigrou none, ids from one counter`() {
+        val mochi = world.pets.getValue(Seed.MOCHI).dto(world.recognisers())
+        val tigrou = world.pets.getValue(Seed.TIGROU).dto(world.recognisers())
+        assertEquals(listOf(1, 2), mochi.faces.map { it.id })
+        // Her cameras that recognise faces: all hold the first photo, only the T5 the second.
+        assertEquals(listOf(1003, 1004, 1005, 3001), mochi.faces[0].acceptedBy)
+        assertEquals(listOf(1003) to listOf(1004, 1005, 3001), mochi.faces[1].acceptedBy to mochi.faces[1].waitingFor)
+        assertEquals("/app/v1/pets/1/faces/1/photo", mochi.faces[0].photo)
+        assertEquals("/app/v1/pets/1/photo", mochi.photo)
+        assertEquals(emptyList<Any>(), tigrou.faces)
+        assertEquals(null, tigrou.photo)
+        assertEquals(3, world.nextFaceId)
+        assertEquals(3, world.nextPetId)
     }
 
     @Test

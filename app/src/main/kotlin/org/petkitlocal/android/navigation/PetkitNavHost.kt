@@ -39,7 +39,11 @@ import org.petkitlocal.feature.home.HomeNavigation
 import org.petkitlocal.feature.home.homeScreen
 import org.petkitlocal.feature.live.liveScreen
 import org.petkitlocal.feature.pets.PetsNavigation
+import org.petkitlocal.feature.pets.closeDeletedPet
+import org.petkitlocal.feature.pets.closePetEditor
 import org.petkitlocal.feature.pets.navigateToPet
+import org.petkitlocal.feature.pets.navigateToPetEditor
+import org.petkitlocal.feature.pets.navigateToPetPhotos
 import org.petkitlocal.feature.pets.navigateToPets
 import org.petkitlocal.feature.pets.petsScreens
 import org.petkitlocal.feature.settings.SettingsNavigation
@@ -123,6 +127,11 @@ fun PetkitNavHost(
                 onBack = back,
                 onOpenPet = { petId -> navController.navigateToPet(petId) },
                 onOpenHistory = { petId, day -> navController.navigateToHistory(petId = petId, day = day) },
+                onAddPet = { navController.navigateToPetEditor() },
+                onEditPet = { petId -> navController.navigateToPetEditor(petId) },
+                onOpenPhotos = { petId -> navController.navigateToPetPhotos(petId) },
+                onPetSaved = { petId, created -> navController.closePetEditor(petId, created) },
+                onPetDeleted = { navController.closeDeletedPet() },
             ),
         )
         liveScreen(

@@ -7,6 +7,7 @@ import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.jvm.jvmErasure
 import kotlinx.serialization.serializer
 import okhttp3.OkHttpClient
+import okhttp3.RequestBody
 import okhttp3.ResponseBody
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -24,6 +25,7 @@ import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
@@ -58,6 +60,7 @@ class RouteContractTest {
             function.findAnnotation<POST>()?.let { "POST" to it.value },
             function.findAnnotation<PUT>()?.let { "PUT" to it.value },
             function.findAnnotation<DELETE>()?.let { "DELETE" to it.value },
+            function.findAnnotation<PATCH>()?.let { "PATCH" to it.value },
         ).singleOrNull() ?: error("${function.name} needs exactly one HTTP method annotation")
         Route(method, "/" + path.substringBefore('?'), function)
     }
@@ -104,6 +107,13 @@ class RouteContractTest {
     private fun checkRequestBody(route: Route, operation: OpenApiSpec.Operation, errors: MutableList<String>) {
         val body = route.function.parameters.singleOrNull { it.findAnnotation<Body>() != null }
         val schema = operation.requestBodySchema
+        // Raw bytes (a photo): the document must take a body that is not JSON.
+        if (body != null && body.type.jvmErasure == RequestBody::class) {
+            if (operation.requestBodyContentTypes.none { it != OpenApiSpec.JSON }) {
+                errors += "the app sends raw bytes; the document takes ${operation.requestBodyContentTypes}"
+            }
+            return
+        }
         when {
             body == null && schema != null && operation.requestBodyRequired ->
                 errors += "the document requires a body the app does not send"

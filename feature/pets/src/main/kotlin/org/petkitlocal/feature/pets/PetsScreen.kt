@@ -31,17 +31,26 @@ import androidx.compose.ui.semantics.semantics
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.petkitlocal.core.designsystem.component.PkBackButton
+import org.petkitlocal.core.designsystem.component.PkButton
+import org.petkitlocal.core.designsystem.component.PkButtonStyle
 import org.petkitlocal.core.designsystem.component.PkEmptyView
 import org.petkitlocal.core.designsystem.component.PkErrorView
 import org.petkitlocal.core.designsystem.component.PkLoadingView
 import org.petkitlocal.core.designsystem.component.PkOfflineBanner
+import org.petkitlocal.core.designsystem.icon.PkIcons
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.DomainError
+import org.petkitlocal.core.domain.pets.PetsSource
 
 @Composable
 internal fun PetsRoute(navigation: PetsNavigation, viewModel: PetsViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    PetsScreen(uiState, onRefresh = viewModel::onRefresh, navigation = navigation)
+    PetsScreen(
+        uiState,
+        onRefresh = viewModel::onRefresh,
+        navigation = navigation,
+        onPetsSource = viewModel::onPetsSource,
+    )
 }
 
 /** The pets list (SPEC.md §5.5): each pet with its weight and today's visits; a tap opens its page. */
@@ -52,6 +61,7 @@ internal fun PetsScreen(
     onRefresh: () -> Unit,
     navigation: PetsNavigation,
     modifier: Modifier = Modifier,
+    onPetsSource: (PetsSource) -> Unit = {},
 ) {
     val insets = WindowInsets.safeDrawing.asPaddingValues()
     val direction = LocalLayoutDirection.current
@@ -79,6 +89,22 @@ internal fun PetsScreen(
         ) {
             item(key = "header") { ScreenHeader(stringResource(R.string.pets_title), navigation.onBack) }
             petsBody(uiState, onRefresh, navigation)
+            if (uiState.pets != null) {
+                item(key = "add") {
+                    PkButton(
+                        stringResource(R.string.pets_add),
+                        onClick = navigation.onAddPet,
+                        icon = PkIcons.Add,
+                        style = PkButtonStyle.Secondary,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag(PetsTestTags.ADD),
+                    )
+                }
+            }
+            if (uiState.showsPetsSource) {
+                item(key = "source") { PetsSourceCard(uiState, onPetsSource) }
+            }
         }
     }
 }

@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Pets list: adding a pet, and whose pets the devices recognise in proxy mode. -->
+    <string name="pets_add">Add a pet</string>
+    <string name="pets_source_title">Pets for recognition</string>
+    <string name="pets_source_petkit">PetKit</string>
+    <string name="pets_source_local">petkit-local</string>
+    <string name="pets_source_petkit_detail">The pets and photos of PetKit\'s app</string>
+    <string name="pets_source_local_detail">The pets and photos managed here</string>
+    <string name="pets_source_explanation">Your server relays PetKit\'s cloud, so the cameras can recognise the pets of PetKit\'s app or the ones here. A camera switches at its next check, within about an hour.</string>
+    <string name="pets_source_petkit_warning">With PetKit, the pets and photos edited here are not used for recognition.</string>
+    <string name="pets_source_failed">The setting could not be changed. %1$s</string>
+    <!-- Pet page. -->
+    <string name="pet_edit">Edit %1$s</string>
+    <string name="pet_photos_card">Recognition photos</string>
+    <plurals name="pet_photos_count">
+        <item quantity="one">%1$d photo of its head</item>
+        <item quantity="other">%1$d photos of its head</item>
+    </plurals>
+    <string name="pet_photos_none">No photo yet: cameras cannot recognise it by its face.</string>
+    <string name="pet_photos_manage">Manage photos</string>
+    <!-- Pet editor. -->
+    <string name="pet_editor_new_title">New pet</string>
+    <string name="pet_editor_edit_title">Edit %1$s</string>
+    <string name="pet_editor_name">Name</string>
+    <string name="pet_editor_name_missing">Give it a name.</string>
+    <string name="pet_editor_weight">Weight (kg)</string>
+    <string name="pet_editor_weight_hint">Optional. A litter box compares each visit with it until it has learned the weight from the visits.</string>
+    <string name="pet_editor_weight_invalid">Enter a weight in kilograms, for example 4.2.</string>
+    <string name="pet_editor_weight_range">Enter a weight above 0 and up to 100 kg.</string>
+    <string name="pet_editor_devices">Recognised by</string>
+    <string name="pet_editor_devices_hint">The cameras that recognise pets by their face, from the photos of its head.</string>
+    <string name="pet_editor_devices_none">None of your devices recognises pets by their face. Litter boxes tell pets apart by their weight.</string>
+    <string name="pet_editor_device_offline">%1$s · offline</string>
+    <string name="pet_editor_save">Save</string>
+    <string name="pet_editor_create">Add the pet</string>
+    <string name="pet_editor_saving">Saving…</string>
+    <string name="pet_editor_delete">Delete this pet</string>
+    <string name="pet_editor_deleting">Deleting…</string>
+    <string name="pet_editor_delete_title">Delete %1$s?</string>
+    <string name="pet_editor_delete_message">Its photos go too. Its visits stay in History, without its name. This cannot be undone.</string>
+    <string name="pet_editor_delete_confirm">Delete</string>
+    <string name="pet_editor_gone">This pet is no longer on the server.</string>
+    <!-- Photos. -->
+    <string name="pet_photos_title">Photos of %1$s</string>
+    <string name="pet_photos_intro">A camera that recognises pets by their face compares each visit with these photos of the head. Several, in different light, work best.</string>
+    <plurals name="pet_photos_limit">
+        <item quantity="one">%1$d photo at most.</item>
+        <item quantity="other">%1$d photos at most.</item>
+    </plurals>
+    <string name="pet_photos_no_device">No camera that recognises faces is assigned to %1$s, so these photos are not used yet.</string>
+    <string name="pet_photos_choose_devices">Choose its cameras</string>
+    <string name="pet_photos_empty">No photo yet.</string>
+    <string name="pet_photos_add">Add a photo</string>
+    <string name="pet_photos_uploading">Sending the photo…</string>
+    <plurals name="pet_photos_at_limit">
+        <item quantity="one">%1$s already has %2$d photo, the most a pet can have here. Delete it to add another.</item>
+        <item quantity="other">%1$s already has %2$d photos, the most a pet can have. Delete one to add another.</item>
+    </plurals>
+    <string name="pet_photos_added">Photo added. The cameras take it in at their next check.</string>
+    <string name="pet_photo_description">Photo %1$d of %2$s</string>
+    <string name="pet_photo_delete">Delete photo %1$d</string>
+    <string name="pet_photo_delete_title">Delete this photo?</string>
+    <string name="pet_photo_delete_message">A camera keeps what it learned from it until its next check, within about an hour.</string>
+    <string name="pet_photo_recognised_by">Recognised by %1$s</string>
+    <string name="pet_photo_waiting_for">Waiting for %1$s</string>
+    <!-- Tips before taking or choosing a photo. -->
+    <string name="pet_tips_title">A good photo</string>
+    <string name="pet_tips_intro">The camera matches a pet by its head. Give it a clear close-up.</string>
+    <string name="pet_tips_good">Like this: one pet, its head facing the camera and filling the frame, in good light, sharp.</string>
+    <string name="pet_tips_bad">Not like this</string>
+    <string name="pet_tips_two_pets">Two pets</string>
+    <string name="pet_tips_side">Head turned away</string>
+    <string name="pet_tips_far">Too far</string>
+    <string name="pet_tips_dark">Too dark</string>
+    <string name="pet_tips_blurry">Blurred</string>
+    <string name="pet_tips_good_label">Good</string>
+    <string name="pet_tips_bad_label">Not good</string>
+    <string name="pet_tips_take">Take a photo</string>
+    <string name="pet_tips_choose">Choose from the gallery</string>
+    <string name="pet_tips_no_camera">No camera app could be opened. Choose a photo from the gallery instead.</string>
+    <!-- Crop. -->
+    <string name="pet_crop_title">Frame the head</string>
+    <string name="pet_crop_hint">Drag and pinch until the head fills the square.</string>
+    <string name="pet_crop_area">Photo to frame. Drag to move it, pinch to zoom.</string>
+    <string name="pet_crop_zoom_in">Zoom in</string>
+    <string name="pet_crop_zoom_out">Zoom out</string>
+    <string name="pet_crop_use">Use this square</string>
+    <string name="pet_crop_other">Choose another photo</string>
+    <string name="pet_crop_loading">Opening the photo…</string>
+    <string name="pet_crop_unreadable">This photo could not be opened. Choose another one.</string>
+    <plurals name="pet_crop_too_small">
+        <item quantity="one">The square is %1$d pixels wide: too small to recognise a face. Zoom out, or use a sharper photo (at least %2$d pixels).</item>
+        <item quantity="other">The square is %1$d pixels wide: too small to recognise a face. Zoom out, or use a sharper photo (at least %2$d pixels).</item>
+    </plurals>
+    <!-- After the upload. -->
+    <string name="pet_review_title">Check this photo</string>
+    <string name="pet_review_intro">The photo was saved, but the server found what may make it harder to recognise:</string>
+    <string name="pet_review_blurry">It looks blurred.</string>
+    <string name="pet_review_too_dark">It is too dark.</string>
+    <string name="pet_review_overexposed">It is too bright: parts of it are washed out.</string>
+    <string name="pet_review_not_square">It is far from square: is it cropped around the head?</string>
+    <string name="pet_review_keep">Keep anyway</string>
+    <string name="pet_review_retake">Retake</string>
+    <!-- Errors of the writes. -->
+    <string name="pet_error_unreachable">The server cannot be reached. Nothing was changed.</string>
+    <string name="pet_error_refused">The server refused it: %1$s</string>
+    <string name="pet_error_server">The server could not do it. Try again in a moment.</string>
+    <string name="pet_error_too_large">This photo is too large for the server (16 MB at most).</string>
+    <string name="pet_error_too_small">This photo is too small for the server: at least 224 pixels on its short side.</string>
+    <string name="pet_error_not_jpeg">The server takes JPEG photos only.</string>
+    <string name="pet_error_not_stored">The server could not store the photo. Is its disk full?</string>
+    <string name="pet_error_too_old">The server is too old to manage pets from the app. Update petkit-local.</string>
+</resources>

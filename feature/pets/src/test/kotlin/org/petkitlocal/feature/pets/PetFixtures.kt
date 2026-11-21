@@ -6,13 +6,24 @@ import java.time.ZonedDateTime
 import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.core.domain.home.PetOverview
 import org.petkitlocal.core.domain.model.PetActivity
+import org.petkitlocal.core.domain.model.PetFace
 import org.petkitlocal.core.domain.model.PetStats
 import org.petkitlocal.core.domain.model.TimelineCategory
 import org.petkitlocal.core.domain.model.TimelineItem
 import org.petkitlocal.core.domain.model.WeightSample
+import org.petkitlocal.core.domain.pets.FaceWarning
+import org.petkitlocal.core.domain.pets.PetPhotosContent
 import org.petkitlocal.core.domain.pets.PetRules
+import org.petkitlocal.core.domain.pets.PetsSource
+import org.petkitlocal.core.domain.pets.PetsSourceSetting
 import org.petkitlocal.core.domain.pets.WeightRange
 import org.petkitlocal.core.testing.Household
+import org.petkitlocal.feature.pets.edit.PetEditUiState
+import org.petkitlocal.feature.pets.edit.WeightProblem
+import org.petkitlocal.feature.pets.photos.CropProblem
+import org.petkitlocal.feature.pets.photos.PetPhotosUiState
+import org.petkitlocal.feature.pets.photos.PhotoNotice
+import org.petkitlocal.feature.pets.photos.PhotoStep
 
 /** The household's two cats as the pet screens show them, on the morning of Household.today. */
 @Suppress("MagicNumber") // Fixture data.
@@ -20,8 +31,17 @@ object PetFixtures {
     private val today = Household.today
     private val zone = Household.zone
 
-    /** Mochi has reference faces, so a photo; the screenshots show her initial, since none is fetched. */
-    val mochi = Household.pets[0].copy(photoUrl = "https://petkit.invalid/app/v1/pets/1/photo")
+    /**
+     * Mochi has two reference faces, so a photo; the screenshots show her initial and placeholders,
+     * since none is fetched. The T5 took both in; the W7H has not yet taken the second.
+     */
+    val mochi = Household.pets[0].copy(
+        photoUrl = "https://petkit.invalid/app/v1/pets/1/faces/11/photo",
+        faces = listOf(
+            PetFace(11, "https://petkit.invalid/app/v1/pets/1/faces/11/photo", listOf(1003, 3001), emptyList()),
+            PetFace(12, "https://petkit.invalid/app/v1/pets/1/faces/12/photo", listOf(1003), listOf(3001)),
+        ),
+    )
     val tigrou = Household.pets[1]
     val pets = listOf(mochi, tigrou)
 
@@ -73,6 +93,14 @@ object PetFixtures {
     val halfYearWeights: List<WeightSample> = (0L until 70L step 2).map { daysAgo ->
         WeightSample(1000 + daysAgo, at(today.minusDays(daysAgo), 8), (4150 + (70 - daysAgo) * 2).toInt())
     }
+
+    /** The household's devices; the T5 and the W7H recognise pets by their face. */
+    val devices = Household.devices.map { if (it.id in setOf(1003L, 3001L)) it.copy(supportsAi = true) else it }
+
+    private val recognitionDevices = devices.filter { it.supportsAi }
+
+    /** The two cats as the repository has them: Mochi with her two faces. */
+    val petsWithFaces = listOf(mochi, tigrou)
 
     private fun page(
         activity: PetActivity? = this.activity,
@@ -126,5 +154,64 @@ object PetFixtures {
 
     val list = PetsUiState(
         pets = listOf(PetOverview(mochi, 0, visitsToday = 3), PetOverview(tigrou, 1, visitsToday = 1)),
+    )
+
+    val petsSourceSetting =
+        PetsSourceSetting(PetsSource.PetKit, proxyMode = true, PetsSource.PetKit, PetsSource.entries)
+
+    /** The list in proxy mode: whose pets the cameras recognise, PetKit's for now. */
+    val listInProxyMode = list.copy(petsSource = petsSourceSetting)
+
+    val listEmpty = PetsUiState(pets = emptyList())
+
+    val editNew = PetEditUiState(isNew = true, loaded = true, devices = recognitionDevices)
+
+    val editMochi = PetEditUiState(
+        isNew = false,
+        pet = mochi,
+        loaded = true,
+        name = "Mochi",
+        weight = "4.2",
+        selected = mochi.deviceIds.toSet(),
+        devices = recognitionDevices,
+    )
+
+    /** Saved with nothing in the name, a weight out of range, and the server unreachable before that. */
+    val editProblems = editNew.copy(
+        name = "",
+        weight = "140",
+        nameMissing = true,
+        weightProblem = WeightProblem.OutOfRange,
+        error = DomainError.Network(),
+    )
+
+    val editNoDevice = editNew.copy(devices = emptyList(), name = "Nala")
+
+    val photos = PetPhotosUiState(
+        petId = 1,
+        content = PetPhotosContent(mochi, colorIndex = 0, devices = recognitionDevices, allDevices = devices),
+        cacheLoaded = true,
+        maxFaces = 6,
+        loading = false,
+    )
+
+    /** Add pressed with the most photos a pet may have (two, on a stricter server). */
+    val photosAtLimit = photos.copy(maxFaces = 2, notice = PhotoNotice.AtLimit(2))
+
+    /** Tigrou: no photo yet, and no camera that recognises faces assigned. */
+    val photosEmpty = PetPhotosUiState(
+        petId = 2,
+        content = PetPhotosContent(tigrou, colorIndex = 1, devices = emptyList()),
+        cacheLoaded = true,
+        maxFaces = 6,
+        loading = false,
+    )
+
+    val tips = photos.copy(step = PhotoStep.Tips())
+
+    val crop = photos.copy(step = PhotoStep.Crop("content://photo/1", CropProblem.TooSmall(180)))
+
+    val review = photos.copy(
+        step = PhotoStep.Review(mochi.faces[1], listOf(FaceWarning.Blurry, FaceWarning.TooDark)),
     )
 }

@@ -217,7 +217,9 @@ object DescriptorChecker {
         // An optional request field may be nullable in Kotlin: null means "not sent".
         val nullableOnlyInDto = !propShape.nullable && element.isNullable && propShape !is Shape.AnyValue
         // Except a property an older server does not send: the DTO reads its absence as null.
-        val absentFromOlderServers = name in PendingContract.ABSENT_FROM_OLDER_SERVERS[shape.name].orEmpty()
+        // An inline schema has no name: its DTO's stands for it.
+        val schemaName = shape.name ?: descriptor.serialName.substringAfterLast('.')
+        val absentFromOlderServers = name in PendingContract.ABSENT_FROM_OLDER_SERVERS[schemaName].orEmpty()
         if (required && nullableOnlyInDto && !absentFromOlderServers) {
             errors += "$where.$name: never null in the schema, nullable in the DTO"
         }

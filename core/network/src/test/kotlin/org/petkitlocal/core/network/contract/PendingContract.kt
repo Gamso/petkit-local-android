@@ -32,9 +32,21 @@ object PendingContract {
      *
      * `talk` (petkit-local#108): whether the camera can be talked through; such a server has no
      * talk route either, and the app says it is too old to talk.
+     *
+     * `supports_ai` and `faces` (petkit-local#131): which devices recognise pets by their face,
+     * and a pet's face photos; such a server cannot manage pets either, and the app offers no
+     * device and lists no photo.
+     *
+     * `accepted_by`, `waiting_for` and the upload's `quality` (petkit-local#132): which devices
+     * took a photo in, and what the server found wrong with it; the app says nothing of either.
+     * The upload's answer is an inline schema, named here by its DTO.
      */
     val ABSENT_FROM_OLDER_SERVERS: Map<String, Set<String>> = mapOf(
-        "DeviceSummary" to setOf("model_name", "talk"),
-        "DeviceDetail" to setOf("model_name", "talk"),
+        "DeviceSummary" to setOf("model_name", "talk", "supports_ai"),
+        "DeviceDetail" to setOf("model_name", "talk", "supports_ai"),
+        "Pet" to setOf("faces"),
+        "PetDetail" to setOf("faces"),
+        "PetFace" to setOf("accepted_by", "waiting_for"),
+        "PetFaceResultDto" to setOf("quality"),
     )
 }

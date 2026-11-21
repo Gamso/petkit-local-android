@@ -13,10 +13,12 @@ import org.petkitlocal.core.database.di.DatabaseModule
 import org.robolectric.RobolectricTestRunner
 
 /**
- * An installed development build holding an older schema must open, rebuilt, with the app's own
- * builder (`DatabaseModule`) — not crash on start. It did, twice: once with a schema changed under
- * the same version number, once because `fallbackToDestructiveMigrationOnDowngrade` turned
- * required migrations back on. Until the first release there is no migration (PetkitDatabase).
+ * An installed development build from before the first release, and a newer app's database after a
+ * downgrade, must open, rebuilt, with the app's own builder (`DatabaseModule`), not crash on
+ * start. It did, twice: once with a schema changed under the same version number, once because
+ * `fallbackToDestructiveMigrationOnDowngrade` was added next to `fallbackToDestructiveMigration`
+ * and turned required migrations back on. A released schema is migrated instead
+ * (PetkitDatabaseMigrationTest).
  */
 @RunWith(RobolectricTestRunner::class)
 class OlderDevDatabaseTest {
@@ -30,16 +32,29 @@ class OlderDevDatabaseTest {
     }
 
     @Test
-    fun `an older development database is rebuilt instead of crashing`() = runTest {
-        if (PetkitDatabase.VERSION == 1) return@runTest // Nothing older can be installed yet.
-        SQLiteDatabase.openOrCreateDatabase(context.getDatabasePath(PetkitDatabase.NAME), null).use { old ->
-            old.execSQL("CREATE TABLE devices (id INTEGER PRIMARY KEY NOT NULL, model TEXT NOT NULL)")
-            old.execSQL("INSERT INTO devices (id, model) VALUES (1002, 'Pura Max')")
-            old.version = PetkitDatabase.VERSION - 1
-        }
+    fun `a development database from before the first release is rebuilt instead of crashing`() = runTest {
+        install(version = PetkitDatabase.OLDEST_SUPPORTED_VERSION - 1)
 
         val opened = DatabaseModule.database(context).also { database = it }
 
         assertEquals(emptyList<Any>(), opened.deviceDao().observeDevices().first())
+    }
+
+    @Test
+    fun `a newer app's database is rebuilt after a downgrade`() = runTest {
+        install(version = PetkitDatabase.VERSION + 1)
+
+        val opened = DatabaseModule.database(context).also { database = it }
+
+        assertEquals(emptyList<Any>(), opened.deviceDao().observeDevices().first())
+    }
+
+    /** A database file of [version] that is not this app's schema at all. */
+    private fun install(version: Int) {
+        SQLiteDatabase.openOrCreateDatabase(context.getDatabasePath(PetkitDatabase.NAME), null).use { old ->
+            old.execSQL("CREATE TABLE devices (id INTEGER PRIMARY KEY NOT NULL, model TEXT NOT NULL)")
+            old.execSQL("INSERT INTO devices (id, model) VALUES (1002, 'Pura Max')")
+            old.version = version
+        }
     }
 }

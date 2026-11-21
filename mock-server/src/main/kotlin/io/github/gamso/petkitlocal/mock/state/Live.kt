@@ -53,7 +53,7 @@ fun World.playVisit(
     later(config.visitSec) {
         if (!alive(device)) return@later
         val duration = durationSec ?: random.nextInt(35, 190)
-        val weight = weightG ?: pet?.let { (it.weightG * (1 + random.nextDouble(-0.02, 0.02))).roundToInt() } ?: random.nextInt(3500, 6500)
+        val weight = weightG ?: pet?.weightG?.let { (it * (1 + random.nextDouble(-0.02, 0.02))).roundToInt() } ?: random.nextInt(3500, 6500)
         val now = clock.now()
         val finished =
             change(device) {

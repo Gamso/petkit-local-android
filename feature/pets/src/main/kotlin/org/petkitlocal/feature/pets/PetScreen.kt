@@ -30,8 +30,10 @@ import java.time.LocalDate
 import org.petkitlocal.core.designsystem.component.PkBackButton
 import org.petkitlocal.core.designsystem.component.PkEmptyView
 import org.petkitlocal.core.designsystem.component.PkErrorView
+import org.petkitlocal.core.designsystem.component.PkIconButton
 import org.petkitlocal.core.designsystem.component.PkLoadingView
 import org.petkitlocal.core.designsystem.component.PkOfflineBanner
+import org.petkitlocal.core.designsystem.icon.PkIcons
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.pets.PetPage
 import org.petkitlocal.core.domain.pets.WeightRange
@@ -46,6 +48,8 @@ data class PetCallbacks(
     val onRetryWeights: () -> Unit = {},
     /** History narrowed to the pet, on a visit's day or (null) on today. */
     val onOpenHistory: (LocalDate?) -> Unit = {},
+    val onEdit: () -> Unit = {},
+    val onOpenPhotos: () -> Unit = {},
 )
 
 @Composable
@@ -61,6 +65,8 @@ internal fun PetRoute(navigation: PetsNavigation, viewModel: PetViewModel = hilt
             onRetry = viewModel::onRetry,
             onRetryWeights = viewModel::onRetryWeights,
             onOpenHistory = { day -> navigation.onOpenHistory(uiState.petId, day) },
+            onEdit = { navigation.onEditPet(uiState.petId) },
+            onOpenPhotos = { navigation.onOpenPhotos(uiState.petId) },
         ),
     )
 }
@@ -125,6 +131,7 @@ private fun LazyListScope.petContent(page: PetPage, uiState: PetUiState, callbac
         }
     }
     item(key = "tiles") { PetTiles(page, uiState.today, uiState.zone, gutter) }
+    item(key = "photos") { PhotosCard(page.pet, onOpen = callbacks.onOpenPhotos, modifier = gutter) }
     item(key = "weight") {
         WeightCard(
             trend = page.trend,
@@ -159,9 +166,20 @@ private fun PetTop(uiState: PetUiState, callbacks: PetCallbacks) {
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             PkBackButton(onClick = callbacks.onBack)
+            Spacer(Modifier.width(PkTheme.spacing.s))
             if (uiState.pets.size > 1) {
-                Spacer(Modifier.width(PkTheme.spacing.s))
                 PetSwitcher(uiState.pets, uiState.petId, callbacks.onSelectPet, Modifier.weight(1f))
+            } else {
+                Spacer(Modifier.weight(1f))
+            }
+            uiState.page?.let { page ->
+                Spacer(Modifier.width(PkTheme.spacing.xs))
+                PkIconButton(
+                    PkIcons.Edit,
+                    contentDescription = stringResource(R.string.pet_edit, page.pet.name),
+                    onClick = callbacks.onEdit,
+                    modifier = Modifier.testTag(PetsTestTags.EDIT),
+                )
             }
         }
         uiState.page?.let { PetProfile(it) }

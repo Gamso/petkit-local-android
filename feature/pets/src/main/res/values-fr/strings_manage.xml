@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Pets list: adding a pet, and whose pets the devices recognise in proxy mode. -->
+    <string name="pets_add">Ajouter un animal</string>
+    <string name="pets_source_title">Animaux pour la reconnaissance</string>
+    <string name="pets_source_petkit">PetKit</string>
+    <string name="pets_source_local">petkit-local</string>
+    <string name="pets_source_petkit_detail">Les animaux et les photos de l\'app PetKit</string>
+    <string name="pets_source_local_detail">Les animaux et les photos gérés ici</string>
+    <string name="pets_source_explanation">Votre serveur relaie le cloud PetKit : les caméras peuvent reconnaître les animaux de l\'app PetKit ou ceux d\'ici. Une caméra change à sa prochaine vérification, en moins d\'une heure environ.</string>
+    <string name="pets_source_petkit_warning">Avec PetKit, les animaux et les photos modifiés ici ne servent pas à la reconnaissance.</string>
+    <string name="pets_source_failed">Le réglage n\'a pas pu être changé. %1$s</string>
+    <!-- Pet page. -->
+    <string name="pet_edit">Modifier %1$s</string>
+    <string name="pet_photos_card">Photos de reconnaissance</string>
+    <plurals name="pet_photos_count">
+        <item quantity="one">%1$d photo de sa tête</item>
+        <item quantity="many">%1$d photos de sa tête</item>
+        <item quantity="other">%1$d photos de sa tête</item>
+    </plurals>
+    <string name="pet_photos_none">Aucune photo : les caméras ne peuvent pas le reconnaître à son visage.</string>
+    <string name="pet_photos_manage">Gérer les photos</string>
+    <!-- Pet editor. -->
+    <string name="pet_editor_new_title">Nouvel animal</string>
+    <string name="pet_editor_edit_title">Modifier %1$s</string>
+    <string name="pet_editor_name">Nom</string>
+    <string name="pet_editor_name_missing">Donnez-lui un nom.</string>
+    <string name="pet_editor_weight">Poids (kg)</string>
+    <string name="pet_editor_weight_hint">Facultatif. Une litière compare chaque passage à ce poids, jusqu\'à ce qu\'elle l\'ait appris des passages.</string>
+    <string name="pet_editor_weight_invalid">Indiquez un poids en kilos, par exemple 4,2.</string>
+    <string name="pet_editor_weight_range">Indiquez un poids supérieur à 0 et d\'au plus 100 kg.</string>
+    <string name="pet_editor_devices">Reconnu par</string>
+    <string name="pet_editor_devices_hint">Les caméras qui reconnaissent les animaux à leur visage, d\'après les photos de sa tête.</string>
+    <string name="pet_editor_devices_none">Aucun de vos appareils ne reconnaît les animaux à leur visage. Les litières les distinguent par leur poids.</string>
+    <string name="pet_editor_device_offline">%1$s · hors ligne</string>
+    <string name="pet_editor_save">Enregistrer</string>
+    <string name="pet_editor_create">Ajouter l\'animal</string>
+    <string name="pet_editor_saving">Enregistrement…</string>
+    <string name="pet_editor_delete">Supprimer cet animal</string>
+    <string name="pet_editor_deleting">Suppression…</string>
+    <string name="pet_editor_delete_title">Supprimer %1$s ?</string>
+    <string name="pet_editor_delete_message">Ses photos partent aussi. Ses passages restent dans l\'historique, sans son nom. C\'est définitif.</string>
+    <string name="pet_editor_delete_confirm">Supprimer</string>
+    <string name="pet_editor_gone">Cet animal n\'est plus sur le serveur.</string>
+    <!-- Photos. -->
+    <string name="pet_photos_title">Photos de %1$s</string>
+    <string name="pet_photos_intro">Une caméra qui reconnaît les animaux à leur visage compare chaque passage à ces photos de la tête. Plusieurs, sous différentes lumières, donnent les meilleurs résultats.</string>
+    <plurals name="pet_photos_limit">
+        <item quantity="one">%1$d photo au plus.</item>
+        <item quantity="many">%1$d photos au plus.</item>
+        <item quantity="other">%1$d photos au plus.</item>
+    </plurals>
+    <string name="pet_photos_no_device">Aucune caméra qui reconnaît les visages n\'est attribuée à %1$s : ces photos ne servent pas encore.</string>
+    <string name="pet_photos_choose_devices">Choisir ses caméras</string>
+    <string name="pet_photos_empty">Aucune photo pour l\'instant.</string>
+    <string name="pet_photos_add">Ajouter une photo</string>
+    <string name="pet_photos_uploading">Envoi de la photo…</string>
+    <plurals name="pet_photos_at_limit">
+        <item quantity="one">%1$s a déjà %2$d photo, le maximum pour un animal ici. Supprimez-la pour en ajouter une autre.</item>
+        <item quantity="many">%1$s a déjà %2$d photos, le maximum pour un animal. Supprimez-en une pour en ajouter une autre.</item>
+        <item quantity="other">%1$s a déjà %2$d photos, le maximum pour un animal. Supprimez-en une pour en ajouter une autre.</item>
+    </plurals>
+    <string name="pet_photos_added">Photo ajoutée. Les caméras la prennent en compte à leur prochaine vérification.</string>
+    <string name="pet_photo_description">Photo %1$d de %2$s</string>
+    <string name="pet_photo_delete">Supprimer la photo %1$d</string>
+    <string name="pet_photo_delete_title">Supprimer cette photo ?</string>
+    <string name="pet_photo_delete_message">Une caméra garde ce qu\'elle en a appris jusqu\'à sa prochaine vérification, en moins d\'une heure environ.</string>
+    <string name="pet_photo_recognised_by">Reconnue par %1$s</string>
+    <string name="pet_photo_waiting_for">En attente de %1$s</string>
+    <!-- Tips before taking or choosing a photo. -->
+    <string name="pet_tips_title">Une bonne photo</string>
+    <string name="pet_tips_intro">La caméra reconnaît un animal à sa tête. Donnez-lui un gros plan net.</string>
+    <string name="pet_tips_good">Comme ceci : un seul animal, la tête face à l\'appareil et remplissant le cadre, bien éclairée, nette.</string>
+    <string name="pet_tips_bad">Pas comme cela</string>
+    <string name="pet_tips_two_pets">Deux animaux</string>
+    <string name="pet_tips_side">Tête détournée</string>
+    <string name="pet_tips_far">Trop loin</string>
+    <string name="pet_tips_dark">Trop sombre</string>
+    <string name="pet_tips_blurry">Floue</string>
+    <string name="pet_tips_good_label">Bonne</string>
+    <string name="pet_tips_bad_label">Pas bonne</string>
+    <string name="pet_tips_take">Prendre une photo</string>
+    <string name="pet_tips_choose">Choisir dans la galerie</string>
+    <string name="pet_tips_no_camera">Aucune app d\'appareil photo n\'a pu être ouverte. Choisissez plutôt une photo dans la galerie.</string>
+    <!-- Crop. -->
+    <string name="pet_crop_title">Cadrer la tête</string>
+    <string name="pet_crop_hint">Faites glisser et pincez jusqu\'à ce que la tête remplisse le carré.</string>
+    <string name="pet_crop_area">Photo à cadrer. Faites glisser pour la déplacer, pincez pour zoomer.</string>
+    <string name="pet_crop_zoom_in">Zoomer</string>
+    <string name="pet_crop_zoom_out">Dézoomer</string>
+    <string name="pet_crop_use">Utiliser ce carré</string>
+    <string name="pet_crop_other">Choisir une autre photo</string>
+    <string name="pet_crop_loading">Ouverture de la photo…</string>
+    <string name="pet_crop_unreadable">Cette photo n\'a pas pu être ouverte. Choisissez-en une autre.</string>
+    <plurals name="pet_crop_too_small">
+        <item quantity="one">Le carré fait %1$d pixels de large : trop petit pour reconnaître un visage. Dézoomez, ou prenez une photo plus nette (au moins %2$d pixels).</item>
+        <item quantity="many">Le carré fait %1$d pixels de large : trop petit pour reconnaître un visage. Dézoomez, ou prenez une photo plus nette (au moins %2$d pixels).</item>
+        <item quantity="other">Le carré fait %1$d pixels de large : trop petit pour reconnaître un visage. Dézoomez, ou prenez une photo plus nette (au moins %2$d pixels).</item>
+    </plurals>
+    <!-- After the upload. -->
+    <string name="pet_review_title">Vérifiez cette photo</string>
+    <string name="pet_review_intro">La photo est enregistrée, mais le serveur y a trouvé ce qui peut gêner la reconnaissance :</string>
+    <string name="pet_review_blurry">Elle semble floue.</string>
+    <string name="pet_review_too_dark">Elle est trop sombre.</string>
+    <string name="pet_review_overexposed">Elle est trop claire : des zones sont délavées.</string>
+    <string name="pet_review_not_square">Elle est loin d\'être carrée : est-elle cadrée sur la tête ?</string>
+    <string name="pet_review_keep">La garder quand même</string>
+    <string name="pet_review_retake">En prendre une autre</string>
+    <!-- Errors of the writes. -->
+    <string name="pet_error_unreachable">Le serveur est injoignable. Rien n\'a été changé.</string>
+    <string name="pet_error_refused">Le serveur a refusé : %1$s</string>
+    <string name="pet_error_server">Le serveur n\'a pas pu le faire. Réessayez dans un instant.</string>
+    <string name="pet_error_too_large">Cette photo est trop lourde pour le serveur (16 Mo au plus).</string>
+    <string name="pet_error_too_small">Cette photo est trop petite pour le serveur : au moins 224 pixels sur son petit côté.</string>
+    <string name="pet_error_not_jpeg">Le serveur n\'accepte que les photos JPEG.</string>
+    <string name="pet_error_not_stored">Le serveur n\'a pas pu enregistrer la photo. Son disque est-il plein ?</string>
+    <string name="pet_error_too_old">Le serveur est trop ancien pour gérer les animaux depuis l\'app. Mettez petkit-local à jour.</string>
+</resources>

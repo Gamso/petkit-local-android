@@ -105,7 +105,7 @@ in CI fails the build if a feature imports a data-layer package.
 - **Repositories**: single source of truth in Room for devices, pets and timeline pages.
   - REST refreshes write to Room.
   - WebSocket messages patch Room (`hello` replaces, `state` patches entity values, `timeline` upserts by id with
-    `replaces`).
+    `replaces`, `pet` upserts a pet in its place, `pet_removed` drops it).
   - ViewModels only observe Room flows, so UI is the same online and offline.
 - **Writes**: always server-first; the cache updates when the WebSocket (or a refetch) confirms.
   No optimistic UI for device commands: a litter box that did not start must not look like it did.
