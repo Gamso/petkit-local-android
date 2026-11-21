@@ -15,8 +15,6 @@ import io.github.gamso.petkitlocal.mock.api.Info
 import io.github.gamso.petkitlocal.mock.api.LoginResponse
 import io.github.gamso.petkitlocal.mock.api.NotificationSettings
 import io.github.gamso.petkitlocal.mock.api.Ok
-import io.github.gamso.petkitlocal.mock.api.PetDetail
-import io.github.gamso.petkitlocal.mock.api.PetDto
 import io.github.gamso.petkitlocal.mock.api.TimelinePage
 import io.github.gamso.petkitlocal.mock.api.WriteResult
 import io.github.gamso.petkitlocal.mock.media.MediaFactory
@@ -91,7 +89,7 @@ internal fun ApplicationCall.pathParameters(): Parameters =
  * A numeric path segment; anything else is a 404, since no such thing can exist. Path only:
  * `parameters` also holds the query, where HLS has an `id` of its own.
  */
-private fun ApplicationCall.pathInt(
+internal fun ApplicationCall.pathInt(
     name: String,
     what: String,
 ): Int {
@@ -416,25 +414,6 @@ suspend fun ApplicationCall.respondRange(
     }
     response.header(HttpHeaders.ContentRange, "bytes $start-$end/$size")
     respondBytes(bytes.copyOfRange(start.toInt(), end.toInt() + 1), type, HttpStatusCode.PartialContent)
-}
-
-private fun Route.petRoutes(world: World) {
-    get("/pets") {
-        val pets = synchronized(world.lock) { world.pets.values.map { it.dto() } }
-        call.respondJson(MapSerializer(String.serializer(), ListSerializer(PetDto.serializer())), mapOf("pets" to pets))
-    }
-    get("/pets/{id}") {
-        val id = call.pathInt("id", "pet")
-        val detail =
-            synchronized(world.lock) { world.pets[id]?.let(world::petDetail) } ?: throw ApiException(404, "pet_not_found", "no such pet")
-        call.respondJson(MapSerializer(String.serializer(), PetDetail.serializer()), mapOf("pet" to detail))
-    }
-    get("/pets/{id}/photo") {
-        val id = call.pathInt("id", "pet")
-        val pet = synchronized(world.lock) { world.pets[id] } ?: throw ApiException(404, "pet_not_found", "no such pet")
-        if (!pet.hasPhoto) throw ApiException(404, "photo_not_found", "this pet has no photo")
-        call.respondBytes(MediaFactory.jpeg(320, 320, pet.id * 7), ContentType.Image.JPEG)
-    }
 }
 
 /**

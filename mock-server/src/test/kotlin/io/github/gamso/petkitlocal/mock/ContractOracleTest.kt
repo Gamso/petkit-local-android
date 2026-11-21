@@ -9,7 +9,7 @@ class ContractOracleTest {
     private val summary =
         """{"id":1,"type":"t4","model":"Pura Max","model_name":"Pura Max","generation":null,""" +
             """"kind":"litter_box","online":true,"transport":"http",""" +
-            """"last_seen":null,"firmware":null,"is_camera":false,"talk":"unsupported","connection":"wifi","parent_id":null,"accessories":[]}"""
+            """"last_seen":null,"firmware":null,"is_camera":false,"talk":"unsupported","supports_ai":false,"connection":"wifi","parent_id":null,"accessories":[]}"""
 
     private fun check(
         status: Int,

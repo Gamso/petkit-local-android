@@ -24,6 +24,8 @@ info:
     holds an MQTT session, otherwise queued for its next HTTP poll. Each answers
     `delivered`: `mqtt`, `queued`, or `local` when only petkit-local's own state
     changed. A device confirms a write in its next report, which `/ws` relays.
+    A pet write changes only petkit-local's own state, and answers the pet (or the
+    face photo) as it now is.
 
     Bluetooth accessories (W5/W4/CTW2/CTW3 fountains, the K3 Pura Air) are devices
     here too, under their own id, as in Home Assistant: `connection` is `ble`,
@@ -46,6 +48,7 @@ tags:
   - name: timeline
   - name: media
   - name: pets
+  - name: settings
   - name: controls
   - name: feeding
   - name: push
@@ -746,6 +749,33 @@ paths:
                     items: { $ref: "#/components/schemas/Pet" }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "503": { $ref: "#/components/responses/Unavailable" }
+    post:
+      tags: [pets]
+      operationId: createPet
+      summary: Create a pet.
+      description: |
+        Published to Home Assistant as its own device at once, as a pet created in
+        the panel is, and sent to every `/ws` socket as a `pet` message. Add its face
+        photos with `POST /pets/{id}/faces`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PetCreateRequest" }
+      responses:
+        "201":
+          description: Created.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [pet]
+                properties:
+                  pet: { $ref: "#/components/schemas/Pet" }
+        "400": { $ref: "#/components/responses/InvalidPet" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "415": { $ref: "#/components/responses/UnsupportedMediaType" }
+        "503": { $ref: "#/components/responses/Unavailable" }
 
   /pets/{id}:
     get:
@@ -767,6 +797,57 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { $ref: "#/components/responses/NotFound" }
         "503": { $ref: "#/components/responses/Unavailable" }
+    patch:
+      tags: [pets]
+      operationId: updatePet
+      summary: Rename a pet, change its weight or its devices.
+      description: |
+        Only the fields sent change. A `weight_g` that changes the weight, or
+        `reset_learned_weight: true`, also forgets the weight learned from its visits,
+        as in the panel: until enough visits have been credited again, a visit is
+        compared with the weight typed here. Home Assistant is told, and every `/ws`
+        socket gets a `pet` message.
+      parameters:
+        - { $ref: "#/components/parameters/PetId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PetUpdateRequest" }
+      responses:
+        "200":
+          description: Changed.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [pet]
+                properties:
+                  pet: { $ref: "#/components/schemas/Pet" }
+        "400": { $ref: "#/components/responses/InvalidPet" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "415": { $ref: "#/components/responses/UnsupportedMediaType" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+    delete:
+      tags: [pets]
+      operationId: deletePet
+      summary: Delete a pet and every face photo it has.
+      description: |
+        Its visits stay in the history, attributed to its id with no name
+        (`PetRef.name` null), as after a delete in the panel. Every `/ws` socket gets
+        a `pet_removed` message.
+      parameters:
+        - { $ref: "#/components/parameters/PetId" }
+      responses:
+        "200":
+          description: Deleted.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Ok" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "503": { $ref: "#/components/responses/Unavailable" }
 
   /pets/{id}/photo:
     get:
@@ -783,6 +864,196 @@ paths:
               schema: { type: string, contentMediaType: image/jpeg }
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { $ref: "#/components/responses/NotFound" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+
+  /pets/{id}/faces:
+    get:
+      tags: [pets]
+      operationId: listPetFaces
+      summary: A pet's reference face photos, oldest first, and how many it may have.
+      parameters:
+        - { $ref: "#/components/parameters/PetId" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PetFaceList" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+    post:
+      tags: [pets]
+      operationId: addPetFace
+      summary: Add a reference face photo — the body is the JPEG itself.
+      description: |
+        The body is the raw bytes of one JPEG, sent as `image/jpeg`: not a multipart
+        form, and no other image format (the device only ever fetches JPEGs). At most
+        16 MiB. The photo is cropped to a centred square and scaled to 224x224 before
+        it is stored, the size of the face crops the device's recogniser was tuned
+        on, so crop it around the pet's face first for the best match.
+
+        The devices assigned to the pet that recognise pets (`DeviceSummary.supports_ai`)
+        fetch the photo at their next recognition poll, and the pet's visits there are
+        named from then on. A pet has at most `max_faces` photos
+        (`GET /pets/{id}/faces`). Every `/ws` socket gets a `pet` message.
+
+        The photo is checked as uploaded, before it is cropped: one under 224 px on its
+        short side is refused (`photo_too_small`), and `quality` says what else may make
+        it a poor reference — warnings to show, which never block. `face.waiting_for`
+        then lists the devices that are to fetch it; each moves to `accepted_by` once
+        that device reports holding the photo.
+      parameters:
+        - { $ref: "#/components/parameters/PetId" }
+      requestBody:
+        required: true
+        content:
+          image/jpeg:
+            schema: { type: string, contentMediaType: image/jpeg }
+      responses:
+        "201":
+          description: Stored.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [face, quality]
+                properties:
+                  face: { $ref: "#/components/schemas/PetFace" }
+                  quality: { $ref: "#/components/schemas/PhotoQuality" }
+        "400":
+          description: "`bad_request`: the body was empty."
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "409":
+          description: "`too_many_faces`: the pet already has `max_faces` photos. Delete
+            one first."
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "413":
+          description: "`photo_too_large`: the body is over 16 MiB."
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "415":
+          description: "`not_jpeg`: the body is not a JPEG (a form, a PNG, a HEIC...)."
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "422":
+          description: "`photo_too_small`: under 224 px on the short side. It would have to
+            be enlarged to the 224x224 the device's recogniser is fed."
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "500":
+          description: "`photo_not_stored`: the server could not write it (a full disk)."
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+
+  /pets/{id}/faces/{face_id}:
+    delete:
+      tags: [pets]
+      operationId: deletePetFace
+      summary: Delete one reference face photo.
+      description: |
+        A device keeps what it learned from the photo until its next recognition
+        poll, so its matching does not change at once. Every `/ws` socket gets a
+        `pet` message.
+      parameters:
+        - { $ref: "#/components/parameters/PetId" }
+        - { $ref: "#/components/parameters/FaceId" }
+      responses:
+        "200":
+          description: Deleted.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Ok" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404":
+          description: "`pet_not_found`, or `face_not_found` (also for a photo of another
+            pet)."
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+
+  /pets/{id}/faces/{face_id}/photo:
+    get:
+      tags: [pets]
+      operationId: getPetFacePhoto
+      summary: One reference face photo, as stored (224x224).
+      parameters:
+        - { $ref: "#/components/parameters/PetId" }
+        - { $ref: "#/components/parameters/FaceId" }
+      responses:
+        "200":
+          description: The photo.
+          content:
+            image/jpeg:
+              schema: { type: string, contentMediaType: image/jpeg }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404":
+          description: "`pet_not_found`, `face_not_found` (also for a photo of another
+            pet), or `photo_not_found` (its file is gone)."
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+
+  /settings/pets-source:
+    get:
+      tags: [settings]
+      operationId: getPetsSource
+      summary: Whose pets a device recognises while proxy mode is on.
+      description: |
+        `petkit` (the default) relays PetKit's answer to `dev_discern_pic`: the pets
+        and reference photos of PetKit's app. `local` answers it with petkit-local's
+        own pets, the ones `/pets` lists, and does not forward it. With proxy mode off
+        every device gets petkit-local's pets whatever this says, which `effective`
+        reflects. Proxy mode itself is set in the panel only.
+      responses:
+        "200":
+          description: The setting.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PetsSource" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "503": { $ref: "#/components/responses/Unavailable" }
+    patch:
+      tags: [settings]
+      operationId: setPetsSource
+      summary: Choose whose pets a device recognises while proxy mode is on.
+      description: |
+        Applies at each device's next `dev_discern_pic` (a camera asks at boot and
+        about hourly), and survives a restart. The panel shows and changes the same
+        setting (Setup -> Settings, while proxy mode is on). The device replaces the
+        faces it learned from the other set with these; visits recorded before keep
+        their pet.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PetsSourceRequest" }
+      responses:
+        "200":
+          description: Set.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PetsSource" }
+        "400":
+          description: "`bad_parameter` (`pets_source` missing or not one of `options`) or `bad_json`."
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "415": { $ref: "#/components/responses/UnsupportedMediaType" }
         "503": { $ref: "#/components/responses/Unavailable" }
 
   /ws:
@@ -810,6 +1081,11 @@ paths:
           drop those listed in `replaces`: an episode still in progress is keyed on
           its newest report until the one that closes it arrives. For history,
           open the socket first, then `GET /timeline`, and merge by `id`.
+        * `pet` — a pet that is new or changed (renamed, its weight or devices, a
+          face photo added or removed), from the app or the panel, as `Pet`. Replace
+          the pet with the same `id`. A write through this API is sent within a
+          second; one made in the panel within 30 s.
+        * `pet_removed`.
 
         The server pings every 25 s at the protocol level. The app may send
         `{"type": "ping"}` for an application-level `{"type": "pong"}`; anything else
@@ -1044,6 +1320,12 @@ components:
       in: path
       required: true
       schema: { type: integer }
+    FaceId:
+      name: face_id
+      in: path
+      required: true
+      description: A `PetFace.id` of the pet in the path.
+      schema: { type: integer }
     MediaPath:
       name: path
       in: path
@@ -1107,6 +1389,14 @@ components:
         bounds), `not_settable`, `invalid_schedule`, `invalid_feed`, `on_battery`
         (a CTW3's mode, while the fountain runs on battery: plug it in, or set its
         battery working and sleep times instead). `message` is a sentence to show.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    InvalidPet:
+      description: |
+        `invalid_pet`: a field of the wrong type or out of range (`message` names it),
+        or `name` missing on a create; `bad_json`; or `bad_request`, an update naming
+        no field. Nothing was changed.
       content:
         application/json:
           schema: { $ref: "#/components/schemas/Error" }
@@ -1224,6 +1514,33 @@ components:
               maxItems: 32
               items: { type: string }
             - { type: "null" }
+
+    PetsSourceValue:
+      type: string
+      enum: [petkit, local]
+      description: "`petkit`: PetKit's app's pets. `local`: petkit-local's own."
+
+    PetsSource:
+      type: object
+      required: [pets_source, proxy_mode, effective, options]
+      properties:
+        pets_source: { $ref: "#/components/schemas/PetsSourceValue" }
+        proxy_mode: { type: boolean, description: Whether proxy mode is on (set in the panel). }
+        effective:
+          $ref: "#/components/schemas/PetsSourceValue"
+          description: |
+            Whose pets devices get now: `pets_source` while proxy mode is on, `local`
+            otherwise.
+        options:
+          type: array
+          description: Every value `pets_source` takes, in the order to offer them.
+          items: { $ref: "#/components/schemas/PetsSourceValue" }
+
+    PetsSourceRequest:
+      type: object
+      required: [pets_source]
+      properties:
+        pets_source: { $ref: "#/components/schemas/PetsSourceValue" }
 
     NotificationSettings:
       type: object
@@ -1391,7 +1708,7 @@ components:
     DeviceSummary:
       type: object
       required: [id, type, model, model_name, generation, kind, online, transport, last_seen,
-                 firmware, is_camera, talk, connection, parent_id, accessories]
+                 firmware, is_camera, talk, supports_ai, connection, parent_id, accessories]
       properties:
         id: { type: integer }
         type: { type: string, description: "Codename, e.g. `t5`, `d4sh`, `w5`, `k3`." }
@@ -1452,6 +1769,16 @@ components:
             `available` is not a promise: the device's sink is tried when the socket
             opens, which answers `device_unreachable` if it does not accept. A change is
             announced on `/ws` as a `device` message.
+        supports_ai:
+          type: boolean
+          description: |
+            Whether the device recognises pets by their face, on its own camera: the
+            devices to offer for a pet with face photos (`Pet.device_ids`). A box
+            without it (a litter box with no camera) still names visits by weight, so
+            any device may be assigned. It can turn true later, once the device first
+            asks for its recognition settings (for a feeder whose generation the server
+            cannot otherwise tell); that is announced on `/ws` as a `device` message.
+            Always false for an accessory.
         connection:
           type: string
           enum: [wifi, ble]
@@ -1858,12 +2185,18 @@ components:
 
     Pet:
       type: object
-      required: [id, name, device_ids, entered_weight_g, weight_g, weight_learned, photo]
+      required: [id, name, device_ids, entered_weight_g, weight_g, weight_learned, photo,
+                 faces]
       properties:
         id: { type: integer }
         name: { type: string }
         device_ids:
           type: array
+          description: |
+            The devices it is assigned to. A device with `supports_ai` is sent the face
+            photos of the pets assigned to it, and of no other. A litter box matches a
+            visit by weight against the pets assigned to it, or against every pet when
+            none is.
           items: { type: integer }
         entered_weight_g: { type: [number, "null"], description: The weight the owner typed. }
         weight_g:
@@ -1871,6 +2204,100 @@ components:
           description: What a visit is compared with — the learned weight once trusted.
         weight_learned: { type: boolean }
         photo: { type: [string, "null"], description: "`/app/v1/pets/{id}/photo`, if there is one." }
+        faces:
+          type: array
+          description: Its reference face photos, oldest first; `photo` is the first.
+          items: { $ref: "#/components/schemas/PetFace" }
+
+    PetFace:
+      type: object
+      required: [id, photo, accepted_by, waiting_for]
+      properties:
+        id: { type: integer, description: Unique across every pet. }
+        photo:
+          type: string
+          description: "`/app/v1/pets/{id}/faces/{face_id}/photo`, the stored 224x224 JPEG."
+        accepted_by:
+          type: array
+          description: |
+            The pet's devices that hold this photo: their state report lists it among the
+            faces they downloaded and learned (`discernPic`), the only proof a device took
+            it.
+          items: { type: integer }
+        waiting_for:
+          type: array
+          description: |
+            The pet's devices that recognise pets and do not hold it yet. A device re-reads
+            its photos at boot and about once an hour, so a new one waits up to that long;
+            one still waiting after that was not taken. A device that cannot recognise
+            pets is in neither list.
+          items: { type: integer }
+
+    PhotoQuality:
+      type: object
+      required: [checked, warnings]
+      description: |
+        What the server made of an uploaded face photo, as uploaded. Warnings never block.
+      properties:
+        checked:
+          type: boolean
+          description: |
+            Whether the checks that need the image decoded ran (`blurry`, `too_dark`,
+            `overexposed`). False when the server cannot decode it (no ffmpeg); the size
+            and `not_square` come from the JPEG header and are checked regardless.
+        warnings:
+          type: array
+          description: |
+            Stable codes, in this order when several apply: `blurry` (little fine
+            detail in the 224x224 crop the device gets), `too_dark`, `overexposed`,
+            `not_square` (over 1.6:1, so probably not cropped to the head: only the
+            centre square is kept). Ignore a code you do not know.
+          items: { type: string, enum: [blurry, too_dark, overexposed, not_square] }
+
+    PetFaceList:
+      type: object
+      required: [faces, max_faces]
+      properties:
+        faces:
+          type: array
+          items: { $ref: "#/components/schemas/PetFace" }
+        max_faces: { type: integer, description: How many photos one pet may have. }
+
+    PetCreateRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, description: Leading and trailing spaces are dropped. }
+        weight_g:
+          type: [number, "null"]
+          exclusiveMinimum: 0
+          maximum: 100000
+          description: |
+            The pet's weight in grams, which a litter-box visit is compared with until
+            the weight is learned from its visits. Stored in kilograms, as the panel and
+            PetKit's app show it.
+        device_ids:
+          type: array
+          description: See `Pet.device_ids`. Duplicates are dropped.
+          items: { type: integer }
+
+    PetUpdateRequest:
+      type: object
+      minProperties: 1
+      properties:
+        name: { type: string, minLength: 1 }
+        weight_g:
+          type: [number, "null"]
+          exclusiveMinimum: 0
+          maximum: 100000
+          description: Null clears it. A changed weight also resets the learned one.
+        device_ids:
+          type: array
+          description: Replaces the whole list.
+          items: { type: integer }
+        reset_learned_weight:
+          type: boolean
+          description: True forgets the weight learned from its visits.
 
     PetStats:
       type: object
@@ -1904,6 +2331,8 @@ components:
         - { $ref: "#/components/schemas/UpdateDevice" }
         - { $ref: "#/components/schemas/UpdateDeviceRemoved" }
         - { $ref: "#/components/schemas/UpdateTimeline" }
+        - { $ref: "#/components/schemas/UpdatePet" }
+        - { $ref: "#/components/schemas/UpdatePetRemoved" }
         - { $ref: "#/components/schemas/UpdatePong" }
       discriminator:
         propertyName: type
@@ -1913,6 +2342,8 @@ components:
           device: "#/components/schemas/UpdateDevice"
           device_removed: "#/components/schemas/UpdateDeviceRemoved"
           timeline: "#/components/schemas/UpdateTimeline"
+          pet: "#/components/schemas/UpdatePet"
+          pet_removed: "#/components/schemas/UpdatePetRemoved"
           pong: "#/components/schemas/UpdatePong"
 
     UpdateHello:
@@ -1962,6 +2393,20 @@ components:
           type: array
           description: Ids of cards sent earlier that this one now stands for; drop them.
           items: { type: integer }
+
+    UpdatePet:
+      type: object
+      required: [type, pet]
+      properties:
+        type: { type: string, const: pet }
+        pet: { $ref: "#/components/schemas/Pet" }
+
+    UpdatePetRemoved:
+      type: object
+      required: [type, pet_id]
+      properties:
+        type: { type: string, const: pet_removed }
+        pet_id: { type: integer }
 
     UpdatePong:
       type: object

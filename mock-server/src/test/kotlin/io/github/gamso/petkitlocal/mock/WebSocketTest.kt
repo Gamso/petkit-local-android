@@ -1,5 +1,6 @@
 package io.github.gamso.petkitlocal.mock
 
+import io.github.gamso.petkitlocal.mock.media.MediaFactory
 import io.github.gamso.petkitlocal.mock.seed.Seed
 import io.github.gamso.petkitlocal.mock.state.AppSession
 import io.github.gamso.petkitlocal.mock.state.Subscriber
@@ -265,6 +266,51 @@ class WebSocketTest {
                 incoming.nextMessage()
                 api.client.control(HttpMethod.Post, "/ws/close", """{"code":1001}""")
                 assertEquals(CloseReason.Codes.GOING_AWAY.code, closeCode())
+            }
+        }
+
+    @Test
+    fun `every pet write is a pet message, a delete a pet_removed one, hello carries no pets`() =
+        mockTest { _, api ->
+            api.login()
+            api.live {
+                val hello = incoming.nextMessage()
+                assertFalse("pets" in hello)
+                val created = api.post("/pets", body = """{"name":"Pixel"}""")["pet"].jsonObject
+                val id = created["id"]!!.jsonPrimitive.int
+                val first = incoming.nextMessage()
+                assertEquals("pet", first.type)
+                assertEquals(created, first["pet"])
+                api.patch("/pets/{id}", "/pets/$id", """{"weight_g":3800}""")
+                assertEquals(
+                    3800.0,
+                    incoming
+                        .nextMessage()["pet"]!!
+                        .jsonObject["weight_g"]!!
+                        .jsonPrimitive.content
+                        .toDouble(),
+                )
+                api.upload("/pets/{id}/faces", "/pets/$id/faces", MediaFactory.jpeg(240, 240, 1))
+                val withFace = incoming.nextMessage()["pet"]!!.jsonObject
+                assertEquals(1, withFace["faces"]!!.jsonArray.size)
+                assertEquals("/app/v1/pets/$id/photo", withFace["photo"]!!.jsonPrimitive.content)
+                val faceId =
+                    withFace["faces"]!!
+                        .jsonArray[0]
+                        .jsonObject["id"]!!
+                        .jsonPrimitive.int
+                api.delete("/pets/{id}/faces/{face_id}", "/pets/$id/faces/$faceId")
+                assertEquals(
+                    0,
+                    incoming
+                        .nextMessage()["pet"]!!
+                        .jsonObject["faces"]!!
+                        .jsonArray.size,
+                )
+                api.delete("/pets/{id}", "/pets/$id")
+                val removed = incoming.nextMessage()
+                assertEquals("pet_removed", removed.type)
+                assertEquals(id, removed["pet_id"]!!.jsonPrimitive.int)
             }
         }
 

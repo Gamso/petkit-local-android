@@ -76,6 +76,12 @@ class MockDevice(
      */
     var talk: String = if (model.isCamera && !isAccessory) TALK_AVAILABLE else TALK_UNSUPPORTED
 
+    /**
+     * Whether it recognises pets by their face (`DeviceSummary.supports_ai`), as petkit-local
+     * judges it from the model and its generation. Always reported false for an accessory.
+     */
+    var supportsAi: Boolean = false
+
     /** The accessories this device relays, in the order the server lists them. */
     val accessories: MutableList<MockDevice> = mutableListOf()
 
@@ -131,6 +137,8 @@ class MockDevice(
             firmware = if (isAccessory) null else firmware,
             isCamera = model.isCamera,
             talk = talk,
+            // An accessory has no camera of its own: never.
+            supportsAi = supportsAi && !isAccessory,
             connection = if (isAccessory) "ble" else "wifi",
             parentId = parent?.id,
             accessories = accessories.map { AccessoryRef(it.id, it.type, it.model.kind) },
@@ -157,6 +165,7 @@ class MockDevice(
             firmware = s.firmware,
             isCamera = s.isCamera,
             talk = s.talk,
+            supportsAi = s.supportsAi,
             connection = s.connection,
             parentId = s.parentId,
             accessories = s.accessories,

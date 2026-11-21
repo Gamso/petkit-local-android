@@ -1,5 +1,6 @@
 package io.github.gamso.petkitlocal.mock
 
+import io.github.gamso.petkitlocal.mock.media.MediaFactory
 import io.github.gamso.petkitlocal.mock.seed.Seed
 import io.ktor.client.plugins.websocket.webSocket
 import io.ktor.client.request.header
@@ -8,6 +9,9 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.websocket.Frame
 import io.ktor.websocket.readText
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.boolean
+import kotlinx.serialization.json.double
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -322,6 +326,148 @@ class ContractTest {
                 assertEquals(emptyList<String>(), Contract.checkNotificationMessage(hello))
             }
             Coverage.record("GET", "/notifications/ws", 101)
+        }
+
+    @Test
+    @Order(12)
+    fun `pets - create, edit, delete`() =
+        mockTest { _, api ->
+            assertEquals(401, api.post("/pets", body = """{"name":"Pixel"}""", token = null).status)
+            api.login()
+            val body = """{"name":"  Pixel ","weight_g":3900,"device_ids":[${Seed.T5},${Seed.T5},${Seed.D4SH}]}"""
+            val created = api.post("/pets", body = body)
+            assertEquals(201, created.status)
+            val pixel = created["pet"].jsonObject
+            assertEquals("Pixel", pixel.str("name"))
+            assertEquals(3, pixel["id"]!!.jsonPrimitive.int)
+            assertEquals(listOf(Seed.T5, Seed.D4SH), pixel.arr("device_ids").map { it.jsonPrimitive.int })
+            assertEquals(JsonNull, pixel["photo"])
+            assertEquals(3, api.get("/pets")["pets"].jsonArray.size)
+            assertEquals(201, api.post("/pets", body = """{"name":"No weight"}""").status)
+            val refused =
+                listOf(
+                    """{}""",
+                    """{"name":"   "}""",
+                    """{"name":1}""",
+                    """{"name":"x","weight_g":true}""",
+                    """{"name":"x","weight_g":"4000"}""",
+                    """{"name":"x","weight_g":0}""",
+                    """{"name":"x","weight_g":100001}""",
+                    """{"name":"x","device_ids":["a"]}""",
+                    """{"name":"x","device_ids":1003}""",
+                )
+            refused.forEach { assertEquals("invalid_pet", api.post("/pets", body = it).error, it) }
+            assertEquals("bad_json", api.post("/pets", body = "{").error)
+            assertEquals(415, api.call(HttpMethod.Post, "/pets", body = "x", contentType = ContentType.Text.Plain).status)
+
+            val one = "/pets/{id}"
+            val reset = api.patch(one, "/pets/1", """{"reset_learned_weight":true}""")["pet"].jsonObject
+            assertEquals(false, reset["weight_learned"]!!.jsonPrimitive.boolean)
+            assertEquals(4200.0, reset["weight_g"]!!.jsonPrimitive.double)
+            val renamed = api.patch(one, "/pets/1", """{"name":" Mochi-chan ","device_ids":[${Seed.T4}]}""")["pet"].jsonObject
+            assertEquals("Mochi-chan", renamed.str("name"))
+            assertEquals(listOf(Seed.T4), renamed.arr("device_ids").map { it.jsonPrimitive.int })
+            assertEquals(2, renamed.arr("faces").size)
+            val cleared = api.patch(one, "/pets/2", """{"weight_g":null}""")["pet"].jsonObject
+            assertEquals(JsonNull, cleared["entered_weight_g"])
+            assertEquals(JsonNull, cleared["weight_g"])
+            assertEquals("bad_request", api.patch(one, "/pets/2", """{}""").error)
+            assertEquals("bad_request", api.patch(one, "/pets/2", """{"reset_learned_weight":false}""").error)
+            assertEquals("invalid_pet", api.patch(one, "/pets/2", """{"reset_learned_weight":"yes"}""").error)
+            assertEquals("invalid_pet", api.patch(one, "/pets/2", """{"weight_g":-1}""").error)
+            assertEquals("bad_json", api.patch(one, "/pets/2", "[").error)
+            assertEquals(415, api.call(HttpMethod.Patch, one, "/pets/2", "x", contentType = ContentType.Text.Plain).status)
+            assertEquals("pet_not_found", api.patch(one, "/pets/9", """{"name":"x"}""").error)
+            assertEquals(401, api.patch(one, "/pets/2", """{"name":"x"}""", token = null).status)
+
+            assertEquals(200, api.delete(one, "/pets/2").status)
+            assertEquals("pet_not_found", api.delete(one, "/pets/2").error)
+            assertEquals(404, api.get(one, "/pets/2").status)
+            assertEquals(401, api.delete(one, "/pets/1", token = null).status)
+            // Its visits stay, attributed to its id with no name.
+            val visits = api.get("/timeline", "/timeline?pet=2&limit=5")["items"].jsonArray
+            assertTrue(visits.isNotEmpty())
+            visits.forEach { assertEquals("""{"id":2,"name":null}""", it.jsonObject["pet"].toString()) }
+        }
+
+    @Test
+    @Order(13)
+    fun `pets - face photos`() =
+        mockTest { _, api ->
+            api.login()
+            val faces = "/pets/{id}/faces"
+            val list = api.get(faces, "/pets/1/faces")
+            assertEquals(listOf(1, 2), list.json.arr("faces").map { it.jsonObject["id"]!!.jsonPrimitive.int })
+            assertEquals(6, list["max_faces"].jsonPrimitive.int)
+            assertEquals("pet_not_found", api.get(faces, "/pets/9/faces").error)
+            assertEquals(401, api.get(faces, "/pets/1/faces", token = null).status)
+
+            val jpeg = MediaFactory.jpeg(320, 240, 3)
+            val added = api.upload(faces, "/pets/2/faces", jpeg)
+            assertEquals(201, added.status)
+            assertEquals(3, added["face"].jsonObject["id"]!!.jsonPrimitive.int)
+            // Tigrou's cameras that recognise faces (T5, T6, D4SH, W7H) are all still to fetch it.
+            assertEquals(4, added["face"].jsonObject.arr("waiting_for").size)
+            assertEquals(0, added["face"].jsonObject.arr("accepted_by").size)
+            assertEquals("false", added["quality"].jsonObject["checked"]!!.jsonPrimitive.content)
+            // Under 224 px on its short side: refused. Far from square: a warning, and stored.
+            assertEquals("photo_too_small", api.upload(faces, "/pets/2/faces", MediaFactory.jpeg(64, 48, 3)).error)
+            val wide = api.upload(faces, "/pets/2/faces", MediaFactory.jpeg(640, 240, 3))
+            assertEquals(listOf("not_square"), wide["quality"].jsonObject.arr("warnings").map { it.jsonPrimitive.content })
+            api.delete("/pets/{id}/faces/{face_id}", "/pets/2/faces/${wide["face"].jsonObject["id"]!!.jsonPrimitive.int}")
+            assertEquals("/app/v1/pets/2/photo", api.get("/pets/{id}", "/pets/2")["pet"].str("photo"))
+            // Whatever the content type, the bytes decide.
+            assertEquals(201, api.upload(faces, "/pets/1/faces", jpeg, ContentType.Application.OctetStream).status)
+            assertEquals("bad_request", api.upload(faces, "/pets/1/faces", ByteArray(0)).error)
+            val png = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)
+            assertEquals("not_jpeg", api.upload(faces, "/pets/1/faces", png).error)
+            val huge = ByteArray(16 * 1024 * 1024 + 1).also { jpeg.copyInto(it) }
+            assertEquals("photo_too_large", api.upload(faces, "/pets/1/faces", huge).error)
+            assertEquals("pet_not_found", api.upload(faces, "/pets/9/faces", jpeg).error)
+            assertEquals(401, api.upload(faces, "/pets/1/faces", jpeg, token = null).status)
+            repeat(3) { assertEquals(201, api.upload(faces, "/pets/1/faces", jpeg).status) }
+            assertEquals("too_many_faces", api.upload(faces, "/pets/1/faces", jpeg).error)
+
+            val photo = "/pets/{id}/faces/{face_id}/photo"
+            val second = api.get(photo, "/pets/1/faces/2/photo")
+            assertEquals(200, second.status)
+            assertEquals("image/jpeg", second.headers[HttpHeaders.ContentType])
+            assertTrue(second.bytes.contentEquals(api.get(photo, "/pets/1/faces/2/photo").bytes))
+            assertEquals("face_not_found", api.get(photo, "/pets/2/faces/2/photo").error)
+            assertEquals("pet_not_found", api.get(photo, "/pets/9/faces/2/photo").error)
+            assertEquals(401, api.get(photo, "/pets/1/faces/2/photo", token = null).status)
+
+            val face = "/pets/{id}/faces/{face_id}"
+            assertEquals(200, api.delete(face, "/pets/1/faces/1").status)
+            assertEquals("face_not_found", api.delete(face, "/pets/1/faces/1").error)
+            assertEquals("face_not_found", api.delete(face, "/pets/2/faces/2").error)
+            assertEquals("pet_not_found", api.delete(face, "/pets/9/faces/2").error)
+            assertEquals(401, api.delete(face, "/pets/1/faces/2", token = null).status)
+            // The pet's photo is its first face now.
+            assertTrue(second.bytes.contentEquals(api.get("/pets/{id}/photo", "/pets/1/photo").bytes))
+        }
+
+    @Test
+    @Order(14)
+    fun `settings - pets source`() =
+        mockTest { _, api ->
+            val path = "/settings/pets-source"
+            assertEquals(401, api.get(path, token = null).status)
+            api.login()
+            val initial = api.get(path).json
+            assertEquals("petkit", initial.str("pets_source"))
+            assertEquals(false, initial["proxy_mode"]!!.jsonPrimitive.boolean)
+            assertEquals("local", initial.str("effective"))
+            assertEquals(listOf("petkit", "local"), initial.arr("options").map { it.jsonPrimitive.content })
+            api.client.control(HttpMethod.Put, "/proxy", """{"proxy_mode":true}""")
+            assertEquals("petkit", api.get(path).json.str("effective"))
+            val local = api.patch(path, body = """{"pets_source":"local"}""").json
+            assertEquals(listOf("local", "local"), listOf(local.str("pets_source"), local.str("effective")))
+            assertEquals("bad_parameter", api.patch(path, body = """{"pets_source":"cloud"}""").error)
+            assertEquals("bad_parameter", api.patch(path, body = """{}""").error)
+            assertEquals("bad_json", api.patch(path, body = "{").error)
+            assertEquals(415, api.call(HttpMethod.Patch, path, body = "x", contentType = ContentType.Text.Plain).status)
+            assertEquals(401, api.patch(path, body = """{"pets_source":"local"}""", token = null).status)
         }
 
     /**

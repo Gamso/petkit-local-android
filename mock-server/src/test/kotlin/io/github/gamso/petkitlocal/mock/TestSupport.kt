@@ -85,6 +85,7 @@ class Api(
         token: String? = this.token,
         contentType: ContentType? = ContentType.Application.Json,
         headers: Map<String, String> = emptyMap(),
+        bytes: ByteArray? = null,
     ): Resp {
         val response: HttpResponse =
             client.request("/app/v1$path") {
@@ -94,6 +95,9 @@ class Api(
                 if (body != null) {
                     contentType?.let { contentType(it) }
                     setBody(body)
+                } else if (bytes != null) {
+                    contentType?.let { contentType(it) }
+                    setBody(bytes)
                 }
             }
         val resp = Resp(response.status.value, response.headers, response.readRawBytes())
@@ -136,6 +140,22 @@ class Api(
         path: String = template,
         token: String? = this.token,
     ) = call(HttpMethod.Delete, template, path, token = token)
+
+    suspend fun patch(
+        template: String,
+        path: String = template,
+        body: String,
+        token: String? = this.token,
+    ) = call(HttpMethod.Patch, template, path, body, token)
+
+    /** Sends [bytes] as the body, as `image/jpeg` unless told otherwise. */
+    suspend fun upload(
+        template: String,
+        path: String,
+        bytes: ByteArray,
+        contentType: ContentType = ContentType.Image.JPEG,
+        token: String? = this.token,
+    ) = call(HttpMethod.Post, template, path, token = token, contentType = contentType, bytes = bytes)
 
     /** Signs in and keeps the token for the following calls. */
     suspend fun login(

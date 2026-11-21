@@ -15,6 +15,7 @@ import io.github.gamso.petkitlocal.mock.state.Talker
 import io.github.gamso.petkitlocal.mock.state.World
 import io.github.gamso.petkitlocal.mock.state.asStrictInt
 import io.github.gamso.petkitlocal.mock.state.clearError
+import io.github.gamso.petkitlocal.mock.state.petsSourceDto
 import io.github.gamso.petkitlocal.mock.state.playDrink
 import io.github.gamso.petkitlocal.mock.state.playEating
 import io.github.gamso.petkitlocal.mock.state.playFeed
@@ -93,7 +94,7 @@ private fun now(world: World): Long = world.clock.now().toLong()
 private val CONTROL_ROUTES =
     listOf(
         "GET    /mock                                 this list, the clock and the scenario state",
-        "POST   /mock/reset                           back to the seed (devices, pets, history, password; sessions dropped)",
+        "POST   /mock/reset                           back to the seed (devices, pets, history, password, proxy mode; sessions dropped)",
         "POST   /mock/devices/{id}/visit              {pet_id?, weight_g?, duration_sec?, auto_clean?, health_alert?}",
         "POST   /mock/devices/{id}/meal               {amount?, amount1?, amount2?}",
         "POST   /mock/devices/{id}/drink              {pet_id?, duration_sec?}",
@@ -104,11 +105,13 @@ private val CONTROL_ROUTES =
         "POST   /mock/devices/{id}/remove             sends device_removed (reset brings it back)",
         "PUT    /mock/devices/{id}/state              {\"<value_path>\": value, ...}  raw state, any entity",
         "PUT    /mock/devices/{id}/talk               {talk}  available | needs_patcher | device_unreachable | unsupported",
+        "PUT    /mock/devices/{id}/supports-ai        {supports_ai}  true | false  (not an accessory)",
         "PUT    /mock/devices/{id}/transport          {transport}  mqtt | http  (a device, not an accessory; its accessories follow)",
         "POST   /mock/clock/advance                   {seconds}",
         "GET    /mock/sessions",
         "DELETE /mock/sessions/{id}                   revoke one (its sockets close 4401)",
         "DELETE /mock/sessions                        revoke all",
+        "PUT    /mock/proxy                           {proxy_mode}  true | false  the panel's proxy mode (pets-source applies)",
         "PUT    /mock/password                        {password: string | null}  null = no password set",
         "PUT    /mock/notifications                   {disabled: [kind, ...]}  the panel's per-kind switches off",
         "POST   /mock/notifications                   {kind, device_id?, pet_id?, code?, ts?}  send one notification",
@@ -145,6 +148,10 @@ fun Route.controlRoutes(
                     put("hls_views", world.live.hlsViews)
                     put("talk_sockets", world.talk.sockets)
                     put("talk_bytes", world.talk.bytes)
+                    synchronized(world.lock) {
+                        put("proxy_mode", world.proxyMode)
+                        put("pets_source", world.petsSource)
+                    }
                     put("routes", buildJsonArray { CONTROL_ROUTES.forEach { add(JsonPrimitive(it)) } })
                 },
             )
@@ -152,6 +159,21 @@ fun Route.controlRoutes(
         post("/reset") {
             world.reset()
             call.ok()
+        }
+        put("/proxy") {
+            val proxy = call.jsonBody().bool("proxy_mode") ?: throw ApiException(400, "bad_request", "send {\"proxy_mode\": true | false}")
+            val source =
+                synchronized(world.lock) {
+                    world.proxyMode = proxy
+                    world.petsSourceDto()
+                }
+            call.ok(
+                buildJsonObject {
+                    put("proxy_mode", source.proxyMode)
+                    put("pets_source", source.petsSource)
+                    put("effective", source.effective)
+                },
+            )
         }
         deviceControl(world)
         sessionControl(world)
@@ -275,6 +297,14 @@ private fun Route.deviceControl(world: World) {
                 call.jsonBody().str("talk")?.takeIf { it in TALK_VALUES }
                     ?: throw ApiException(400, "bad_request", "talk is one of $TALK_VALUES")
             synchronized(world.lock) { world.change(device, reported = false) { device.talk = talk } }
+            call.ok()
+        }
+        put("/supports-ai") {
+            val device = world.controlDevice(call)
+            if (device.isAccessory) throw ApiException(400, "bad_request", "an accessory never recognises pets")
+            val supportsAi =
+                call.jsonBody().bool("supports_ai") ?: throw ApiException(400, "bad_request", "send {\"supports_ai\": true | false}")
+            synchronized(world.lock) { world.change(device, reported = false) { device.supportsAi = supportsAi } }
             call.ok()
         }
         put("/transport") {

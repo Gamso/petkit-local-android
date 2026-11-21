@@ -13,6 +13,7 @@ import io.github.gamso.petkitlocal.mock.state.Reason
 import io.github.gamso.petkitlocal.mock.state.TALK_DEVICE_UNREACHABLE
 import io.github.gamso.petkitlocal.mock.state.TALK_NEEDS_PATCHER
 import io.github.gamso.petkitlocal.mock.state.World
+import io.github.gamso.petkitlocal.mock.state.addFace
 import io.github.gamso.petkitlocal.mock.state.cleaningCard
 import io.github.gamso.petkitlocal.mock.state.cleaningDone
 import io.github.gamso.petkitlocal.mock.state.cleaningRows
@@ -56,6 +57,8 @@ class Seed(
         val generation: Int? = null,
         /** Whether it can be talked through (`DeviceSummary.talk`); null: as its model has a camera. */
         val talk: String? = null,
+        /** Whether it recognises pets by their face (`DeviceSummary.supports_ai`). */
+        val supportsAi: Boolean = false,
     )
 
     fun build() {
@@ -63,6 +66,7 @@ class Seed(
             val device = MockDevice(s.id, world.catalog.model(s.type), s.serial, s.firmware, transportOf(s.type))
             device.generation = s.generation
             s.talk?.let { device.talk = it }
+            device.supportsAi = s.supportsAi
             device.lastSeen = clock.now() - rng.nextInt(2, 40)
             world.devices[s.id] = device
             seedValues(device)
@@ -74,8 +78,14 @@ class Seed(
         ACCESSORIES.forEach { (accessory, parent) -> world.link(world.devices.getValue(accessory), world.devices.getValue(parent)) }
         // A Bluetooth fountain whose last frame decoded three hours ago: out of its parent's range.
         world.devices.getValue(W5).lastSeen = clock.now() - 3 * 3600 - 412
-        world.pets[1] = Pet(1, "Mochi", listOf(T3, T4, T5, T6, T7, D4H, W7H), 4200.0, 4310.0, hasPhoto = true)
-        world.pets[2] = Pet(2, "Tigrou", listOf(T4, T5, T6, D4SH, W7H), 6000.0, null, hasPhoto = false)
+        // Mochi has two face photos, Tigrou none; face ids come from the world's one counter.
+        world.pets[MOCHI] = Pet(MOCHI, "Mochi", listOf(T3, T4, T5, T6, T7, D4H, W7H), 4200.0, 4310.0)
+        world.pets[TIGROU] = Pet(TIGROU, "Tigrou", listOf(T4, T5, T6, D4SH, W7H), 6000.0, null)
+        val mochi = world.pets.getValue(MOCHI)
+        repeat(MOCHI_FACES) { world.addFace(mochi) }
+        // Every camera of hers holds her first photo; only the T5 has taken the second yet.
+        mochi.faces[0].acceptedBy += listOf(T5, T6, T7, W7H)
+        mochi.faces[1].acceptedBy += T5
         history()
         world.devices.values.forEach { it.syncPlan() }
     }
@@ -241,7 +251,7 @@ class Seed(
                 val end = time(6.0, 23.6)
                 val box = boxes.random(rng)
                 val duration = rng.nextInt(35, 190)
-                val weight = (pet.weightG * (1 + rng.nextDouble(-0.02, 0.02))).roundToInt()
+                val weight = ((pet.weightG ?: DEFAULT_WEIGHT_G) * (1 + rng.nextDouble(-0.02, 0.02))).roundToInt()
                 val waste = rng.nextInt(15, 60)
                 val attributed = rng.nextDouble() > 0.1
                 val alert = offset == 2 && pet.id == 2 && n == 0
@@ -439,6 +449,13 @@ class Seed(
         private const val DEODORIZE_AFTER_SEC = 60.0
         private const val DEODORIZE_FAILS_EVERY = 3
 
+        const val MOCHI = 1
+        const val TIGROU = 2
+        const val MOCHI_FACES = 2
+
+        /** What a pet with no weight at all weighs in the generated history. */
+        private const val DEFAULT_WEIGHT_G = 4500.0
+
         const val T3 = 1001
         const val T4 = 1002
         const val T5 = 1003
@@ -461,14 +478,14 @@ class Seed(
                 SeedDevice(T4, "t4", "20240305T4001288", "1.652", generation = 2),
                 // Talk: the T5 and the D4H can be talked through; the T6, the D4SH and the W7H lack
                 // the Two-Way Talk patcher; the T7 has not reported its address yet.
-                SeedDevice(T5, "t5", "20250117T5000093", "1.4.12"),
-                SeedDevice(T6, "t6", "20250402T6000211", "1.2.8", talk = TALK_NEEDS_PATCHER),
-                SeedDevice(T7, "t7", "20250820T7000035", "1.0.16", talk = TALK_DEVICE_UNREACHABLE),
+                SeedDevice(T5, "t5", "20250117T5000093", "1.4.12", supportsAi = true),
+                SeedDevice(T6, "t6", "20250402T6000211", "1.2.8", talk = TALK_NEEDS_PATCHER, supportsAi = true),
+                SeedDevice(T7, "t7", "20250820T7000035", "1.0.16", talk = TALK_DEVICE_UNREACHABLE, supportsAi = true),
                 SeedDevice(D4, "d4", "20220914D4000654", "1.267"),
                 SeedDevice(D4S, "d4s", "20230225D4S00187", "1.348"),
                 SeedDevice(D4H, "d4h", "20240711D4H00402", "1.867"),
-                SeedDevice(D4SH, "d4sh", "20240903DSH00128", "1.867", generation = 2, talk = TALK_NEEDS_PATCHER),
-                SeedDevice(W7H, "w7h", "20250610W7H00077", "1.263", talk = TALK_NEEDS_PATCHER),
+                SeedDevice(D4SH, "d4sh", "20240903DSH00128", "1.867", generation = 2, talk = TALK_NEEDS_PATCHER, supportsAi = true),
+                SeedDevice(W7H, "w7h", "20250610W7H00077", "1.263", talk = TALK_NEEDS_PATCHER, supportsAi = true),
                 SeedDevice(W5, "w5", null, "1.18"),
                 SeedDevice(CTW3, "ctw3", null, "2.06", generation = 2),
                 SeedDevice(K3, "k3", null, "1.03"),
