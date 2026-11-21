@@ -35,6 +35,7 @@ import org.petkitlocal.feature.device.litter.DevicePageScaffold
 import org.petkitlocal.feature.device.litter.HotspotDialog
 import org.petkitlocal.feature.device.litter.PageCommandCallbacks
 import org.petkitlocal.feature.device.litter.PageTop
+import org.petkitlocal.feature.device.litter.PartAlerts
 import org.petkitlocal.feature.device.litter.RefreshBanner
 import org.petkitlocal.feature.device.litter.gutter
 import org.petkitlocal.feature.device.litter.heroPhoto
@@ -133,7 +134,8 @@ internal fun FeederScreen(
             onAction = { action -> onSheetAction(action, page?.device?.id, navigation, callbacks) },
         ),
         modifier = modifier,
-        hotspots = page?.hotspots.orEmpty(),
+        // A camera's page has no pills: their actions are the sheet's.
+        hotspots = page?.takeUnless { it.device.isCamera }?.hotspots.orEmpty(),
         initiallyExpanded = initiallyExpanded,
     ) {
         if (page == null) {
@@ -162,14 +164,15 @@ private fun LazyListScope.feederContent(
                 onOpenSettings = { navigation.onOpenSettings(page.device.id) },
             )
             CameraLiveCard(page.device, live, Modifier.padding(top = PkTheme.spacing.xs))
-            DeviceHero(
-                hotspots = page.hotspots,
-                anchors = ::feederAnchor,
-                onHotspot = callbacks.onHotspot,
-                modifier = Modifier.padding(top = PkTheme.spacing.xs),
-                photo = heroPhoto(page.device),
-                pictured = !page.device.isCamera,
-            ) { FeederIllustration(page.dualHopper, Modifier.fillMaxSize()) }
+            if (!page.device.isCamera) {
+                DeviceHero(
+                    hotspots = page.hotspots,
+                    anchors = ::feederAnchor,
+                    onHotspot = callbacks.onHotspot,
+                    modifier = Modifier.padding(top = PkTheme.spacing.xs),
+                    photo = heroPhoto(page.device),
+                ) { FeederIllustration(page.dualHopper, Modifier.fillMaxSize()) }
+            }
         }
     }
     item(key = "status") {
@@ -181,6 +184,7 @@ private fun LazyListScope.feederContent(
                 uiState.zone,
                 Modifier.testTag(DeviceTestTags.STATUS),
             )
+            if (page.device.isCamera) PartAlerts(page.hotspots, callbacks.onHotspot)
             RefreshBanner(uiState.offline, uiState.refreshError)
         }
     }

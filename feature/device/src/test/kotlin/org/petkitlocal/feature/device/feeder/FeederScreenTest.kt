@@ -34,7 +34,7 @@ import org.petkitlocal.feature.device.DeviceNavigation
 import org.petkitlocal.feature.device.common.ActivityTestTags
 import org.petkitlocal.feature.device.common.DeviceTestTags
 import org.petkitlocal.feature.device.common.LiveCardUi
-import org.petkitlocal.feature.device.litter.HERO_PARTS
+import org.petkitlocal.feature.device.litter.PART_ALERTS
 import org.petkitlocal.feature.device.litter.PageCommandCallbacks
 import org.petkitlocal.feature.device.litter.PageTestTags
 import org.robolectric.RobolectricTestRunner
@@ -134,8 +134,10 @@ class FeederScreenTest {
         assertEquals("tapping the video does nothing", listOf("live-visible"), calls)
         compose.onNodeWithContentDescription("Full screen").performClick()
         assertEquals(listOf("live-visible", "live-fullscreen"), calls)
-        // The live video is the camera's picture: no product photo under it, only the parts.
-        compose.onNodeWithTag(HERO_PARTS).assertExists()
+        // The live video is the camera's picture: no photo, and only the parts needing attention.
+        compose.onNodeWithTag(PART_ALERTS).assertExists()
+        compose.onNodeWithContentDescription("Hopper 2, Empty", substring = true).assertExists()
+        compose.onNodeWithContentDescription("Hopper 1, Has food", substring = true).assertDoesNotExist()
     }
 
     @Test

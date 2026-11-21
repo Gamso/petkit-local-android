@@ -91,7 +91,8 @@ internal fun LitterScreen(
         onRefresh = callbacks.onRefresh,
         callbacks = callbacks.commands,
         modifier = modifier,
-        hotspots = page?.hotspots.orEmpty(),
+        // A camera's page has no pills: their actions are the sheet's.
+        hotspots = page?.takeUnless { it.device.isCamera }?.hotspots.orEmpty(),
         initiallyExpanded = initiallyExpanded,
     ) {
         if (page == null) {
@@ -133,14 +134,15 @@ private fun LazyListScope.litterContent(
             )
             ModeChips(page.modes, uiState.commands.sending, callbacks.onModeToggle)
             CameraLiveCard(page.device, live, Modifier.padding(top = PkTheme.spacing.xs))
-            DeviceHero(
-                hotspots = page.hotspots,
-                anchors = ::litterAnchor,
-                onHotspot = callbacks.onHotspot,
-                modifier = Modifier.padding(top = PkTheme.spacing.xs),
-                photo = heroPhoto(page.device),
-                pictured = !page.device.isCamera,
-            ) { LitterBoxIllustration(Modifier.fillMaxSize()) }
+            if (!page.device.isCamera) {
+                DeviceHero(
+                    hotspots = page.hotspots,
+                    anchors = ::litterAnchor,
+                    onHotspot = callbacks.onHotspot,
+                    modifier = Modifier.padding(top = PkTheme.spacing.xs),
+                    photo = heroPhoto(page.device),
+                ) { LitterBoxIllustration(Modifier.fillMaxSize()) }
+            }
         }
     }
     item(key = "status") {
@@ -152,6 +154,11 @@ private fun LazyListScope.litterContent(
                 uiState.zone,
                 Modifier.testTag(DeviceTestTags.STATUS),
             )
+            if (page.device.isCamera) {
+                PartAlerts(page.hotspots, callbacks.onHotspot)
+                // Its N60's pill opened the Pura Air; without the pill, this does.
+                page.puraAir?.let { puraAir -> OpenAccessoryButton(puraAir) { navigation.onOpenDevice(puraAir.id) } }
+            }
             RefreshBanner(uiState.offline, uiState.refreshError)
         }
     }

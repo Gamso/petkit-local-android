@@ -152,8 +152,11 @@ screen).
 ### 7 · Live video (camera models only)
 - Plays **in place** in the **live card** at the top of the camera's page (litter box, feeder,
   fountain or any other device with `is_camera`), under the header and its chips, as in PetKit's
-  app (issues #97, #99). The live video is the camera's picture: a camera's page shows no photo or
-  drawing of the device, only its parts' pills in rows.
+  app (issues #97, #99, #101). The live video is the camera's picture: a camera's page shows no
+  photo or drawing of the device and no part pills. A part needing attention (a hopper empty, the
+  desiccant due, the bin full...) shows as its pill under the status line, opening its dialog; a
+  part that is fine shows nothing. The pills' actions are in the action sheet, and the counter
+  resets also in the settings' consumables; a box's Pura Air has its own button.
   - it starts when the page is shown and stops, releasing its viewer slot, when the card leaves
     the screen, the app goes to the background or another screen covers the page: a stream must
     not run while nobody looks (a D4SH's camera is reached through a relay holding the device's

@@ -42,6 +42,7 @@ import org.petkitlocal.feature.device.common.CommandState
 import org.petkitlocal.feature.device.common.DeviceTestTags
 import org.petkitlocal.feature.device.common.LiveCardUi
 import org.petkitlocal.feature.device.common.QuickActionsTestTags
+import org.petkitlocal.feature.device.litter.PART_ALERTS
 import org.petkitlocal.feature.device.litter.PageCommandCallbacks
 import org.petkitlocal.feature.device.litter.PageTestTags
 import org.petkitlocal.feature.device.settings.SettingEditorState
@@ -104,14 +105,14 @@ class FountainScreenTest {
     }
 
     @Test
-    fun `a W7H shows its tray, tanks and pump, and today's drinks against yesterday, per pet`() {
+    fun `a W7H, a camera, shows no part that is fine, and today's drinks against yesterday, per pet`() {
         show(FountainFixtures.content)
 
         compose.onNodeWithText("EverSweet Ultra AI").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Drinking tray, OK").assertExists()
-        compose.onNodeWithContentDescription("Clean water tank, OK").assertExists()
-        compose.onNodeWithContentDescription("Waste water tank, OK").assertExists()
-        compose.onNodeWithContentDescription("Pump, Running").assertExists()
+        // Its live video is its picture (issue #101): tray, tanks and pump are fine, so not shown.
+        compose.onNodeWithTag(PART_ALERTS).assertDoesNotExist()
+        compose.onNodeWithContentDescription("Drinking tray, OK").assertDoesNotExist()
+        compose.onNodeWithContentDescription("Pump, Running").assertDoesNotExist()
         // No filter, water flag or battery on this model.
         compose.onNodeWithContentDescription("Filter", substring = true).assertDoesNotExist()
         compose.onNodeWithContentDescription("Battery", substring = true).assertDoesNotExist()

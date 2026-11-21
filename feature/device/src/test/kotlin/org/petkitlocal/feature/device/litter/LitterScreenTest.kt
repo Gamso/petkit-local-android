@@ -248,11 +248,32 @@ class LitterScreenTest {
     }
 
     @Test
-    fun `a camera with no still yet still has its live card, and no picture of the device, only its parts`() {
+    fun `a camera with no still yet still has its live card, and no picture of the device`() {
         show(LitterFixtures.trouble)
 
         compose.onNodeWithTag(LiveCardTestTags.CARD).assertContentDescriptionEquals("Live video of Purobot Ultra")
-        compose.onNodeWithTag(HERO_PARTS).assertExists()
+    }
+
+    @Test
+    fun `a camera's page shows only the parts that need attention, each opening its dialog`() {
+        val page = LitterFixtures.trouble.page!!
+        val alerts = page.hotspots.filter { it.attention }
+        check(alerts.isNotEmpty() && alerts.size < page.hotspots.size) { "the fixture needs both kinds" }
+        show(LitterFixtures.trouble)
+
+        val pills = compose.onAllNodes(hasAnyAncestor(hasTestTag(PART_ALERTS)) and hasClickAction())
+        assertEquals(alerts.size, pills.fetchSemanticsNodes().size)
+        pills.onFirst().performClick()
+        assertEquals(listOf("hotspot:${alerts.first().part}"), calls)
+    }
+
+    @Test
+    fun `a camera's page whose parts are all fine shows none of them`() {
+        val page = LitterFixtures.trouble.page!!
+        val fine = page.copy(hotspots = page.hotspots.map { it.copy(attention = false) })
+        show(LitterFixtures.trouble.copy(page = fine))
+
+        compose.onNodeWithTag(PART_ALERTS).assertDoesNotExist()
     }
 
     @Test

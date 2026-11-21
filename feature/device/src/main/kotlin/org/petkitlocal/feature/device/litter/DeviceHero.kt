@@ -58,9 +58,8 @@ data class PartAnchor(val x: Float, val y: Float, val side: PillSide)
  * The hero of a device page (docs/DESIGN.md, DeviceHero). With the model's [photo], the photo and
  * its pills ([PhotoHero]). Without one, the family's drawing in the middle and one [HotspotPill]
  * per hotspot on either side, each joined by a line to a dot on its part. A pill goes as near its
- * part's height as the others leave room for; the hero grows to fit them. Not [pictured] (a
- * camera's page, whose live video is the device's picture, as in PetKit's app): only the pills,
- * in rows ([HotspotRow]), so the parts and their taps stay without a second picture.
+ * part's height as the others leave room for; the hero grows to fit them. A camera's page has no
+ * hero: its live video is the device's picture ([PartAlerts] says what needs attention).
  */
 @Composable
 internal fun DeviceHero(
@@ -69,13 +68,8 @@ internal fun DeviceHero(
     onHotspot: (DevicePart) -> Unit,
     modifier: Modifier = Modifier,
     photo: DevicePhoto? = null,
-    pictured: Boolean = true,
     illustration: @Composable () -> Unit,
 ) {
-    if (!pictured) {
-        HotspotRow(hotspots, onHotspot, modifier)
-        return
-    }
     if (photo != null) {
         PhotoHero(hotspots, photo, onHotspot, modifier)
         return
@@ -111,31 +105,36 @@ internal fun DeviceHero(
     }
 }
 
-/** The parts' pills without a picture, in rows that wrap. */
+/**
+ * A camera's page, which has no hero (issue #101): the parts that need attention (a hopper empty, a
+ * desiccant due, the bin full...), as their pills under the status line, each opening its part's
+ * dialog. Nothing while every part is fine.
+ */
 @Composable
-internal fun HotspotRow(hotspots: List<Hotspot>, onHotspot: (DevicePart) -> Unit, modifier: Modifier = Modifier) {
-    if (hotspots.isEmpty()) return
+internal fun PartAlerts(hotspots: List<Hotspot>, onHotspot: (DevicePart) -> Unit, modifier: Modifier = Modifier) {
+    val alerts = hotspots.filter { it.attention }
+    if (alerts.isEmpty()) return
     val labels = rememberServerLabels()
     FlowRow(
         horizontalArrangement = Arrangement.spacedBy(PkTheme.spacing.xs),
         verticalArrangement = Arrangement.spacedBy(PkTheme.spacing.xs),
         modifier = modifier
             .fillMaxWidth()
-            .testTag(HERO_PARTS),
+            .testTag(PART_ALERTS),
     ) {
-        hotspots.forEach { hotspot ->
+        alerts.forEach { hotspot ->
             HotspotPill(
                 label = hotspotLabel(hotspot, labels),
                 value = readingText(hotspot.reading, labels, short = true),
-                attention = hotspot.attention,
+                attention = true,
                 onClick = { onHotspot(hotspot.part) },
             )
         }
     }
 }
 
-/** The tag of [HotspotRow], a camera page's parts. */
-internal const val HERO_PARTS = "hero_parts"
+/** The tag of [PartAlerts]. */
+internal const val PART_ALERTS = "part_alerts"
 
 /**
  * Measures and places the drawing ([measurables] first) and the pills, [parts] giving each pill's

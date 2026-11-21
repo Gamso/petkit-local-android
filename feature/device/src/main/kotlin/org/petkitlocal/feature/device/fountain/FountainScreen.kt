@@ -41,6 +41,7 @@ import org.petkitlocal.feature.device.litter.DevicePageScaffold
 import org.petkitlocal.feature.device.litter.HotspotDialog
 import org.petkitlocal.feature.device.litter.PageCommandCallbacks
 import org.petkitlocal.feature.device.litter.PageTop
+import org.petkitlocal.feature.device.litter.PartAlerts
 import org.petkitlocal.feature.device.litter.RefreshBanner
 import org.petkitlocal.feature.device.litter.gutter
 import org.petkitlocal.feature.device.litter.heroPhoto
@@ -134,7 +135,8 @@ internal fun FountainScreen(
         onRefresh = callbacks.onRefresh,
         callbacks = callbacks.commands,
         modifier = modifier,
-        hotspots = page?.hotspots.orEmpty(),
+        // A camera's page has no pills: their actions are the sheet's.
+        hotspots = page?.takeUnless { it.device.isCamera }?.hotspots.orEmpty(),
         initiallyExpanded = initiallyExpanded,
         sheetRow = page?.modeBar?.let { bar ->
             {
@@ -215,6 +217,7 @@ private fun LazyListScope.fountainContent(
                 // The relay's line at the top says when it was seen.
                 showLastSeen = page.relay == null,
             )
+            if (page.device.isCamera) PartAlerts(page.hotspots, callbacks.onHotspot)
             RefreshBanner(uiState.offline, uiState.refreshError)
         }
     }
@@ -276,14 +279,15 @@ private fun FountainTop(
             )
         }
         CameraLiveCard(page.device, live, Modifier.padding(top = PkTheme.spacing.xs))
-        DeviceHero(
-            hotspots = page.hotspots,
-            anchors = ::fountainAnchor,
-            onHotspot = onHotspot,
-            modifier = Modifier.padding(top = PkTheme.spacing.xs),
-            photo = heroPhoto(page.device),
-            pictured = !page.device.isCamera,
-        ) { FountainIllustration(Modifier.fillMaxSize()) }
+        if (!page.device.isCamera) {
+            DeviceHero(
+                hotspots = page.hotspots,
+                anchors = ::fountainAnchor,
+                onHotspot = onHotspot,
+                modifier = Modifier.padding(top = PkTheme.spacing.xs),
+                photo = heroPhoto(page.device),
+            ) { FountainIllustration(Modifier.fillMaxSize()) }
+        }
     }
 }
 
