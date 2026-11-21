@@ -62,6 +62,7 @@ class FakeDeviceRepository(initial: List<Device> = emptyList()) :
     override suspend fun refresh(): Outcome<Unit> = refreshed()
 }
 
+@Suppress("TooManyFunctions") // One per operation of PetRepository.
 class FakePetRepository(initial: List<Pet> = emptyList()) :
     FakeRefresh(),
     PetRepository {

@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions") // The repository and the mappers of what it stores.
+
 package org.petkitlocal.core.data
 
 import java.time.Clock
@@ -53,6 +55,7 @@ import org.petkitlocal.core.network.error.apiCall
  * pet's statistics and recent visits (`GET /pets/{id}`); [refreshWeights] reads its weighed
  * visits from the timeline, which is the only place the API serves a pet's weights over time.
  */
+@Suppress("TooManyFunctions") // One per operation of PetRepository, and the helpers they share.
 class PetRepositoryImpl @Inject constructor(
     private val api: PetkitApi,
     private val dao: PetDao,

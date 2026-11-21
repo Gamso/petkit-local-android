@@ -5,6 +5,8 @@ import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.net.Uri
 import androidx.core.content.FileProvider
+import androidx.core.graphics.scale
+import androidx.core.net.toUri
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
@@ -46,7 +48,7 @@ internal object PetPhotoFiles {
      */
     suspend fun decode(context: Context, source: String): Bitmap? = withContext(Dispatchers.IO) {
         try {
-            val imageSource = ImageDecoder.createSource(context.contentResolver, Uri.parse(source))
+            val imageSource = ImageDecoder.createSource(context.contentResolver, source.toUri())
             ImageDecoder.decodeBitmap(imageSource) { decoder, info, _ ->
                 // Software pixels: the crop reads them back to encode the JPEG.
                 decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
@@ -73,7 +75,7 @@ internal object PetPhotoFiles {
         val side = min(square.side, min(bitmap.width - square.left, bitmap.height - square.top)).coerceAtLeast(1)
         val cropped = Bitmap.createBitmap(bitmap, square.left, square.top, side, side)
         val tooLarge = side > MAX_SENT_SIDE
-        val sent = if (tooLarge) Bitmap.createScaledBitmap(cropped, MAX_SENT_SIDE, MAX_SENT_SIDE, true) else cropped
+        val sent = if (tooLarge) cropped.scale(MAX_SENT_SIDE, MAX_SENT_SIDE) else cropped
         ByteArrayOutputStream().use { out ->
             sent.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, out)
             out.toByteArray()

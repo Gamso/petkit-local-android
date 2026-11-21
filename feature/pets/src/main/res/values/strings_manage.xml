@@ -44,13 +44,19 @@
     <!-- Photos. -->
     <string name="pet_photos_title">Photos of %1$s</string>
     <string name="pet_photos_intro">A camera that recognises pets by their face compares each visit with these photos of the head. Several, in different light, work best.</string>
-    <string name="pet_photos_limit">%1$d photos at most.</string>
+    <plurals name="pet_photos_limit">
+        <item quantity="one">%1$d photo at most.</item>
+        <item quantity="other">%1$d photos at most.</item>
+    </plurals>
     <string name="pet_photos_no_device">No camera that recognises faces is assigned to %1$s, so these photos are not used yet.</string>
     <string name="pet_photos_choose_devices">Choose its cameras</string>
     <string name="pet_photos_empty">No photo yet.</string>
     <string name="pet_photos_add">Add a photo</string>
     <string name="pet_photos_uploading">Sending the photo…</string>
-    <string name="pet_photos_at_limit">%1$s already has %2$d photos, the most a pet can have. Delete one to add another.</string>
+    <plurals name="pet_photos_at_limit">
+        <item quantity="one">%1$s already has %2$d photo, the most a pet can have here. Delete it to add another.</item>
+        <item quantity="other">%1$s already has %2$d photos, the most a pet can have. Delete one to add another.</item>
+    </plurals>
     <string name="pet_photos_added">Photo added. The cameras take it in at their next check.</string>
     <string name="pet_photo_description">Photo %1$d of %2$s</string>
     <string name="pet_photo_delete">Delete photo %1$d</string>
@@ -83,7 +89,10 @@
     <string name="pet_crop_other">Choose another photo</string>
     <string name="pet_crop_loading">Opening the photo…</string>
     <string name="pet_crop_unreadable">This photo could not be opened. Choose another one.</string>
-    <string name="pet_crop_too_small">The square is %1$d pixels wide: too small to recognise a face. Zoom out, or use a sharper photo (at least %2$d pixels).</string>
+    <plurals name="pet_crop_too_small">
+        <item quantity="one">The square is %1$d pixels wide: too small to recognise a face. Zoom out, or use a sharper photo (at least %2$d pixels).</item>
+        <item quantity="other">The square is %1$d pixels wide: too small to recognise a face. Zoom out, or use a sharper photo (at least %2$d pixels).</item>
+    </plurals>
     <!-- After the upload. -->
     <string name="pet_review_title">Check this photo</string>
     <string name="pet_review_intro">The photo was saved, but the server found what may make it harder to recognise:</string>

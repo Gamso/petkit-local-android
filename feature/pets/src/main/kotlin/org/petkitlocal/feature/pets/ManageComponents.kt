@@ -77,32 +77,40 @@ internal fun writeErrorMessage(error: DomainError): String = when (error) {
 
     is DomainError.SessionEnded -> stringResource(R.string.pets_session_ended)
 
-    is DomainError.NotFound -> when (error.code) {
-        "pet_not_found" -> stringResource(R.string.pet_editor_gone)
-
-        // A route the server does not have: one older than the app's pet management.
-        "not_found" -> stringResource(R.string.pet_error_too_old)
-
-        else -> stringResource(R.string.pet_error_server)
-    }
+    is DomainError.NotFound -> notFoundMessage(error.code)
 
     is DomainError.Validation -> when (error.code) {
         "photo_too_small" -> stringResource(R.string.pet_error_too_small)
         else -> stringResource(R.string.pet_error_refused, error.message.ifEmpty { error.code })
     }
 
-    is DomainError.Server -> when (error.code) {
-        "photo_too_large" -> stringResource(R.string.pet_error_too_large)
-
-        "not_jpeg" -> stringResource(R.string.pet_error_not_jpeg)
-
-        "photo_not_stored" -> stringResource(R.string.pet_error_not_stored)
-
-        else -> error.message?.takeIf { it.isNotBlank() }?.let { stringResource(R.string.pet_error_refused, it) }
-            ?: stringResource(R.string.pet_error_server)
-    }
+    is DomainError.Server -> serverMessage(error)
 
     else -> stringResource(R.string.pet_error_server)
+}
+
+@Composable
+private fun notFoundMessage(code: String): String = stringResource(
+    when (code) {
+        "pet_not_found" -> R.string.pet_editor_gone
+
+        // A route the server does not have: one older than the app's pet management.
+        "not_found" -> R.string.pet_error_too_old
+
+        else -> R.string.pet_error_server
+    },
+)
+
+@Composable
+private fun serverMessage(error: DomainError.Server): String = when (error.code) {
+    "photo_too_large" -> stringResource(R.string.pet_error_too_large)
+
+    "not_jpeg" -> stringResource(R.string.pet_error_not_jpeg)
+
+    "photo_not_stored" -> stringResource(R.string.pet_error_not_stored)
+
+    else -> error.message?.takeIf { it.isNotBlank() }?.let { stringResource(R.string.pet_error_refused, it) }
+        ?: stringResource(R.string.pet_error_server)
 }
 
 /**

@@ -95,6 +95,7 @@ data class PetPhotosUiState(
  * when the screen opens; added through the tips, the camera or the gallery, and a square crop;
  * deleted after a confirmation. At the server's limit, Add stays enabled and says why on press.
  */
+@Suppress("TooManyFunctions") // One per user intent of the photo screens.
 @HiltViewModel
 class PetPhotosViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,

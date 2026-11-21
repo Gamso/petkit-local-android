@@ -19,6 +19,7 @@ import org.petkitlocal.core.domain.pets.PetsSourceSetting
  * ([refreshPet]) and its weighed visits over a range of days ([refreshWeights]). The writes go to
  * the server first; the cache changes only with what it answered (ADR 0002).
  */
+@Suppress("TooManyFunctions") // Reading pets and managing them: one per operation of the API.
 interface PetRepository {
     /** Every pet, in the server's order, which is also the order of the pet colours. */
     fun observePets(): Flow<List<Pet>>

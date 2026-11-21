@@ -192,6 +192,12 @@ private fun EditorForm(uiState: PetEditUiState, callbacks: PetEditCallbacks) {
         )
     }
     DevicesCard(uiState, callbacks.onToggleDevice)
+    EditorButtons(uiState, callbacks)
+}
+
+/** The server's refusal, if any, then Save and, for an existing pet, Delete. */
+@Composable
+private fun EditorButtons(uiState: PetEditUiState, callbacks: PetEditCallbacks) {
     Column(verticalArrangement = Arrangement.spacedBy(PkTheme.spacing.xs)) {
         val error = uiState.error
         if (error != null) {

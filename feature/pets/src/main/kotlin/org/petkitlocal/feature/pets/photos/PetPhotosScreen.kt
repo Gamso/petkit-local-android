@@ -106,25 +106,7 @@ internal fun PetPhotosRoute(navigation: PetsNavigation, viewModel: PetPhotosView
     val pickPhoto = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) viewModel.onPicked(uri.toString())
     }
-    val source = when (val step = uiState.step) {
-        is PhotoStep.Crop -> step.source
-        is PhotoStep.Uploading -> step.source
-        else -> null
-    }
-    var bitmap by remember { mutableStateOf<Pair<String, Bitmap?>?>(null) }
-    LaunchedEffect(source) {
-        if (source != null && bitmap?.first != source) {
-            val decoded = PetPhotoFiles.decode(context, source)
-            bitmap = source to decoded
-            if (decoded == null) viewModel.onUnreadable()
-        }
-    }
-    val image = bitmap?.takeIf { it.first == source }?.second
-    val cropImage = when {
-        bitmap?.first != source -> CropImage.Loading
-        image == null -> CropImage.Unreadable
-        else -> remember(image) { CropImage.Ready(image.asImageBitmap()) }
-    }
+    val (image, cropImage) = rememberCropImage(uiState.step, viewModel::onUnreadable)
     BackHandler(enabled = uiState.step != PhotoStep.List) { viewModel.onBackInFlow() }
     PetPhotosScreen(
         uiState = uiState,
@@ -159,6 +141,35 @@ internal fun PetPhotosRoute(navigation: PetsNavigation, viewModel: PetPhotosView
             onRetake = viewModel::onRetake,
         ),
     )
+}
+
+/**
+ * The photo being cropped, decoded once per source: the phone's own bitmap, which the square is cut
+ * from, and what the screen shows. [onUnreadable] when it cannot be decoded.
+ */
+@Composable
+private fun rememberCropImage(step: PhotoStep, onUnreadable: () -> Unit): Pair<Bitmap?, CropImage> {
+    val context = LocalContext.current
+    val source = when (step) {
+        is PhotoStep.Crop -> step.source
+        is PhotoStep.Uploading -> step.source
+        else -> null
+    }
+    var bitmap by remember { mutableStateOf<Pair<String, Bitmap?>?>(null) }
+    LaunchedEffect(source) {
+        if (source != null && bitmap?.first != source) {
+            val decoded = PetPhotoFiles.decode(context, source)
+            bitmap = source to decoded
+            if (decoded == null) onUnreadable()
+        }
+    }
+    val image = bitmap?.takeIf { it.first == source }?.second
+    val cropImage = when {
+        bitmap?.first != source -> CropImage.Loading
+        image == null -> CropImage.Unreadable
+        else -> remember(image) { CropImage.Ready(image.asImageBitmap()) }
+    }
+    return image to cropImage
 }
 
 /**

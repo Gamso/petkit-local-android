@@ -96,11 +96,21 @@ private fun PhotoList(uiState: PetPhotosUiState, callbacks: PetPhotosCallbacks) 
     if (uiState.loadError != null) {
         PkOfflineBanner(message = stringResource(R.string.pets_refresh_failed))
     }
+    IntroCard(uiState, callbacks.onEditPet)
+    FaceGrid(uiState, callbacks.onDelete)
+    AddSection(uiState, callbacks.onAdd)
+}
+
+/** What the photos are for, the server's limit, and a pet no camera can recognise yet. */
+@Composable
+private fun IntroCard(uiState: PetPhotosUiState, onEditPet: () -> Unit) {
+    val content = checkNotNull(uiState.content)
+    val colors = PkTheme.colors
     PkCard(Modifier.fillMaxWidth()) {
         Text(stringResource(R.string.pet_photos_intro), style = PkTheme.typography.bodyMedium, color = colors.onSurface)
         uiState.maxFaces?.let {
             Text(
-                stringResource(R.string.pet_photos_limit, it),
+                pluralStringResource(R.plurals.pet_photos_limit, it, it),
                 style = PkTheme.typography.labelLarge,
                 color = colors.onSurfaceMuted,
                 modifier = Modifier.padding(top = PkTheme.spacing.xxs),
@@ -118,35 +128,46 @@ private fun PhotoList(uiState: PetPhotosUiState, callbacks: PetPhotosCallbacks) 
             }
             PkButton(
                 stringResource(R.string.pet_photos_choose_devices),
-                onClick = callbacks.onEditPet,
+                onClick = onEditPet,
                 style = PkButtonStyle.Text,
                 icon = PkIcons.Edit,
             )
         }
     }
+}
+
+/** The photos, two across: wide enough for what each camera made of the photo. */
+@Composable
+private fun FaceGrid(uiState: PetPhotosUiState, onDelete: (Long) -> Unit) {
     val faces = uiState.faces
     if (faces.isEmpty()) {
         Text(
             stringResource(R.string.pet_photos_empty),
             style = PkTheme.typography.bodyLarge,
-            color = colors.onSurfaceMuted,
+            color = PkTheme.colors.onSurfaceMuted,
         )
     }
-    // Two across: wide enough for what each camera made of the photo.
     val perRow = 2
     faces.withIndex().chunked(perRow).forEach { row ->
         Row(horizontalArrangement = Arrangement.spacedBy(PkTheme.spacing.xs)) {
             row.forEach { (index, face) ->
-                FaceTile(index + 1, face, uiState, callbacks.onDelete, Modifier.weight(1f))
+                FaceTile(index + 1, face, uiState, onDelete, Modifier.weight(1f))
             }
             repeat(perRow - row.size) { Spacer(Modifier.weight(1f)) }
         }
     }
+}
+
+/** Add, never greyed out but while a photo is on its way, and what came of the last try. */
+@Composable
+private fun AddSection(uiState: PetPhotosUiState, onAdd: () -> Unit) {
+    val content = checkNotNull(uiState.content)
+    val colors = PkTheme.colors
     Column(verticalArrangement = Arrangement.spacedBy(PkTheme.spacing.xs)) {
         val uploading = uiState.step is PhotoStep.Uploading
         PkButton(
             stringResource(if (uploading) R.string.pet_photos_uploading else R.string.pet_photos_add),
-            onClick = callbacks.onAdd,
+            onClick = onAdd,
             enabled = !uploading,
             icon = PkIcons.Add,
             modifier = Modifier
@@ -156,7 +177,7 @@ private fun PhotoList(uiState: PetPhotosUiState, callbacks: PetPhotosCallbacks) 
         uiState.notice?.let { notice ->
             val (text, color) = when (notice) {
                 is PhotoNotice.AtLimit ->
-                    stringResource(R.string.pet_photos_at_limit, content.pet.name, notice.max) to
+                    pluralStringResource(R.plurals.pet_photos_at_limit, notice.max, content.pet.name, notice.max) to
                         colors.onWarningContainer
 
                 PhotoNotice.Added -> stringResource(R.string.pet_photos_added) to colors.success
@@ -178,8 +199,6 @@ private fun PhotoList(uiState: PetPhotosUiState, callbacks: PetPhotosCallbacks) 
         }
     }
 }
-
-private const val LARGE_FONT = 1.2f
 
 /** One photo, its Delete, and for each of the pet's cameras whether it took the photo in. */
 @Composable
@@ -253,115 +272,6 @@ private fun StatusLine(icon: ImageVector, tint: androidx.compose.ui.graphics.Col
     }
 }
 
-/** Before the camera or the gallery: what a good photo is, drawn, and what it is not. */
-@Composable
-internal fun TipsContent(noCamera: Boolean, callbacks: PetPhotosCallbacks) {
-    val colors = PkTheme.colors
-    Text(stringResource(R.string.pet_tips_intro), style = PkTheme.typography.bodyLarge, color = colors.onSurface)
-    PkCard(Modifier.fillMaxWidth()) {
-        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            TipIllustration(TipSketch.Good, Modifier.widthIn(max = 220.dp))
-        }
-        ExampleLabel(
-            good = true,
-            stringResource(R.string.pet_tips_good_label),
-            Modifier.padding(top = PkTheme.spacing.s),
-        )
-        Text(
-            stringResource(R.string.pet_tips_good),
-            style = PkTheme.typography.bodyMedium,
-            color = colors.onSurface,
-            modifier = Modifier.padding(top = PkTheme.spacing.xxs),
-        )
-    }
-    PkCard(Modifier.fillMaxWidth()) {
-        Text(
-            stringResource(R.string.pet_tips_bad),
-            style = PkTheme.typography.titleMedium,
-            modifier = Modifier
-                .padding(bottom = PkTheme.spacing.s)
-                .semantics { heading() },
-        )
-        val examples = listOf(
-            TipSketch.TwoPets to R.string.pet_tips_two_pets,
-            TipSketch.Side to R.string.pet_tips_side,
-            TipSketch.Far to R.string.pet_tips_far,
-            TipSketch.Dark to R.string.pet_tips_dark,
-            TipSketch.Blurry to R.string.pet_tips_blurry,
-        )
-        val perRow = if (LocalDensity.current.fontScale > LARGE_FONT) 2 else 3
-        Column(verticalArrangement = Arrangement.spacedBy(PkTheme.spacing.s)) {
-            examples.chunked(perRow).forEach { row ->
-                Row(horizontalArrangement = Arrangement.spacedBy(PkTheme.spacing.xs)) {
-                    row.forEach { (sketch, label) ->
-                        Column(
-                            verticalArrangement = Arrangement.spacedBy(PkTheme.spacing.xxs),
-                            modifier = Modifier
-                                .weight(1f)
-                                .semantics(mergeDescendants = true) {},
-                        ) {
-                            TipIllustration(sketch)
-                            ExampleLabel(good = false, stringResource(label))
-                        }
-                    }
-                    repeat(perRow - row.size) { Spacer(Modifier.weight(1f)) }
-                }
-            }
-        }
-    }
-    if (noCamera) {
-        Text(
-            stringResource(R.string.pet_tips_no_camera),
-            style = PkTheme.typography.bodyMedium,
-            color = colors.danger,
-            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-        )
-    }
-    PkButton(
-        stringResource(R.string.pet_tips_take),
-        onClick = callbacks.onTakePhoto,
-        icon = PkIcons.PhotoCamera,
-        modifier = Modifier
-            .fillMaxWidth()
-            .testTag(PetPhotosTestTags.TAKE),
-    )
-    PkButton(
-        stringResource(R.string.pet_tips_choose),
-        onClick = callbacks.onChoosePhoto,
-        style = PkButtonStyle.Secondary,
-        icon = PkIcons.PhotoLibrary,
-        modifier = Modifier
-            .fillMaxWidth()
-            .testTag(PetPhotosTestTags.CHOOSE),
-    )
-}
-
-/** "Good" with a check, "Not good" with a cross: never the colour alone. */
-@Composable
-private fun ExampleLabel(good: Boolean, text: String, modifier: Modifier = Modifier) {
-    val colors = PkTheme.colors
-    Row(verticalAlignment = Alignment.Top, modifier = modifier) {
-        Icon(
-            if (good) PkIcons.CheckCircle else PkIcons.Cancel,
-            contentDescription = if (good) {
-                stringResource(
-                    R.string.pet_tips_good_label,
-                )
-            } else {
-                stringResource(R.string.pet_tips_bad_label)
-            },
-            tint = if (good) colors.success else colors.danger,
-            modifier = Modifier.size(18.dp),
-        )
-        Text(
-            text,
-            style = PkTheme.typography.labelLarge,
-            color = colors.onSurface,
-            modifier = Modifier.padding(start = PkTheme.spacing.xxs),
-        )
-    }
-}
-
 /** The square crop: the photo under its frame, zoom buttons for those who cannot pinch, and Use. */
 @Composable
 internal fun CropContent(image: CropImage, problem: CropProblem?, uploading: Boolean, callbacks: PetPhotosCallbacks) {
@@ -415,7 +325,7 @@ private fun ReadyCrop(
         CropProblem.Unreadable -> ProblemText(stringResource(R.string.pet_crop_unreadable))
 
         is CropProblem.TooSmall -> ProblemText(
-            stringResource(R.string.pet_crop_too_small, problem.side, PetPhotosViewModel.MIN_SIDE),
+            pluralStringResource(R.plurals.pet_crop_too_small, problem.side, problem.side, PetPhotosViewModel.MIN_SIDE),
         )
 
         is CropProblem.Failed -> ProblemText(writeErrorMessage(problem.error))

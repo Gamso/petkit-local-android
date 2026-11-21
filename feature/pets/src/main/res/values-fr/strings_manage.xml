@@ -15,6 +15,7 @@
     <string name="pet_photos_card">Photos de reconnaissance</string>
     <plurals name="pet_photos_count">
         <item quantity="one">%1$d photo de sa tête</item>
+        <item quantity="many">%1$d photos de sa tête</item>
         <item quantity="other">%1$d photos de sa tête</item>
     </plurals>
     <string name="pet_photos_none">Aucune photo : les caméras ne peuvent pas le reconnaître à son visage.</string>
@@ -44,13 +45,21 @@
     <!-- Photos. -->
     <string name="pet_photos_title">Photos de %1$s</string>
     <string name="pet_photos_intro">Une caméra qui reconnaît les animaux à leur visage compare chaque passage à ces photos de la tête. Plusieurs, sous différentes lumières, donnent les meilleurs résultats.</string>
-    <string name="pet_photos_limit">%1$d photos au plus.</string>
+    <plurals name="pet_photos_limit">
+        <item quantity="one">%1$d photo au plus.</item>
+        <item quantity="many">%1$d photos au plus.</item>
+        <item quantity="other">%1$d photos au plus.</item>
+    </plurals>
     <string name="pet_photos_no_device">Aucune caméra qui reconnaît les visages n\'est attribuée à %1$s : ces photos ne servent pas encore.</string>
     <string name="pet_photos_choose_devices">Choisir ses caméras</string>
     <string name="pet_photos_empty">Aucune photo pour l\'instant.</string>
     <string name="pet_photos_add">Ajouter une photo</string>
     <string name="pet_photos_uploading">Envoi de la photo…</string>
-    <string name="pet_photos_at_limit">%1$s a déjà %2$d photos, le maximum pour un animal. Supprimez-en une pour en ajouter une autre.</string>
+    <plurals name="pet_photos_at_limit">
+        <item quantity="one">%1$s a déjà %2$d photo, le maximum pour un animal ici. Supprimez-la pour en ajouter une autre.</item>
+        <item quantity="many">%1$s a déjà %2$d photos, le maximum pour un animal. Supprimez-en une pour en ajouter une autre.</item>
+        <item quantity="other">%1$s a déjà %2$d photos, le maximum pour un animal. Supprimez-en une pour en ajouter une autre.</item>
+    </plurals>
     <string name="pet_photos_added">Photo ajoutée. Les caméras la prennent en compte à leur prochaine vérification.</string>
     <string name="pet_photo_description">Photo %1$d de %2$s</string>
     <string name="pet_photo_delete">Supprimer la photo %1$d</string>
@@ -83,7 +92,11 @@
     <string name="pet_crop_other">Choisir une autre photo</string>
     <string name="pet_crop_loading">Ouverture de la photo…</string>
     <string name="pet_crop_unreadable">Cette photo n\'a pas pu être ouverte. Choisissez-en une autre.</string>
-    <string name="pet_crop_too_small">Le carré fait %1$d pixels de large : trop petit pour reconnaître un visage. Dézoomez, ou prenez une photo plus nette (au moins %2$d pixels).</string>
+    <plurals name="pet_crop_too_small">
+        <item quantity="one">Le carré fait %1$d pixels de large : trop petit pour reconnaître un visage. Dézoomez, ou prenez une photo plus nette (au moins %2$d pixels).</item>
+        <item quantity="many">Le carré fait %1$d pixels de large : trop petit pour reconnaître un visage. Dézoomez, ou prenez une photo plus nette (au moins %2$d pixels).</item>
+        <item quantity="other">Le carré fait %1$d pixels de large : trop petit pour reconnaître un visage. Dézoomez, ou prenez une photo plus nette (au moins %2$d pixels).</item>
+    </plurals>
     <!-- After the upload. -->
     <string name="pet_review_title">Vérifiez cette photo</string>
     <string name="pet_review_intro">La photo est enregistrée, mais le serveur y a trouvé ce qui peut gêner la reconnaissance :</string>

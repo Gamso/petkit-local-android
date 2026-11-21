@@ -1,3 +1,5 @@
+@file:Suppress("MagicNumber") // Drawing coordinates, in head radii.
+
 package org.petkitlocal.feature.pets.photos
 
 import androidx.compose.foundation.Canvas
