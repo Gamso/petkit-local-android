@@ -38,6 +38,8 @@ import org.petkitlocal.core.testing.FakeTalkRepository
 import org.petkitlocal.core.testing.FakeTimelineRepository
 import org.petkitlocal.core.testing.Household
 import org.petkitlocal.core.testing.MainDispatcherExtension
+import org.petkitlocal.core.ui.live.LivePlayback
+import org.petkitlocal.core.ui.live.LivePlayerFactory
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class LiveViewModelTest {

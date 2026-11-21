@@ -17,7 +17,6 @@ import org.petkitlocal.core.domain.devicepage.DevicePart
 import org.petkitlocal.core.domain.feeder.FeederDayFilter
 import org.petkitlocal.core.domain.feeder.FeederPage
 import org.petkitlocal.core.domain.model.DeviceAction
-import org.petkitlocal.core.ui.LiveCardState
 import org.petkitlocal.core.ui.rememberServerLabels
 import org.petkitlocal.feature.device.DeviceNavigation
 import org.petkitlocal.feature.device.R
@@ -25,6 +24,7 @@ import org.petkitlocal.feature.device.common.CameraLiveCard
 import org.petkitlocal.feature.device.common.DeviceHeader
 import org.petkitlocal.feature.device.common.DeviceStatusLine
 import org.petkitlocal.feature.device.common.DeviceTestTags
+import org.petkitlocal.feature.device.common.LiveCardUi
 import org.petkitlocal.feature.device.common.RecentClipsUi
 import org.petkitlocal.feature.device.common.recentClips
 import org.petkitlocal.feature.device.common.rememberLiveCard
@@ -117,8 +117,8 @@ internal fun FeederScreen(
     initiallyExpanded: Boolean = false,
     /** A camera's recent clips; null shows none. */
     clips: RecentClipsUi? = null,
-    /** What a camera's live card shows. */
-    live: LiveCardState = LiveCardState(),
+    /** A camera's live card: what it shows, and its player. */
+    live: LiveCardUi = LiveCardUi(),
 ) {
     val page = uiState.page
     val tint = PkTheme.colors.heroFeeder
@@ -150,7 +150,7 @@ private fun LazyListScope.feederContent(
     uiState: FeederUiState,
     navigation: DeviceNavigation,
     callbacks: FeederCallbacks,
-    live: LiveCardState,
+    live: LiveCardUi,
 ) {
     item(key = "top") {
         PageTop(PkTheme.colors.heroFeeder) {

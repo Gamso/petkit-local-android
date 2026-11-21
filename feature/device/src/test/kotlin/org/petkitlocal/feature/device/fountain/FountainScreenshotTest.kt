@@ -17,10 +17,10 @@ import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.devicepage.DevicePart
 import org.petkitlocal.core.testing.Household
 import org.petkitlocal.core.testing.ScreenshotVariant
-import org.petkitlocal.core.ui.LiveCardState
 import org.petkitlocal.core.ui.PreviewImages
 import org.petkitlocal.feature.device.DeviceFixtures
 import org.petkitlocal.feature.device.DeviceNavigation
+import org.petkitlocal.feature.device.common.LiveCardUi
 import org.petkitlocal.feature.device.common.RecentClipsUi
 import org.petkitlocal.feature.device.litter.HotspotDialogContent
 import org.robolectric.ParameterizedRobolectricTestRunner
@@ -44,7 +44,9 @@ import org.robolectric.annotation.GraphicsMode
 class FountainScreenshotTest(private val variant: ScreenshotVariant) {
     @Test
     fun content() = capture("fountain_content") {
-        PreviewImages { Screen(FountainFixtures.content, DeviceFixtures.recentClips, DeviceFixtures.liveCard) }
+        PreviewImages {
+            Screen(FountainFixtures.content, DeviceFixtures.recentClips, LiveCardUi(DeviceFixtures.liveCard))
+        }
     }
 
     @Test
@@ -84,7 +86,7 @@ class FountainScreenshotTest(private val variant: ScreenshotVariant) {
     }
 
     @Composable
-    private fun Screen(state: FountainUiState, clips: RecentClipsUi? = null, live: LiveCardState = LiveCardState()) =
+    private fun Screen(state: FountainUiState, clips: RecentClipsUi? = null, live: LiveCardUi = LiveCardUi()) =
         FountainScreen(state, DeviceNavigation(), FountainCallbacks(), clips = clips, live = live)
 
     private fun capture(name: String, content: @Composable () -> Unit) {

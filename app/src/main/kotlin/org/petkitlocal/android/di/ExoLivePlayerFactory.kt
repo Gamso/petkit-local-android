@@ -16,12 +16,13 @@ import org.petkitlocal.core.network.auth.SessionEndListener
 import org.petkitlocal.core.network.video.LiveCodecs
 import org.petkitlocal.core.network.video.LiveMediaSources
 import org.petkitlocal.core.network.video.liveFailureOf
-import org.petkitlocal.feature.live.LivePlayerFactory
+import org.petkitlocal.core.ui.live.LivePlayerFactory
 
 /**
- * The live screen's players: an ExoPlayer per attempt on core:network's live sources
- * ([LiveMediaSources]: the fMP4 WebSocket, or HLS), with [lowLatencyLoadControl] and the app's
- * renderers ([renderersFactory]). The `mse` codec list is read from the phone's decoders once.
+ * The live players, of the live screen and of a camera page's live card: an ExoPlayer per attempt
+ * on core:network's live sources ([LiveMediaSources]: the fMP4 WebSocket, or HLS), with
+ * [lowLatencyLoadControl] and the app's renderers ([renderersFactory]). The `mse` codec list is
+ * read from the phone's decoders once.
  */
 internal class ExoLivePlayerFactory(
     private val client: Lazy<OkHttpClient>,

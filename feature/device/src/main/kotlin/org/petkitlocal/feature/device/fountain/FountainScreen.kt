@@ -19,7 +19,6 @@ import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.devicepage.DevicePart
 import org.petkitlocal.core.domain.fountain.FountainPage
 import org.petkitlocal.core.domain.model.EntityValue
-import org.petkitlocal.core.ui.LiveCardState
 import org.petkitlocal.core.ui.rememberServerLabels
 import org.petkitlocal.feature.device.DeviceNavigation
 import org.petkitlocal.feature.device.R
@@ -30,6 +29,7 @@ import org.petkitlocal.feature.device.common.DayDot
 import org.petkitlocal.feature.device.common.DeviceHeader
 import org.petkitlocal.feature.device.common.DeviceStatusLine
 import org.petkitlocal.feature.device.common.DeviceTestTags
+import org.petkitlocal.feature.device.common.LiveCardUi
 import org.petkitlocal.feature.device.common.RecentClipsUi
 import org.petkitlocal.feature.device.common.UntimedWords
 import org.petkitlocal.feature.device.common.recentClips
@@ -121,8 +121,8 @@ internal fun FountainScreen(
     initiallyExpanded: Boolean = false,
     /** A camera's recent clips; null shows none. */
     clips: RecentClipsUi? = null,
-    /** What a camera's live card shows. */
-    live: LiveCardState = LiveCardState(),
+    /** A camera's live card: what it shows, and its player. */
+    live: LiveCardUi = LiveCardUi(),
 ) {
     val page = uiState.page
     val tint = PkTheme.colors.heroFountain
@@ -199,7 +199,7 @@ private fun LazyListScope.fountainContent(
     uiState: FountainUiState,
     navigation: DeviceNavigation,
     callbacks: FountainCallbacks,
-    live: LiveCardState,
+    live: LiveCardUi,
 ) {
     item(key = "top") { FountainTop(page, uiState.now, navigation, live, callbacks.onHotspot) }
     item(key = "status") {
@@ -254,7 +254,7 @@ private fun FountainTop(
     page: FountainPage,
     now: Instant,
     navigation: DeviceNavigation,
-    live: LiveCardState,
+    live: LiveCardUi,
     onHotspot: (DevicePart?) -> Unit,
 ) {
     PageTop(PkTheme.colors.heroFountain) {

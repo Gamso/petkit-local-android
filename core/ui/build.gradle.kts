@@ -12,4 +12,7 @@ dependencies {
     implementation(libs.coil.compose)
     // Android's permission prompt, asked the same way from every screen (NotificationPermission.kt).
     implementation(libs.androidx.activity.compose)
+    // The live player's interface and pieces, shared by the live screen and a camera page's live
+    // card; the player itself (ExoPlayer on core:network's sources) is built in :app.
+    api(libs.media3.common)
 }

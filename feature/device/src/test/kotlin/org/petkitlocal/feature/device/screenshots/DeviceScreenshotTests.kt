@@ -3,9 +3,13 @@
 
 package org.petkitlocal.feature.device.screenshots
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -15,11 +19,18 @@ import org.petkitlocal.core.designsystem.component.PkPreviewSurface
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.core.domain.device.EntityWriteProblem
+import org.petkitlocal.core.domain.video.LiveFailure
+import org.petkitlocal.core.domain.video.LivePhase
+import org.petkitlocal.core.domain.video.LiveSession
+import org.petkitlocal.core.domain.video.LiveTransport
 import org.petkitlocal.core.testing.ScreenshotVariant
 import org.petkitlocal.core.ui.LiveCard
+import org.petkitlocal.core.ui.LiveCardCallbacks
 import org.petkitlocal.core.ui.PreviewImages
 import org.petkitlocal.core.ui.RecentClipsCard
+import org.petkitlocal.core.ui.live.LivePicture
 import org.petkitlocal.feature.device.DeviceFixtures
+import org.petkitlocal.feature.device.common.LiveCardUi
 import org.petkitlocal.feature.device.generic.GenericDeviceActions
 import org.petkitlocal.feature.device.generic.GenericDeviceScreen
 import org.petkitlocal.feature.device.settings.DeviceSettingsActions
@@ -58,7 +69,7 @@ class GenericDeviceScreenshotTest(private val variant: ScreenshotVariant) {
                 DeviceFixtures.generic(commands = DeviceFixtures.sent),
                 GenericDeviceActions(),
                 clips = DeviceFixtures.recentClips,
-                live = DeviceFixtures.liveCard,
+                live = LiveCardUi(DeviceFixtures.liveCard),
             )
         }
     }
@@ -98,20 +109,39 @@ class GenericDeviceScreenshotTest(private val variant: ScreenshotVariant) {
 }
 
 /**
- * A camera's live card with its latest still (drawn as a placeholder: the capture fetches nothing)
- * and before it has any; the card in place is on the camera pages.
+ * A camera's live card in each of its states, playing in place: its still before it is shown,
+ * none before the camera produced one, opening over the still, still opening after a while (a
+ * D4SH's relay), playing on HLS with the sound on (a black placeholder: no player runs here),
+ * waiting to reconnect, and stopped with its retry. The still is drawn as a placeholder: the
+ * capture fetches nothing. Inspection mode keeps the spinner still (LiveScreenshotTest).
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(qualifiers = "w360dp-h900dp-xhdpi", sdk = [36])
+@Config(qualifiers = "w360dp-h1600dp-xhdpi", sdk = [36])
 class LiveCardScreenshotTest(private val variant: ScreenshotVariant) {
     @Test
     fun states() = capture("live_card_states", variant) {
-        PreviewImages {
-            PkPreviewSurface {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    listOf(DeviceFixtures.liveCard, DeviceFixtures.liveCard.copy(still = null)).forEach { state ->
-                        LiveCard("Purobot Ultra", state, onOpen = {})
+        val card = DeviceFixtures.liveCard
+        fun session(phase: LivePhase, transport: LiveTransport = LiveTransport.WebSocket) =
+            LiveSession(transport = transport, phase = phase, attempt = 1)
+        val states = listOf(
+            card,
+            card.copy(still = null),
+            card.copy(session = session(LivePhase.Starting)),
+            card.copy(session = session(LivePhase.Starting).copy(startingSlowly = true)),
+            card.copy(session = session(LivePhase.Playing, LiveTransport.Hls), muted = false),
+            card.copy(session = session(LivePhase.Waiting(LiveFailure.Network(), LiveSession.RETRY_DELAY))),
+            card.copy(session = session(LivePhase.Stopped(LiveFailure.StreamEnded))),
+        )
+        CompositionLocalProvider(LocalInspectionMode provides true) {
+            PreviewImages {
+                PkPreviewSurface {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        states.forEach { state ->
+                            LiveCard("Purobot Ultra", state, LiveCardCallbacks()) { modifier ->
+                                if (state.session.phase == LivePhase.Playing) Box(modifier.background(LivePicture))
+                            }
+                        }
                     }
                 }
             }

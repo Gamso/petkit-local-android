@@ -33,7 +33,6 @@ import org.junit.runner.RunWith
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.core.domain.devicepage.DevicePart
-import org.petkitlocal.core.ui.LiveCardState
 import org.petkitlocal.core.ui.LiveCardTestTags
 import org.petkitlocal.feature.device.DeviceFixtures
 import org.petkitlocal.feature.device.DeviceNavigation
@@ -41,6 +40,7 @@ import org.petkitlocal.feature.device.common.ActivityTestTags
 import org.petkitlocal.feature.device.common.CONFIRM_ARM_MS
 import org.petkitlocal.feature.device.common.CommandState
 import org.petkitlocal.feature.device.common.DeviceTestTags
+import org.petkitlocal.feature.device.common.LiveCardUi
 import org.petkitlocal.feature.device.common.QuickActionsTestTags
 import org.petkitlocal.feature.device.litter.PageCommandCallbacks
 import org.petkitlocal.feature.device.litter.PageTestTags
@@ -80,7 +80,7 @@ class FountainScreenTest {
         ),
     )
 
-    private fun show(state: FountainUiState, live: LiveCardState = LiveCardState()) {
+    private fun show(state: FountainUiState, live: LiveCardUi = LiveCardUi()) {
         compose.setContent { PkTheme { FountainScreen(state, navigation, callbacks, live = live) } }
     }
 
@@ -89,19 +89,18 @@ class FountainScreenTest {
     }
 
     @Test
-    fun `a camera fountain's live card leads to its live video, even before any still`() {
-        show(FountainFixtures.content, live = DeviceFixtures.liveCard.copy(still = null))
+    fun `a camera fountain's live card leads to its live video in full screen, even before any still`() {
+        show(FountainFixtures.content, live = LiveCardUi(DeviceFixtures.liveCard.copy(still = null)))
 
-        compose.onNodeWithTag(LiveCardTestTags.CARD)
-            .assertContentDescriptionEquals("Watch EverSweet Ultra AI live")
-            .performClick()
+        compose.onNodeWithTag(LiveCardTestTags.CARD).assertContentDescriptionEquals("Live video of EverSweet Ultra AI")
+        compose.onNodeWithContentDescription("Full screen").performClick()
         compose.onNodeWithContentDescription("Live video").assertDoesNotExist()
         assertEquals(listOf("live:3001"), calls)
     }
 
     @Test
     fun `a Bluetooth fountain has no live card`() {
-        show(FountainFixtures.bluetooth, live = DeviceFixtures.liveCard)
+        show(FountainFixtures.bluetooth, live = LiveCardUi(DeviceFixtures.liveCard))
         compose.onNodeWithTag(LiveCardTestTags.CARD).assertDoesNotExist()
     }
 

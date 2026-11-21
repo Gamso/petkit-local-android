@@ -84,7 +84,7 @@ class RecentClipsFlowTest {
     fun aClipOpenedUnderTheLiveVideoStopsItUntilItIsClosed() {
         signIn()
         openDevice(PUROBOT)
-        compose.onNodeWithTag(LiveCardTestTags.CARD).performClick()
+        compose.onNodeWithTag(LiveCardTestTags.FULLSCREEN).performClick()
         waitFor(hasTestTag(LiveTestTags.BADGE))
         waitUntil("one live socket") { mockCount("live_sockets") == 1 }
 

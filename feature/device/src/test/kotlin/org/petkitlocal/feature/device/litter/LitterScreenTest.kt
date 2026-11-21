@@ -27,7 +27,6 @@ import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.core.domain.devicepage.DevicePart
 import org.petkitlocal.core.testing.Household
-import org.petkitlocal.core.ui.LiveCardState
 import org.petkitlocal.core.ui.LiveCardTestTags
 import org.petkitlocal.core.ui.RecentClipsTestTags
 import org.petkitlocal.core.ui.formatTimeOfDay
@@ -37,6 +36,7 @@ import org.petkitlocal.feature.device.common.ActivityTestTags
 import org.petkitlocal.feature.device.common.CONFIRM_ARM_MS
 import org.petkitlocal.feature.device.common.CommandState
 import org.petkitlocal.feature.device.common.DeviceTestTags
+import org.petkitlocal.feature.device.common.LiveCardUi
 import org.petkitlocal.feature.device.common.RecentClipsUi
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
@@ -70,7 +70,7 @@ class LitterScreenTest {
         ),
     )
 
-    private fun show(state: LitterUiState, clips: RecentClipsUi? = null, live: LiveCardState = LiveCardState()) {
+    private fun show(state: LitterUiState, clips: RecentClipsUi? = null, live: LiveCardUi = LiveCardUi()) {
         compose.setContent { PkTheme { LitterScreen(state, navigation, callbacks, clips = clips, live = live) } }
     }
 
@@ -225,34 +225,40 @@ class LitterScreenTest {
     }
 
     @Test
-    fun `a camera's live card shows its latest still and leads to its live video`() {
-        show(LitterFixtures.trouble, live = DeviceFixtures.liveCard)
+    fun `a camera's live card plays in place, and only its full-screen button leads to the live video`() {
+        show(LitterFixtures.trouble, live = DeviceFixtures.liveCardUi(DeviceFixtures.liveCard, calls))
+        // Shown on a started page: it plays.
+        assertEquals(listOf("live-visible"), calls)
 
         compose.onNodeWithTag(LiveCardTestTags.CARD)
             .assertIsDisplayed()
-            .assertContentDescriptionEquals("Watch Purobot Ultra live. Still from ${time(5, 10)}")
-            .performClick()
+            .assertContentDescriptionEquals("Live video of Purobot Ultra. Still from ${time(5, 10)}")
+            .assert(hasClickAction().not())
+        compose.onNodeWithTag(LiveCardTestTags.CARD).performClick()
+        assertEquals("tapping the video does nothing", listOf("live-visible"), calls)
+
+        compose.onNodeWithContentDescription("Turn sound on").performClick()
+        // Full screen gives up the card's viewer before the live screen opens its own.
+        compose.onNodeWithContentDescription("Full screen").performClick()
+        assertEquals(listOf("live-visible", "live-mute", "live-release", "live:1004"), calls)
         // The card is the way to the live video: the header keeps only the gear.
         compose.onNodeWithContentDescription("Live video").assertDoesNotExist()
         compose.onNodeWithContentDescription("Settings").assertExists()
-
-        assertEquals(listOf("live:1004"), calls)
     }
 
     @Test
     fun `a camera with no still yet still has its live card`() {
         show(LitterFixtures.trouble)
 
-        compose.onNodeWithTag(LiveCardTestTags.CARD)
-            .assertContentDescriptionEquals("Watch Purobot Ultra live")
-            .performClick()
+        compose.onNodeWithTag(LiveCardTestTags.CARD).assertContentDescriptionEquals("Live video of Purobot Ultra")
+        compose.onNodeWithContentDescription("Full screen").performClick()
 
         assertEquals(listOf("live:1004"), calls)
     }
 
     @Test
     fun `a box without a camera has no live video`() {
-        show(LitterFixtures.content, live = DeviceFixtures.liveCard)
+        show(LitterFixtures.content, live = LiveCardUi(DeviceFixtures.liveCard))
 
         compose.onNodeWithTag(LiveCardTestTags.CARD).assertDoesNotExist()
     }

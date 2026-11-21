@@ -17,15 +17,41 @@
     <!-- %1$s is the day without its year ("Nov 12"), %2$s the time of day. -->
     <string name="recent_clips_on_day">%1$s, %2$s</string>
 
-    <!-- The card at the top of a camera's page that opens its live video. -->
-    <string name="live_card_watch">Watch live</string>
+    <!-- The card at the top of a camera's page that plays its live video in place. -->
     <!-- When the card's still was taken; %1$s is the time of day ("14:32"). -->
     <string name="live_card_still_today">Still from %1$s</string>
     <string name="live_card_still_yesterday">Still from yesterday, %1$s</string>
     <!-- %1$s is the day without its year ("Nov 12"), %2$s the time of day. -->
     <string name="live_card_still_on_day">Still from %1$s, %2$s</string>
     <!-- Read by TalkBack; %1$s is the device's name. -->
-    <string name="live_card_description">Watch %1$s live</string>
+    <string name="live_card_description">Live video of %1$s</string>
     <!-- %2$s is when the still was taken, as the card writes it ("Still from 14:32"). -->
-    <string name="live_card_description_still">Watch %1$s live. %2$s</string>
+    <string name="live_card_description_still">Live video of %1$s. %2$s</string>
+
+    <!-- Over a camera's live picture, on its page and on the live video screen. -->
+    <!-- The badge while frames are shown. -->
+    <string name="live_badge">Live</string>
+    <!-- The fallback transport, named as is: a few seconds behind the camera. -->
+    <string name="live_hls">HLS</string>
+    <string name="live_connecting">Connecting…</string>
+    <!-- Still connecting after a while: a camera reached through a relay (a D4SH) takes up to 30 s to open. -->
+    <string name="live_connecting_slow">Waking the camera up… This can take up to 30 seconds.</string>
+    <!-- %1$s says why it stopped, e.g. "The connection to the server broke." -->
+    <string name="live_reconnecting">Reconnecting… %1$s</string>
+    <string name="live_retry">Watch again</string>
+    <string name="live_session_ended">Your session has ended.</string>
+
+    <string name="live_failure_ended">The camera\'s stream ended.</string>
+    <string name="live_failure_too_slow">The phone could not keep up with the stream.</string>
+    <string name="live_failure_replaced">Live video paused: this camera was opened again.</string>
+    <string name="live_failure_camera_busy">The camera is not ready for a new viewer yet.</string>
+    <string name="live_failure_network">The connection to the server broke.</string>
+    <string name="live_failure_playback">This phone cannot play the camera\'s video.</string>
+    <string name="live_failure_no_stream">This camera has no live stream on the server.</string>
+    <string name="live_failure_too_many">Too many people are watching. Try again in a moment.</string>
+    <string name="live_failure_refused">The server refused the live video.</string>
+
+    <string name="live_mute">Mute</string>
+    <string name="live_unmute">Turn sound on</string>
+    <string name="live_fullscreen">Full screen</string>
 </resources>

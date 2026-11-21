@@ -27,13 +27,13 @@ import org.junit.runner.RunWith
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.feeder.FeederDayFilter
 import org.petkitlocal.core.testing.Household
-import org.petkitlocal.core.ui.LiveCardState
 import org.petkitlocal.core.ui.LiveCardTestTags
 import org.petkitlocal.core.ui.formatTimeOfDay
 import org.petkitlocal.feature.device.DeviceFixtures
 import org.petkitlocal.feature.device.DeviceNavigation
 import org.petkitlocal.feature.device.common.ActivityTestTags
 import org.petkitlocal.feature.device.common.DeviceTestTags
+import org.petkitlocal.feature.device.common.LiveCardUi
 import org.petkitlocal.feature.device.litter.PageCommandCallbacks
 import org.petkitlocal.feature.device.litter.PageTestTags
 import org.robolectric.RobolectricTestRunner
@@ -64,7 +64,7 @@ class FeederScreenTest {
         commands = PageCommandCallbacks(onAction = { calls += "action:${it.key}" }),
     )
 
-    private fun show(state: FeederUiState, live: LiveCardState = LiveCardState()) {
+    private fun show(state: FeederUiState, live: LiveCardUi = LiveCardUi()) {
         compose.setContent { PkTheme { FeederScreen(state, navigation, callbacks, live = live) } }
     }
 
@@ -125,19 +125,21 @@ class FeederScreenTest {
     }
 
     @Test
-    fun `a camera feeder's live card leads to its live video`() {
-        show(FeederFixtures.dualPaused, live = DeviceFixtures.liveCard)
+    fun `a camera feeder's live card plays in place, its full-screen button leading to the live video`() {
+        show(FeederFixtures.dualPaused, live = LiveCardUi(DeviceFixtures.liveCard))
 
         compose.onNodeWithTag(LiveCardTestTags.CARD)
-            .assertContentDescriptionEquals("Watch YumShare Dual-Hopper live. Still from ${time(5, 10)}")
+            .assertContentDescriptionEquals("Live video of YumShare Dual-Hopper. Still from ${time(5, 10)}")
             .performClick()
+        assertEquals("tapping the video does nothing", emptyList<String>(), calls)
+        compose.onNodeWithContentDescription("Full screen").performClick()
         compose.onNodeWithContentDescription("Live video").assertDoesNotExist()
         assertEquals(listOf("live:2004"), calls)
     }
 
     @Test
     fun `a feeder without a camera has no live card`() {
-        show(FeederFixtures.single, live = DeviceFixtures.liveCard)
+        show(FeederFixtures.single, live = LiveCardUi(DeviceFixtures.liveCard))
         compose.onNodeWithTag(LiveCardTestTags.CARD).assertDoesNotExist()
     }
 

@@ -45,7 +45,6 @@ import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.model.Device
 import org.petkitlocal.core.domain.model.DeviceAction
 import org.petkitlocal.core.domain.model.Entity
-import org.petkitlocal.core.ui.LiveCardState
 import org.petkitlocal.core.ui.ServerLabels
 import org.petkitlocal.core.ui.rememberServerLabels
 import org.petkitlocal.feature.device.DeviceNavigation
@@ -61,6 +60,7 @@ import org.petkitlocal.feature.device.common.DeviceSectionTitle
 import org.petkitlocal.feature.device.common.DeviceStatusLine
 import org.petkitlocal.feature.device.common.DeviceTestTags
 import org.petkitlocal.feature.device.common.EntityRow
+import org.petkitlocal.feature.device.common.LiveCardUi
 import org.petkitlocal.feature.device.common.RecentClipsUi
 import org.petkitlocal.feature.device.common.RelayLink
 import org.petkitlocal.feature.device.common.recentClips
@@ -72,7 +72,7 @@ import org.petkitlocal.feature.device.deviceFallbackTitle
 data class GenericDeviceActions(
     val onBack: () -> Unit = {},
     val onOpenSettings: () -> Unit = {},
-    /** The live video, from the live card of a device with a camera. */
+    /** The live video, from the full-screen button of a camera's live card. */
     val onOpenLive: () -> Unit = {},
     /** Another device's screen: for an accessory, the device relaying it. */
     val onOpenDevice: (deviceId: Long) -> Unit = {},
@@ -122,8 +122,8 @@ internal fun GenericDeviceScreen(
     initiallyExpanded: Boolean = false,
     /** A camera's recent clips; null shows none. */
     clips: RecentClipsUi? = null,
-    /** What a camera's live card shows. */
-    live: LiveCardState = LiveCardState(),
+    /** A camera's live card: what it shows, and its player. */
+    live: LiveCardUi = LiveCardUi(),
 ) {
     val device = uiState.device
     DeviceActionScaffold(
@@ -165,7 +165,7 @@ private fun DeviceList(
     uiState: GenericDeviceUiState,
     actions: GenericDeviceActions,
     clips: RecentClipsUi?,
-    live: LiveCardState,
+    live: LiveCardUi,
     bottomPadding: Dp,
 ) {
     val insets = WindowInsets.safeDrawing.asPaddingValues()
@@ -204,7 +204,7 @@ private fun DeviceList(
 
             else -> {
                 if (device.isCamera) {
-                    item(key = "live") { CameraLiveCard(device, live, onOpen = actions.onOpenLive) }
+                    item(key = "live") { CameraLiveCard(device, live, onOpenLive = actions.onOpenLive) }
                 }
                 deviceContent(uiState, device, labels, actions)
                 recentClips(device, clips)

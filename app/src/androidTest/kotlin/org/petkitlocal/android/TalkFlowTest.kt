@@ -108,14 +108,14 @@ class TalkFlowTest {
         check(mockLong("talk_bytes") == 0L) { "audio was sent" }
     }
 
-    /** From Home to [deviceId]'s page, then the live card at its top. */
+    /** From Home to [deviceId]'s page, then the full-screen button of the live card at its top. */
     private fun openLive(deviceId: Long) {
         waitFor(hasTestTag(HomeTestTags.device(FIRST_CARD)))
         val card = hasTestTag(HomeTestTags.device(deviceId))
         compose.onNodeWithTag(HomeTestTags.LIST).performScrollToNode(card)
         compose.onNode(card).performClick()
         waitFor(hasTestTag(DeviceTestTags.STATUS))
-        compose.onNodeWithTag(LiveCardTestTags.CARD).performClick()
+        compose.onNodeWithTag(LiveCardTestTags.FULLSCREEN).performClick()
         waitFor(hasTestTag(LiveTestTags.SCREEN))
         waitFor(hasTestTag(LiveTestTags.TALK))
     }

@@ -24,7 +24,6 @@ import org.junit.runner.RunWith
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.core.testing.Household
-import org.petkitlocal.core.ui.LiveCardState
 import org.petkitlocal.core.ui.LiveCardTestTags
 import org.petkitlocal.core.ui.RecentClipsTestTags
 import org.petkitlocal.feature.device.DeviceFixtures
@@ -34,6 +33,7 @@ import org.petkitlocal.feature.device.common.CommandResult
 import org.petkitlocal.feature.device.common.CommandState
 import org.petkitlocal.feature.device.common.CommandSubject
 import org.petkitlocal.feature.device.common.DeviceTestTags
+import org.petkitlocal.feature.device.common.LiveCardUi
 import org.petkitlocal.feature.device.common.RecentClipsUi
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
@@ -61,7 +61,7 @@ class GenericDeviceScreenTest {
     private fun show(
         state: GenericDeviceUiState,
         clips: RecentClipsUi? = null,
-        live: LiveCardState = LiveCardState(),
+        live: LiveCardUi = LiveCardUi(),
         actions: GenericDeviceActions = this.actions,
     ) {
         compose.setContent { PkTheme { GenericDeviceScreen(state, actions, clips = clips, live = live) } }
@@ -116,18 +116,20 @@ class GenericDeviceScreenTest {
     }
 
     @Test
-    fun `a camera's live card comes before what it reports and leads to its live video`() {
+    fun `a camera's live card comes before what it reports, its full-screen button leading to the live video`() {
         val actions = actions.copy(onOpenLive = { calls += "live" })
-        show(DeviceFixtures.generic(), live = DeviceFixtures.liveCard, actions = actions)
+        show(DeviceFixtures.generic(), live = LiveCardUi(DeviceFixtures.liveCard), actions = actions)
 
         compose.onNodeWithTag(LiveCardTestTags.CARD).assertIsDisplayed().performClick()
+        assertEquals("tapping the video does nothing", emptyList<String>(), calls)
+        compose.onNodeWithContentDescription("Full screen").performClick()
         compose.onNodeWithContentDescription("Live video").assertDoesNotExist()
         assertEquals(listOf("live"), calls)
     }
 
     @Test
     fun `a purifier, which has no camera, has no live card`() {
-        show(DeviceFixtures.generic(device = DeviceFixtures.purifier), live = DeviceFixtures.liveCard)
+        show(DeviceFixtures.generic(device = DeviceFixtures.purifier), live = LiveCardUi(DeviceFixtures.liveCard))
 
         compose.onNodeWithTag(LiveCardTestTags.CARD).assertDoesNotExist()
     }

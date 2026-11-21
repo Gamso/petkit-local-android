@@ -2,30 +2,10 @@
 <resources>
     <string name="live_title">Vidéo en direct</string>
 
-    <string name="live_badge">Direct</string>
-    <string name="live_hls">HLS</string>
-
-    <string name="live_connecting">Connexion…</string>
-    <string name="live_reconnecting">Reconnexion… %1$s</string>
-    <string name="live_retry">Regarder à nouveau</string>
-    <string name="live_session_ended">Votre session est terminée.</string>
     <string name="live_not_a_camera">Cet appareil n\'a pas de caméra.</string>
     <string name="live_gone">Cet appareil n\'est plus sur le serveur.</string>
 
-    <string name="live_failure_ended">Le flux de la caméra s\'est arrêté.</string>
-    <string name="live_failure_too_slow">Le téléphone n\'a pas suivi le flux.</string>
-    <string name="live_failure_replaced">Vidéo en direct en pause : cette caméra a été ouverte à nouveau.</string>
-    <string name="live_failure_camera_busy">La caméra n\'accepte pas encore de nouveau spectateur.</string>
-    <string name="live_failure_network">La connexion au serveur a été coupée.</string>
-    <string name="live_failure_playback">Ce téléphone ne peut pas lire la vidéo de la caméra.</string>
-    <string name="live_failure_no_stream">Cette caméra n\'a pas de flux en direct sur le serveur.</string>
-    <string name="live_failure_too_many">Trop de personnes regardent. Réessayez dans un instant.</string>
-    <string name="live_failure_refused">Le serveur a refusé la vidéo en direct.</string>
-
-    <string name="live_mute">Couper le son</string>
-    <string name="live_unmute">Activer le son</string>
     <string name="live_snapshot">Enregistrer une capture</string>
-    <string name="live_fullscreen">Plein écran</string>
     <string name="live_exit_fullscreen">Quitter le plein écran</string>
     <string name="live_snapshot_saved">Capture enregistrée dans vos images.</string>
     <string name="live_snapshot_failed">La capture n\'a pas pu être enregistrée.</string>

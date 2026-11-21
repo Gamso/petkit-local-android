@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -30,13 +31,15 @@ import org.petkitlocal.core.domain.talk.OpenTalkUseCase
 import org.petkitlocal.core.domain.talk.TalkEvent
 import org.petkitlocal.core.domain.talk.TalkSession
 import org.petkitlocal.core.domain.video.LiveFailure
-import org.petkitlocal.core.domain.video.LivePhase
 import org.petkitlocal.core.domain.video.LiveSession
-import org.petkitlocal.core.domain.video.LiveTransport
+import org.petkitlocal.core.domain.video.LiveSessionRunner
 import org.petkitlocal.core.domain.video.ObserveRecentClipsUseCase
 import org.petkitlocal.core.domain.video.RefreshRecentClipsUseCase
 import org.petkitlocal.core.domain.video.SaveSnapshotUseCase
 import org.petkitlocal.core.ui.RecentClipsState
+import org.petkitlocal.core.ui.live.LivePlayback
+import org.petkitlocal.core.ui.live.LivePlayerFactory
+import org.petkitlocal.core.ui.live.playbackOf
 
 /** Whether the screen has a camera to show. */
 enum class LiveAvailability {
@@ -60,9 +63,6 @@ sealed interface LiveEffect {
     /** Ask Android for the microphone; answer with [LiveViewModel.onMicrophoneResult]. */
     data object RequestMicrophone : LiveEffect
 }
-
-/** The player to have now: a new one for every attempt of the live session. */
-data class LivePlayback(val deviceId: Long, val transport: LiveTransport, val attempt: Int)
 
 /** What the live video screen shows (SPEC.md §5.7). */
 data class LiveUiState(
@@ -89,16 +89,14 @@ data class LiveUiState(
 
     /** The player to build, or none: not a camera, in the background, waiting or stopped. */
     val playback: LivePlayback?
-        get() = LivePlayback(deviceId, session.transport, session.attempt).takeIf {
-            availability == LiveAvailability.Camera &&
-                (session.phase == LivePhase.Starting || session.phase == LivePhase.Playing)
-        }
+        get() = session.playbackOf(deviceId).takeIf { availability == LiveAvailability.Camera }
 }
 
 /**
- * The live video of one camera. The [LiveSession] decides which transport to try and when; this
- * ViewModel feeds it what the screen and the player report, counts down its waits, and saves
- * snapshots, and keeps the camera's recent clips under it. The player itself is the screen's (it needs a Context) and follows [LiveUiState.playback].
+ * The live video of one camera. The [LiveSession] decides which transport to try and when, and
+ * its [LiveSessionRunner] counts down its waits (as on a camera page's live card); this ViewModel
+ * feeds it what the screen and the player report, saves snapshots, and keeps the camera's recent
+ * clips under it. The player itself is the screen's (it needs a Context) and follows [LiveUiState.playback].
  */
 @HiltViewModel
 @Suppress("TooManyFunctions") // One function per user intent and player event (ARCHITECTURE.md §3).
@@ -118,7 +116,7 @@ class LiveViewModel @Inject constructor(
     private val local = MutableStateFlow(
         LiveUiState(deviceId, clips = RecentClipsState(zone = clock.zone, today = LocalDate.now(clock))),
     )
-    private var retry: Job? = null
+    private val live = LiveSessionRunner(viewModelScope)
     private var snapshotNotice: Job? = null
     private var clipsRefresh: Job? = null
     private var talkJob: Job? = null
@@ -132,8 +130,10 @@ class LiveViewModel @Inject constructor(
         observeDevice(deviceId),
         observeRecentClips(deviceId),
         local,
-    ) { device, clips, state ->
+        live.session,
+    ) { device, clips, state, session ->
         state.copy(
+            session = session,
             deviceName = device?.modelName,
             availability = device.availability(),
             clips = state.clips.copy(clips = clips, cacheLoaded = true),
@@ -141,26 +141,30 @@ class LiveViewModel @Inject constructor(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), local.value)
 
+    /** The player to have now, for a collection that goes on in the background ([uiState]'s stops). */
+    val playback: StateFlow<LivePlayback?> = uiState.map { it.playback }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
+
     init {
         onRefreshClips()
     }
 
     /** The screen is visible: play. */
-    fun onVisible() = updateSession { it.start() }
+    fun onVisible() = live.start()
 
     /** The screen went to the background or away: no player, no socket, no talk. */
     fun onHidden() {
-        updateSession { it.stop() }
+        live.stop()
         endTalk()
     }
 
-    fun onRetry() = updateSession { it.retry() }
+    fun onRetry() = live.retry()
 
     /** The player of [attempt] shows its first frame. */
-    fun onPlaying(attempt: Int) = updateSession { it.playing(attempt) }
+    fun onPlaying(attempt: Int) = live.playing(attempt)
 
     /** The player of [attempt] stopped with [failure]. */
-    fun onPlayerFailed(attempt: Int, failure: LiveFailure) = updateSession { it.fail(attempt, failure) }
+    fun onPlayerFailed(attempt: Int, failure: LiveFailure) = live.fail(attempt, failure)
 
     /** Reads the camera's newest clips from the server; one refresh at a time, for a camera only. */
     fun onRefreshClips() {
@@ -307,22 +311,6 @@ class LiveViewModel @Inject constructor(
         snapshotNotice = viewModelScope.launch {
             delay(SNAPSHOT_NOTICE)
             local.update { it.copy(snapshot = null) }
-        }
-    }
-
-    /** Moves the session on and times its waits. */
-    private fun updateSession(transform: (LiveSession) -> LiveSession) {
-        val before = local.value.session
-        local.update { state -> state.copy(session = transform(state.session)) }
-        val after = local.value.session
-        val phase = after.phase
-        if (after == before) return
-        retry?.cancel()
-        if (phase is LivePhase.Waiting) {
-            retry = viewModelScope.launch {
-                delay(phase.retryIn)
-                updateSession { it.retryDue() }
-            }
         }
     }
 

@@ -2,7 +2,7 @@ package org.petkitlocal.android
 
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
-import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
@@ -13,6 +13,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
+import androidx.lifecycle.Lifecycle
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.json.JSONObject
 import org.junit.Rule
@@ -23,6 +24,7 @@ import org.petkitlocal.core.e2e.MockServer
 import org.petkitlocal.core.e2e.TestServer
 import org.petkitlocal.core.e2e.TestServerRule
 import org.petkitlocal.core.ui.LiveCardTestTags
+import org.petkitlocal.core.ui.live.LiveVideoTestTags
 import org.petkitlocal.feature.auth.SignInTestTags
 import org.petkitlocal.feature.device.common.DeviceTestTags
 import org.petkitlocal.feature.home.HomeTestTags
@@ -30,10 +32,11 @@ import org.petkitlocal.feature.live.LiveTestTags
 
 /**
  * Live video end to end, against the mock's test pattern: the live card at the top of a camera's
- * page shows the camera's latest still and nothing plays until it is tapped; then its live video
- * plays over the WebSocket; the socket closing with 1013 (the phone read too slowly)
- * moves it to HLS by itself; and leaving the screen closes what it had open, which the mock
- * counts (`GET /mock`: `live_sockets`, `hls_views`).
+ * page plays its live video in place, and stops when the page is left or the app goes to the
+ * background; its full-screen button opens the live video screen without a second viewer; there
+ * the socket closing with 1013 (the phone read too slowly) moves it to HLS by itself; and leaving
+ * a screen closes what it had open, which the mock counts (`GET /mock`: `live_sockets`,
+ * `hls_views`).
  */
 @MockOnly("the mock's live stream, closed through the control API")
 @OptIn(ExperimentalTestApi::class) // waitUntil...Exists
@@ -46,17 +49,49 @@ class LiveFlowTest {
     val compose = createAndroidComposeRule<MainActivity>()
 
     @Test
-    fun theLiveCardShowsTheLatestStillAndPlaysOnlyWhenTapped() {
+    fun theCameraPagePlaysItsLiveVideoInPlaceUntilThePageIsLeft() {
         signIn()
         openDevice(PUROBOT)
-        // The mock's camera visits all have a snapshot: the card names when the newest was taken.
-        waitFor(hasTestTag(LiveCardTestTags.CARD) and hasContentDescription("Still from", substring = true))
-        check(mockCount("live_sockets") == 0) { "the page opened a live socket by itself" }
+        // The card plays by itself: its badge shows once the first frame did.
+        waitFor(hasTestTag(LiveVideoTestTags.BADGE) and hasAnyAncestor(hasTestTag(LiveCardTestTags.CARD)))
+        waitUntil("one live socket") { mockCount("live_sockets") == 1 }
 
+        // Tapping the video stays on the page.
         compose.onNodeWithTag(LiveCardTestTags.CARD).performClick()
+        compose.onNodeWithTag(LiveTestTags.SCREEN).assertDoesNotExist()
+
+        compose.onNodeWithContentDescription("Back").performClick()
+        waitFor(hasTestTag(HomeTestTags.LIST))
+        waitUntil("no live socket once the page is left") { mockCount("live_sockets") == 0 }
+    }
+
+    @Test
+    fun theCameraPageStopsItsLiveVideoInTheBackground() {
+        signIn()
+        openDevice(PUROBOT)
+        waitUntil("one live socket") { mockCount("live_sockets") == 1 }
+
+        compose.activityRule.scenario.moveToState(Lifecycle.State.CREATED)
+        waitUntil("no live socket in the background") { mockCount("live_sockets") == 0 }
+
+        compose.activityRule.scenario.moveToState(Lifecycle.State.RESUMED)
+        waitFor(hasTestTag(LiveVideoTestTags.BADGE) and hasAnyAncestor(hasTestTag(LiveCardTestTags.CARD)))
+        waitUntil("one live socket again") { mockCount("live_sockets") == 1 }
+    }
+
+    @Test
+    fun fullScreenOpensTheLiveScreenWithoutASecondViewer() {
+        signIn()
+        openDevice(PUROBOT)
+        waitUntil("the page's live socket") { mockCount("live_sockets") == 1 }
+
+        compose.onNodeWithTag(LiveCardTestTags.FULLSCREEN).performClick()
         waitFor(hasTestTag(LiveTestTags.SCREEN))
         waitFor(hasTestTag(LiveTestTags.BADGE))
-        waitUntil("one live socket") { mockCount("live_sockets") == 1 }
+        waitUntil("the live screen's socket only") { mockCount("live_sockets") == 1 }
+        // Talk and snapshots are there.
+        waitFor(hasTestTag(LiveTestTags.TALK))
+        compose.onNodeWithContentDescription("Save a snapshot").assertExists()
     }
 
     @Test
@@ -66,8 +101,14 @@ class LiveFlowTest {
         waitFor(hasTestTag(LiveTestTags.BADGE))
         waitUntil("one live socket") { mockCount("live_sockets") == 1 }
 
+        // Back on the page, whose card plays again: one viewer, never the screen's and the card's.
         compose.onNodeWithContentDescription("Back").performClick()
         waitFor(hasTestTag(DeviceTestTags.STATUS))
+        waitFor(hasTestTag(LiveVideoTestTags.BADGE) and hasAnyAncestor(hasTestTag(LiveCardTestTags.CARD)))
+        waitUntil("the card's socket only") { mockCount("live_sockets") == 1 }
+
+        compose.onNodeWithContentDescription("Back").performClick()
+        waitFor(hasTestTag(HomeTestTags.LIST))
         waitUntil("no live socket") { mockCount("live_sockets") == 0 }
     }
 
@@ -87,17 +128,20 @@ class LiveFlowTest {
         waitFor(hasTestTag(LiveTestTags.BADGE))
         waitUntil("an HLS view and no socket") { mockCount("hls_views") == 1 && mockCount("live_sockets") == 0 }
 
+        // Back to Home: the camera page's own card would open a socket again.
         compose.onNodeWithContentDescription("Back").performClick()
         waitFor(hasTestTag(DeviceTestTags.STATUS))
+        compose.onNodeWithContentDescription("Back").performClick()
+        waitFor(hasTestTag(HomeTestTags.LIST))
         // An HLS view has no connection to close: it lapses once nothing asks for it (5 s).
         waitUntil("the HLS view lapsed") { mockCount("hls_views") == 0 }
         check(mockCount("live_sockets") == 0) { "a live socket is still open" }
     }
 
-    /** From Home to [deviceId]'s page, then the live card at its top. */
+    /** From Home to [deviceId]'s page, then the full-screen button of the live card at its top. */
     private fun openLive(deviceId: Long) {
         openDevice(deviceId)
-        compose.onNodeWithTag(LiveCardTestTags.CARD).performClick()
+        compose.onNodeWithTag(LiveCardTestTags.FULLSCREEN).performClick()
         waitFor(hasTestTag(LiveTestTags.SCREEN))
     }
 

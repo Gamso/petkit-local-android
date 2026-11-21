@@ -133,6 +133,10 @@ in CI fails the build if a feature imports a data-layer package.
   - It sends the single `mse` request with the codecs the device's decoder supports, and feeds the binary fMP4 fragments to ExoPlayer through a pipe-backed `DataSource`.
   - On close code `1013`, or after two failed starts, it switches to the HLS URL with the same header (`DefaultHttpDataSource` with request properties).
   - Close code `4409` (replaced) is silent.
+  - The live screen and a camera page's live card play it the same way: the `LiveSession` state
+    machine (core:domain), its `LiveSessionRunner` timing its waits, and the player pieces in
+    core:ui (`LivePlayerFactory`, bound in `:app`). The card releases its viewer before full
+    screen opens the live screen, and both stop their player when they are no longer visible.
 
 - **Talk**: `TalkRepository` opens `/devices/{id}/talk` (`TalkSocketClient`, on the shared
   OkHttp client and its bearer header) and records the microphone with `AudioRecord` only once

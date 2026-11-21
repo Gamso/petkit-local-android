@@ -12,10 +12,31 @@
     <string name="recent_clips_yesterday">Hier, %1$s</string>
     <string name="recent_clips_on_day">%1$s, %2$s</string>
 
-    <string name="live_card_watch">Voir le direct</string>
     <string name="live_card_still_today">Image de %1$s</string>
     <string name="live_card_still_yesterday">Image d’hier, %1$s</string>
     <string name="live_card_still_on_day">Image du %1$s, %2$s</string>
-    <string name="live_card_description">Voir %1$s en direct</string>
-    <string name="live_card_description_still">Voir %1$s en direct. %2$s</string>
+    <string name="live_card_description">Vidéo en direct de %1$s</string>
+    <string name="live_card_description_still">Vidéo en direct de %1$s. %2$s</string>
+
+    <string name="live_badge">Direct</string>
+    <string name="live_hls">HLS</string>
+    <string name="live_connecting">Connexion…</string>
+    <string name="live_connecting_slow">Réveil de la caméra… Cela peut prendre jusqu’à 30 secondes.</string>
+    <string name="live_reconnecting">Reconnexion… %1$s</string>
+    <string name="live_retry">Regarder à nouveau</string>
+    <string name="live_session_ended">Votre session est terminée.</string>
+
+    <string name="live_failure_ended">Le flux de la caméra s\'est arrêté.</string>
+    <string name="live_failure_too_slow">Le téléphone n\'a pas suivi le flux.</string>
+    <string name="live_failure_replaced">Vidéo en direct en pause : cette caméra a été ouverte à nouveau.</string>
+    <string name="live_failure_camera_busy">La caméra n\'accepte pas encore de nouveau spectateur.</string>
+    <string name="live_failure_network">La connexion au serveur a été coupée.</string>
+    <string name="live_failure_playback">Ce téléphone ne peut pas lire la vidéo de la caméra.</string>
+    <string name="live_failure_no_stream">Cette caméra n\'a pas de flux en direct sur le serveur.</string>
+    <string name="live_failure_too_many">Trop de personnes regardent. Réessayez dans un instant.</string>
+    <string name="live_failure_refused">Le serveur a refusé la vidéo en direct.</string>
+
+    <string name="live_mute">Couper le son</string>
+    <string name="live_unmute">Activer le son</string>
+    <string name="live_fullscreen">Plein écran</string>
 </resources>
