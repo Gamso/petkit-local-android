@@ -1,9 +1,15 @@
 package org.petkitlocal.feature.device.litter
 
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
@@ -360,5 +366,52 @@ class LitterScreenTest {
         compose.onNodeWithText("This device is no longer on the server.").assertExists()
         compose.onNodeWithContentDescription("Back").performClick()
         assertEquals(listOf("back"), calls)
+    }
+
+    @Test
+    fun `with a Pura Air linked, its light is a switch right after Deodorize, on as the box reports`() {
+        show(LitterFixtures.withPuraAir)
+
+        compose.onNodeWithTag(DeviceTestTags.actionSwitch("k3_light"))
+            .assertIsDisplayed()
+            .assertIsOn()
+            .assertIsEnabled()
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Switch))
+            .performClick()
+        compose.onNodeWithText("Pura Air light").assertIsDisplayed()
+        assertEquals(listOf("action:k3_light"), calls)
+    }
+
+    @Test
+    fun `the Pura Air light is off when the box says so, and still pressable`() {
+        val page = LitterFixtures.withPuraAir.page!!
+        val off = page.copy(
+            actions = page.actions.map {
+                if (it.key ==
+                    "k3_light"
+                ) {
+                    it.copy(switchedOn = false)
+                } else {
+                    it
+                }
+            },
+        )
+        show(LitterFixtures.withPuraAir.copy(page = off))
+
+        compose.onNodeWithTag(DeviceTestTags.actionSwitch("k3_light")).assertIsOff().assertIsEnabled().performClick()
+        assertEquals(listOf("action:k3_light"), calls)
+    }
+
+    @Test
+    fun `a box without a Pura Air has no light switch`() {
+        show(LitterFixtures.content)
+        compose.onNodeWithTag(DeviceTestTags.actionSwitch("k3_light")).assertDoesNotExist()
+    }
+
+    @Test
+    @Config(qualifiers = "fr-w411dp-h2400dp")
+    fun `in French, it is the Pura Air's light`() {
+        show(LitterFixtures.withPuraAir)
+        compose.onNodeWithText("Lumière du Pura Air").assertIsDisplayed()
     }
 }

@@ -116,4 +116,14 @@ enum class DeviceTransport {
 }
 
 /** One of a device's buttons. A [destructive] one is confirmed with the user first. */
-data class DeviceAction(val key: String, val name: String, val destructive: Boolean)
+data class DeviceAction(
+    val key: String,
+    val name: String,
+    val destructive: Boolean,
+    /**
+     * A settable switch the page offers among its actions (the T4's Pura Air light): whether it is
+     * on now, as the device last reported it; null for a plain button. Pressing it writes the
+     * opposite to the entity of the same [key].
+     */
+    val switchedOn: Boolean? = null,
+)

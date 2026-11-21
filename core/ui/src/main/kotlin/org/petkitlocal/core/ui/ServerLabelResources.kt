@@ -97,6 +97,7 @@ internal val EntityLabels: Map<String, Int> = mapOf(
     "indicator_light" to R.string.server_entity_indicator_light,
     "k3_battery" to R.string.server_entity_k3_battery,
     "k3_liquid" to R.string.server_entity_k3_liquid,
+    "k3_light" to R.string.server_entity_k3_light,
     "kitten" to R.string.server_entity_kitten,
     "last_deep_clean" to R.string.server_entity_last_deep_clean,
     "last_deep_clean_result" to R.string.server_entity_last_deep_clean_result,
@@ -176,6 +177,8 @@ internal val ActionLabels: Map<String, Int> = mapOf(
     "cancel_manual_feed" to R.string.server_action_cancel_manual_feed,
     "cleaning_start" to R.string.server_action_cleaning_start,
     "deodorize" to R.string.server_action_deodorize,
+    // A switch the T4 page offers among its actions (issue #100): named as the entity.
+    "k3_light" to R.string.server_entity_k3_light,
     "dump_litter" to R.string.server_action_dump_litter,
     "feed" to R.string.server_action_feed,
     "feed_hopper_1" to R.string.server_action_feed_hopper_1,

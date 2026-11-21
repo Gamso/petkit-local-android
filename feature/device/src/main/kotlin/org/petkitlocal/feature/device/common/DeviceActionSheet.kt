@@ -216,15 +216,20 @@ fun DeviceActionSheet(
             Row(Modifier.fillMaxWidth()) {
                 row?.invoke(this)
                 layout.main.forEach { action ->
-                    ActionTile(
-                        label = labels.action(action.key, action.name),
-                        icon = actionIcon(action.key),
-                        // A destructive action pinned in view is marked as in the list, never primary.
-                        primary = action == layout.main.first() && !action.destructive,
-                        destructive = action.destructive,
-                        onClick = { onAction(action) },
-                        modifier = Modifier.weight(1f),
-                    )
+                    val on = action.switchedOn
+                    if (on != null) {
+                        SwitchTile(action, on, labels, onClick = { onAction(action) }, modifier = Modifier.weight(1f))
+                    } else {
+                        ActionTile(
+                            label = labels.action(action.key, action.name),
+                            icon = actionIcon(action.key),
+                            // A destructive action pinned in view is marked as in the list, never primary.
+                            primary = action == layout.main.first() && !action.destructive,
+                            destructive = action.destructive,
+                            onClick = { onAction(action) },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
                 }
                 // The row shares its width among what it holds: no empty column in the middle.
                 if (hasMore) MoreTile(expanded, onExpandedChange, Modifier.weight(1f))
@@ -418,6 +423,11 @@ private fun MoreList(actions: List<DeviceAction>, labels: ServerLabels, onAction
     ) {
         HorizontalDivider(color = colors.outline, modifier = Modifier.padding(vertical = PkTheme.spacing.xs))
         actions.forEach { action ->
+            val on = action.switchedOn
+            if (on != null) {
+                MoreSwitchRow(action, on, labels) { onAction(action) }
+                return@forEach
+            }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
@@ -471,5 +481,5 @@ private fun EditQuickActionsEntry(onEdit: () -> Unit) {
     )
 }
 
-private val LIST_ICON_SIZE = 40.dp
+internal val LIST_ICON_SIZE = 40.dp
 private val MORE_LIST_MAX_HEIGHT = 360.dp

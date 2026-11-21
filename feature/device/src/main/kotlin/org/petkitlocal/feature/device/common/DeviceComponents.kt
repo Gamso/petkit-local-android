@@ -277,6 +277,9 @@ object DeviceTestTags {
     const val ACTION_SHEET = "device:actions"
     const val SHEET_HANDLE = "device:actions:handle"
     const val SHEET_MORE = "device:actions:more"
+
+    /** A switch among the sheet's actions (the T4's Pura Air light), by its entity's key. */
+    fun actionSwitch(key: String): String = "device:actions:switch:$key"
     const val FEEDBACK = "device:feedback"
     const val STATUS = "device:status"
     const val EDITOR = "device:editor"

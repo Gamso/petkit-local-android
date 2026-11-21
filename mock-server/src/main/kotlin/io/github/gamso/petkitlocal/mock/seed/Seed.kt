@@ -72,6 +72,8 @@ class Seed(
         // Air in its K3 slot; the W5 is relayed by a feeder on MQTT, so it can be written to; the
         // CTW3's parent polls HTTP, so a write to it is refused with 409.
         ACCESSORIES.forEach { (accessory, parent) -> world.link(world.devices.getValue(accessory), world.devices.getValue(parent)) }
+        // With its K3 linked, the T4 offers the K3's light (petkit-local#136): off until switched on.
+        world.devices.getValue(T4).doc[MockDevice.K3_LIGHT.valuePath] = JsonPrimitive(0)
         // A Bluetooth fountain whose last frame decoded three hours ago: out of its parent's range.
         world.devices.getValue(W5).lastSeen = clock.now() - 3 * 3600 - 412
         world.pets[1] = Pet(1, "Mochi", listOf(T3, T4, T5, T6, T7, D4H, W7H), 4200.0, 4310.0, hasPhoto = true)

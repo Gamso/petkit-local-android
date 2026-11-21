@@ -278,6 +278,37 @@ class QuickActionsScreenTest {
     }
 
     @Test
+    fun `the Pura Air light is in the editor like any action, and taking it out of the row is kept`() {
+        val box = LitterFixtures.puraWithK3
+        val quick = FakeQuickActionsRepository()
+        val viewModel = QuickActionsViewModel(
+            SavedStateHandle(mapOf(DEVICE_ID_KEY to box.id)),
+            ObserveDeviceUseCase(FakeDeviceRepository(listOf(box))),
+            ObserveQuickActionsUseCase(quick),
+            EditQuickActionsUseCase(quick),
+            ResetQuickActionsUseCase(quick),
+        )
+        show {
+            QuickActionsHost(viewModel) {
+                LitterScreen(LitterFixtures.withPuraAir, DeviceNavigation(), LitterCallbacks())
+            }
+        }
+        // The app's row: the light right after Deodorize, in the sheet and in the editor alike.
+        compose.onNodeWithTag(DeviceTestTags.actionSwitch("k3_light")).assertIsDisplayed()
+        compose.onNodeWithTag(DeviceTestTags.SHEET_MORE).performClick()
+        compose.onNodeWithTag(QuickActionsTestTags.EDIT_ENTRY).performClick()
+        compose.onNodeWithTag(QuickActionsTestTags.inView("k3_light")).assertExists()
+
+        compose.onNodeWithTag(QuickActionsTestTags.inView("k3_light")).customAction("Remove from quick actions")
+        compose.onNodeWithTag(QuickActionsTestTags.other("k3_light")).assertExists()
+        compose.onNodeWithTag(QuickActionsTestTags.DONE).performScrollTo().performClick()
+
+        assertEquals(listOf("cleaning_start", "deodorize"), runBlocking { quick.observe(box.id).first() })
+        // The user's row wins: the light is no longer in view.
+        compose.onNodeWithTag(DeviceTestTags.actionSwitch("k3_light")).assertDoesNotExist()
+    }
+
+    @Test
     fun `pin an action from the sheet, through the real ViewModel, and see it in the collapsed row`() {
         val devices = FakeDeviceRepository(listOf(fountain))
         val quick = FakeQuickActionsRepository()

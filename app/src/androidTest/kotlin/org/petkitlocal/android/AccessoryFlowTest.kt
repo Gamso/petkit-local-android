@@ -10,6 +10,8 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.isEnabled
+import androidx.compose.ui.test.isOff
+import androidx.compose.ui.test.isOn
 import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onLast
@@ -31,6 +33,7 @@ import org.petkitlocal.core.e2e.TestServer
 import org.petkitlocal.core.e2e.TestServerRule
 import org.petkitlocal.feature.auth.SignInTestTags
 import org.petkitlocal.feature.device.common.DeviceTestTags
+import org.petkitlocal.feature.device.common.QuickActionsTestTags
 import org.petkitlocal.feature.device.fountain.FountainTestTags
 import org.petkitlocal.feature.home.HomeTestTags
 import org.petkitlocal.feature.settings.SettingsTestTags
@@ -52,6 +55,43 @@ class AccessoryFlowTest {
 
     @get:Rule(order = 1)
     val compose = createAndroidComposeRule<MainActivity>()
+
+    @Test
+    fun thePuraMaxSwitchesItsPuraAirsLightAndFollowsTheK3() {
+        signIn()
+        open(PURA_MAX)
+        waitFor(hasText("Pura Max 2"))
+
+        // With its K3 linked, the box offers the light among its actions, off as it reports.
+        val light = hasTestTag(DeviceTestTags.actionSwitch("k3_light"))
+        waitFor(light and isOff())
+        compose.onNode(light).performClick()
+        waitFor(hasTestTag(DeviceTestTags.FEEDBACK))
+        waitFor(light and isOn())
+
+        // The K3 switches its light off by itself after its timer: the box's report says so.
+        MockServer.control("PUT", "devices/$PURA_MAX/state", """{"state.k3LightSwitch": 0}""")
+        waitFor(light and isOff())
+
+        // Refused: the server's reason is said, and the switch stays as the box reports it.
+        MockServer.control(
+            "POST",
+            "fail",
+            """{"method":"PUT","path":"/devices/{id}/entities/{key}","status":500,"error":"server_error",""" +
+                """"message":"The Pura Air did not answer."}""",
+        )
+        compose.onNode(light).performClick()
+        waitFor(hasText("The Pura Air did not answer.", substring = true))
+        compose.onNode(light and isOff()).assertExists()
+
+        // It is an action of the quick actions editor too, in view after Deodorize (the app's row).
+        compose.onNodeWithTag(DeviceTestTags.SHEET_MORE).performClick()
+        compose.onNodeWithTag(QuickActionsTestTags.EDIT_ENTRY).performClick()
+        waitFor(hasTestTag(QuickActionsTestTags.inView("k3_light")))
+        compose.onNodeWithTag(QuickActionsTestTags.DONE).performScrollTo().performClick()
+
+        signOut()
+    }
 
     @Test
     fun thePuraMaxShowsItsPuraAirsLevelAndLeadsToIt() {

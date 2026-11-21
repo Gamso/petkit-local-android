@@ -17,6 +17,9 @@ import org.petkitlocal.core.domain.device.ObserveQuickActionsUseCase
 import org.petkitlocal.core.domain.device.QuickActionEditResult
 import org.petkitlocal.core.domain.device.ResetQuickActionsUseCase
 import org.petkitlocal.core.domain.model.DeviceAction
+import org.petkitlocal.core.domain.model.Entity
+import org.petkitlocal.core.domain.model.EntityComponent
+import org.petkitlocal.core.domain.model.EntityValue
 import org.petkitlocal.core.testing.FakeDeviceRepository
 import org.petkitlocal.core.testing.FakeQuickActionsRepository
 import org.petkitlocal.core.testing.MainDispatcherExtension
@@ -198,5 +201,69 @@ class QuickActionsViewModelTest {
 
         assertNull(viewModel.uiState.value.editor)
         assertTrue(quick.stored.value.isEmpty())
+    }
+
+    /** The box with its K3 linked: the server lists its `k3_light` switch (issue #100). */
+    private val withLight = litterBox.copy(
+        entities = litterBox.entities +
+            Entity("k3_light", "K3 Light", EntityComponent.Switch, EntityValue.Bool(false), settable = true),
+    )
+
+    @Test
+    fun `the Pura Air light is an action of the editor, in view after Deodorize by default`() =
+        runTest(main.dispatcher) {
+            devices.devices.value = listOf(withLight)
+            val viewModel = viewModel()
+            shown(viewModel)
+            viewModel.onOpen()
+
+            assertEquals(listOf("cleaning_start", "deodorize", "k3_light"), viewModel.editor.row.keys())
+            assertTrue("level_litter" in viewModel.editor.others.keys())
+        }
+
+    @Test
+    fun `the Pura Air light is pinned, moved and taken out like any action`() = runTest(main.dispatcher) {
+        devices.devices.value = listOf(withLight)
+        val viewModel = viewModel()
+        shown(viewModel)
+        viewModel.onOpen()
+
+        viewModel.onRemove("k3_light")
+        assertEquals(listOf("cleaning_start", "deodorize"), quick.stored.value[litterBox.id])
+        assertTrue("k3_light" in viewModel.editor.others.keys())
+
+        viewModel.onAdd("k3_light")
+        viewModel.onMoveUp("k3_light")
+        assertEquals(listOf("cleaning_start", "k3_light", "deodorize"), quick.stored.value[litterBox.id])
+        assertEquals(listOf("cleaning_start", "k3_light", "deodorize"), viewModel.editor.row.keys())
+    }
+
+    @Test
+    fun `a saved row is kept, the light staying behind More as the user chose`() = runTest(main.dispatcher) {
+        devices.devices.value = listOf(withLight)
+        quick.stored.value = mapOf(litterBox.id to listOf("cleaning_start", "deodorize", "level_litter"))
+        val viewModel = viewModel()
+        shown(viewModel)
+        viewModel.onOpen()
+
+        assertEquals(listOf("cleaning_start", "deodorize", "level_litter"), viewModel.editor.row.keys())
+        assertTrue("k3_light" in viewModel.editor.others.keys())
+        assertTrue(viewModel.editor.custom)
+    }
+
+    @Test
+    fun `the K3 unlinked, the light goes, and the saved row keeps its other choices`() = runTest(main.dispatcher) {
+        quick.stored.value = mapOf(litterBox.id to listOf("k3_light", "cleaning_start"))
+        devices.devices.value = listOf(withLight)
+        val viewModel = viewModel()
+        shown(viewModel)
+        viewModel.onOpen()
+        assertEquals(listOf("k3_light", "cleaning_start"), viewModel.editor.row.keys())
+
+        devices.devices.value = listOf(litterBox)
+        // Its slot falls to the app's choice; nothing saved is lost, and it is back once relinked.
+        assertEquals(listOf("deodorize", "cleaning_start"), viewModel.editor.row.keys())
+        assertTrue(viewModel.editor.others.none { it.key == "k3_light" })
+        assertEquals(listOf("k3_light", "cleaning_start"), quick.stored.value[litterBox.id])
     }
 }

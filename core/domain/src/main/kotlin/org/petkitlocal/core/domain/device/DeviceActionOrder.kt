@@ -29,6 +29,8 @@ object DeviceActionOrder {
         // Litter box.
         "cleaning_start" to 0,
         "deodorize" to 1,
+        // The T4's Pura Air light (a switch), right after Deodorize, which it is listed after.
+        "k3_light" to 1,
         "level_litter" to 2,
         "pack_waste" to 6,
         // Feeder.

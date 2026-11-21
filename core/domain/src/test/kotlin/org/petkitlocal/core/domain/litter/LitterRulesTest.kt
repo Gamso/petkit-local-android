@@ -14,7 +14,9 @@ import org.junit.jupiter.api.Test
 import org.petkitlocal.core.domain.DayOnlyTimeline
 import org.petkitlocal.core.domain.ListOnlyPets
 import org.petkitlocal.core.domain.Outcome
+import org.petkitlocal.core.domain.device.ActionSwitches
 import org.petkitlocal.core.domain.devicepage.DevicePart
+import org.petkitlocal.core.domain.devicepage.PageFixtures.action
 import org.petkitlocal.core.domain.devicepage.PageFixtures.at
 import org.petkitlocal.core.domain.devicepage.PageFixtures.device
 import org.petkitlocal.core.domain.devicepage.PageFixtures.item
@@ -29,8 +31,12 @@ import org.petkitlocal.core.domain.home.BusyActivity
 import org.petkitlocal.core.domain.home.DeviceStatus
 import org.petkitlocal.core.domain.model.AccessoryRef
 import org.petkitlocal.core.domain.model.Device
+import org.petkitlocal.core.domain.model.DeviceAction
 import org.petkitlocal.core.domain.model.DeviceConnection
 import org.petkitlocal.core.domain.model.DeviceFamily
+import org.petkitlocal.core.domain.model.Entity
+import org.petkitlocal.core.domain.model.EntityComponent
+import org.petkitlocal.core.domain.model.EntityValue
 import org.petkitlocal.core.domain.model.Pet
 import org.petkitlocal.core.domain.model.TimelineCategory
 import org.petkitlocal.core.domain.model.TimelineItem
@@ -168,5 +174,38 @@ class LitterRulesTest {
         override fun observeDay(day: LocalDate): Flow<List<TimelineItem>> = days.map { it[day].orEmpty() }
 
         override suspend fun refreshDay(day: LocalDate): Outcome<Unit> = Outcome.Success(Unit).also { refreshed += day }
+    }
+
+    @Test
+    fun `the Pura Air light is a switch right after Deodorize, in the state the box reports`() {
+        val actions = listOf(action("cleaning_start"), action("deodorize"), action("level_litter"))
+        val withLight = box.copy(
+            entities = box.entities + switch("k3_light", true).copy(name = "K3 Light"),
+            actions = actions,
+        )
+
+        val light = DeviceAction("k3_light", "K3 Light", destructive = false, switchedOn = true)
+        assertEquals(
+            listOf(action("cleaning_start"), action("deodorize"), light, action("level_litter")),
+            ActionSwitches.of(withLight, actions),
+        )
+        // The K3 switched its light off by itself: the box's next report says so.
+        val off = withLight.copy(entities = box.entities + switch("k3_light", false))
+        assertEquals(false, ActionSwitches.of(off, actions)[2].switchedOn)
+    }
+
+    @Test
+    fun `no Pura Air light without its switch, and an unknown state reads as off`() {
+        val actions = listOf(action("cleaning_start"), action("deodorize"))
+        assertEquals(actions, ActionSwitches.of(box.copy(actions = actions), actions))
+
+        val unknown = Entity("k3_light", "K3 Light", EntityComponent.Switch, EntityValue.None, settable = true)
+        val light = ActionSwitches.of(box.copy(entities = box.entities + unknown), actions).last()
+        assertEquals(false, light.switchedOn)
+        // Without Deodorize, it comes last.
+        assertEquals(
+            "k3_light",
+            ActionSwitches.of(box.copy(entities = box.entities + unknown), listOf(action("cleaning_start"))).last().key,
+        )
     }
 }

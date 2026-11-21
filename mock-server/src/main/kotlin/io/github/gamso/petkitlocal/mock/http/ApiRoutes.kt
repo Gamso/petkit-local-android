@@ -26,7 +26,6 @@ import io.github.gamso.petkitlocal.mock.state.MockDevice
 import io.github.gamso.petkitlocal.mock.state.Outgoing
 import io.github.gamso.petkitlocal.mock.state.PasswordRejected
 import io.github.gamso.petkitlocal.mock.state.Timeline
-import io.github.gamso.petkitlocal.mock.state.VALUE_COMPONENTS
 import io.github.gamso.petkitlocal.mock.state.World
 import io.github.gamso.petkitlocal.mock.state.addDeferredFeed
 import io.github.gamso.petkitlocal.mock.state.deleteDeferredFeed
@@ -277,7 +276,7 @@ private fun Route.deviceRoutes(world: World) {
     put("/devices/{id}/entities/{key}") {
         val device = world.deviceOr404(call)
         val def =
-            device.model.entity(call.parameters["key"].orEmpty())?.takeIf { it.component in VALUE_COMPONENTS }
+            device.valueEntity(call.parameters["key"].orEmpty())
                 ?: throw ApiException(404, "entity_not_found", "this device has no such entity")
         if (!def.settable) throw ApiException(422, "not_settable", "${def.name} is read-only")
         val body = call.jsonBody()

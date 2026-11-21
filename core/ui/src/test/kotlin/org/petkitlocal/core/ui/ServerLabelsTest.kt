@@ -53,7 +53,7 @@ class ServerLabelsTest {
         val maps = listOf(EntityLabels, ActionLabels, OptionLabels, FilterLabels, EventKindLabels)
         val resources = ApplicationProvider.getApplicationContext<Context>().resources
         maps.forEach { map -> map.forEach { (key, id) -> assertTrue(key, resources.getString(id).isNotBlank()) } }
-        assertEquals(261, maps.sumOf { it.size })
+        assertEquals(263, maps.sumOf { it.size })
         EntityOptionLabels.forEach { (entity, options) ->
             options.forEach { (option, id) -> assertTrue("$entity $option", resources.getString(id).isNotBlank()) }
         }

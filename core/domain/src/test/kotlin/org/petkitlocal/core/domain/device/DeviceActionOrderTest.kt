@@ -105,4 +105,19 @@ class DeviceActionOrderTest {
         )
         assertEquals(emptyList<String>() to emptyList<String>(), DeviceActionOrder.layout(emptyList()).keys())
     }
+
+    @Test
+    fun `a T4's Pura Air light is in view right after Deodorize`() {
+        val light = DeviceAction("k3_light", "K3 Light", destructive = false, switchedOn = false)
+        val actions = listOf(
+            DeviceAction("cleaning_start", "Scoop", false),
+            DeviceAction("deodorize", "Deodorize", false),
+            light,
+            DeviceAction("level_litter", "Level", false),
+            DeviceAction("reset_n50", "Reset N50", true),
+        )
+        val layout = DeviceActionOrder.layout(actions)
+        assertEquals(listOf("cleaning_start", "deodorize", "k3_light"), layout.main.map { it.key })
+        assertEquals("level_litter", layout.more.first().key)
+    }
 }

@@ -86,6 +86,32 @@ class LitterScreenshotTest(private val variant: ScreenshotVariant) {
         capture("litter_pura_max_2") { PreviewImages { Screen(LitterFixtures.puraMax2WithPuraAir) } }
     }
 
+    /**
+     * The Pura Max 2's Pura Air light (issue #100), off as the box reports it, with the sheet
+     * unfolded: right after Deodorize in the row, a switch like the others' tiles. The page above
+     * shows it on (litter_pura_max_2).
+     */
+    @Test
+    fun puraAirLightOff() {
+        if (variant.fontScale != 1f) return
+        val state = LitterFixtures.puraMax2WithPuraAir
+        val page = state.page!!
+        val off = page.copy(
+            actions = page.actions.map {
+                if (it.key ==
+                    "k3_light"
+                ) {
+                    it.copy(switchedOn = false)
+                } else {
+                    it
+                }
+            },
+        )
+        capture("litter_k3_light_off") {
+            PreviewImages { Screen(state.copy(page = off), expanded = true) }
+        }
+    }
+
     @Test
     fun hotspot() {
         if (variant.fontScale != 1f) return

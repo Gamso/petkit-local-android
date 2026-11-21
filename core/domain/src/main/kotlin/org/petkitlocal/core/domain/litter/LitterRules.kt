@@ -3,6 +3,7 @@ package org.petkitlocal.core.domain.litter
 import java.time.ZoneId
 import kotlin.math.roundToInt
 import org.petkitlocal.core.domain.activity.ActivityRules
+import org.petkitlocal.core.domain.device.ActionSwitches
 import org.petkitlocal.core.domain.devicepage.HotspotRules
 import org.petkitlocal.core.domain.devicepage.LitterParts
 import org.petkitlocal.core.domain.home.HomeRules
@@ -44,7 +45,7 @@ object LitterRules {
             status = HomeRules.status(device),
             modes = modes(device),
             hotspots = HotspotRules.litterBox(device, puraAir),
-            actions = LitterParts.actions(device, puraAir),
+            actions = ActionSwitches.of(device, LitterParts.actions(device, puraAir)),
             today = visitStats(mine),
             yesterday = visitStats(yesterday.filter { it.deviceId == device.id }),
             visits = visits(mine, zone),

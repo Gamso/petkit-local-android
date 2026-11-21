@@ -108,10 +108,20 @@ class LitterViewModel @Inject constructor(
         }
     }
 
-    /** A button of the action sheet or of a hotspot's explanation (which it closes). */
+    /**
+     * A button of the action sheet or of a hotspot's explanation (which it closes). A switch among
+     * the actions (the Pura Air light) writes the opposite of what the device reports; it changes
+     * when the device's report does, and a refusal says the server's reason in the banner.
+     */
     fun onAction(action: DeviceAction) {
         local.update { it.copy(openPart = null) }
-        commands.onAction(action)
+        val on = action.switchedOn
+        if (on == null) {
+            commands.onAction(action)
+        } else {
+            val entity = uiState.value.page?.device?.entity(action.key) ?: return
+            commands.onWrite(entity, EntityValue.Bool(!on))
+        }
     }
 
     fun onConfirmAction() = commands.onConfirm()

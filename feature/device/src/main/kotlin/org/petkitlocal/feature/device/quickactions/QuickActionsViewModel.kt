@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import org.petkitlocal.core.domain.device.ActionSwitches
 import org.petkitlocal.core.domain.device.DeviceActionOrder
 import org.petkitlocal.core.domain.device.EditQuickActionsUseCase
 import org.petkitlocal.core.domain.device.ObserveDeviceUseCase
@@ -105,7 +106,8 @@ class QuickActionsViewModel @Inject constructor(
     }
 
     private fun edit(edit: QuickActionEdit) {
-        val actions = device.value?.actions ?: return
+        // The row the sheet shows: the device's buttons and its switches (the Pura Air light).
+        val actions = device.value?.let(ActionSwitches::of) ?: return
         viewModelScope.launch {
             notice.value = editQuickActions(deviceId, actions, edit).takeIf { it != QuickActionEditResult.Saved }
         }
@@ -116,7 +118,7 @@ class QuickActionsViewModel @Inject constructor(
         pinned: List<String>?,
         notice: QuickActionEditResult?,
     ): QuickActionsEditorState {
-        val layout = DeviceActionOrder.layout(device.actions, pinned)
+        val layout = DeviceActionOrder.layout(ActionSwitches.of(device), pinned)
         return QuickActionsEditorState(
             deviceName = device.modelName,
             row = layout.main,
