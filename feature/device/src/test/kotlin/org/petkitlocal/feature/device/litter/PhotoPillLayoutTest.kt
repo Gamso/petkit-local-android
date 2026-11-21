@@ -122,7 +122,7 @@ class PhotoPillLayoutTest {
             "w7h" to null,
             "w5" to null,
             "ctw2" to null,
-            "ctw3" to null,
+            "ctw3" to 2,
         )
         types.forEach { (type, generation) ->
             val photo = DevicePhoto.of(type, generation)!!

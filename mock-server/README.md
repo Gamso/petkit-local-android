@@ -194,7 +194,7 @@ the commit recorded in `api/SOURCE`.
 | 2004 | d4sh | YumShare Dual-Hopper 2 | feeder | mqtt | Camera, generation 2; hopper 2 empty. |
 | 3001 | w7h | EverSweet Ultra AI | fountain | mqtt | Camera; recognises the cats' drinks. |
 | 3002 | w5 | EverSweet 3 Pro | fountain | ble, via 2004 | Relayed over MQTT: writes go through. Last frame three hours ago. |
-| 3003 | ctw3 | EverSweet Max Cordless | fountain | ble, via 2001 | Battery, plugged in, smart mode. Its parent polls HTTP: writes get 409 until `PUT /mock/devices/2001/transport` puts it on MQTT. `PUT /mock/devices/3003/state {"states.mode": 3, "states.batteryMode": 1}` unplugs it. |
+| 3003 | ctw3 | EverSweet Max 2 | fountain | ble, via 2001 | The owner's model, generation 2. Battery, plugged in, smart mode. Its parent polls HTTP: writes get 409 until `PUT /mock/devices/2001/transport` puts it on MQTT. `PUT /mock/devices/3003/state {"states.mode": 3, "states.batteryMode": 1}` unplugs it. |
 | 4001 | k3 | Pura Air K3 | purifier | ble, via 1002 | The Pura Max 2's K3: liquid (N60) and battery only, no actions. |
 
 - **Pets:** Mochi (id 1, 4.2 kg entered, learned weight in use, has a photo) and Tigrou (id 2,

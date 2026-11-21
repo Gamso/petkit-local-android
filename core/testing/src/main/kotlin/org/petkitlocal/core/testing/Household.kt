@@ -121,12 +121,13 @@ object Household {
     val batteryFountain = device(
         3003,
         "ctw3",
-        "EverSweet Max Cordless",
+        "EverSweet Max 2",
         DeviceFamily.Fountain,
         sensor("ctw3_filter", EntityValue.Number(12.0), unit = "%", name = "Filter"),
         binary("ctw3_water_lack", false, "problem", "Water Low"),
         connection = DeviceConnection.Ble,
         parentId = 2001,
+        generation = 2,
     )
 
     val purifier = device(

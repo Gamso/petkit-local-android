@@ -102,7 +102,7 @@ class HomeScreenTest {
         compose.onAllNodesWithText("1 meal", useUnmergedTree = true).assertCountEquals(2)
         // The fountains: drinks for the W7H, water for the others, offline for the W5.
         scrollTo("Drinks today")
-        scrollTo("EverSweet Max Cordless")
+        scrollTo("EverSweet Max 2")
         compose.onNodeWithText("Offline", useUnmergedTree = true).assertExists()
         // The unknown kind. (The Pura Air has no card: its level is on its litter box's page.)
         scrollTo("Nothing to report")
@@ -139,7 +139,7 @@ class HomeScreenTest {
 
         compose.onNodeWithText("Hopper 2 empty · YumShare Dual-Hopper").assertExists()
         compose.onNodeWithText("Desiccant: 3 days left · Fresh Element Solo").assertExists()
-        compose.onNodeWithText("Filter low: 12 % · EverSweet Max Cordless").assertExists()
+        compose.onNodeWithText("Filter low: 12 % · EverSweet Max 2").assertExists()
     }
 
     @Test
