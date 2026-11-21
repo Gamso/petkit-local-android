@@ -28,6 +28,8 @@ import org.petkitlocal.core.testing.FakeTalkRepository
 import org.petkitlocal.core.testing.FakeTimelineRepository
 import org.petkitlocal.core.testing.Household
 import org.petkitlocal.core.testing.MainDispatcherExtension
+import org.petkitlocal.core.ui.talk.TalkNotice
+import org.petkitlocal.core.ui.talk.TalkPhase
 
 /** Talk on the live screen: held to speak, idle -> connecting -> talking -> stopping -> idle. */
 @OptIn(ExperimentalCoroutinesApi::class)

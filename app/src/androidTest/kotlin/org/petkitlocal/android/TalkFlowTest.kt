@@ -33,7 +33,7 @@ import org.petkitlocal.feature.home.HomeTestTags
 import org.petkitlocal.feature.live.LiveTestTags
 
 /**
- * Talking through a camera end to end, against the mock's talk route: holding Talk opens the
+ * Talking through a camera end to end, from its page's live card, against the mock's talk route: holding Talk opens the
  * socket and the phone's microphone reaches the server (an emulator's microphone records silence,
  * which is still audio: the mock counts its bytes, `GET /mock`'s `talk_bytes`), letting go closes
  * it; an error the server sends mid-talk is said in place; and a camera without the patcher says
@@ -108,15 +108,14 @@ class TalkFlowTest {
         check(mockLong("talk_bytes") == 0L) { "audio was sent" }
     }
 
-    /** From Home to [deviceId]'s page, then the full-screen button of the live card at its top. */
+    /** From Home to [deviceId]'s page, whose live card has Talk under it. */
     private fun openLive(deviceId: Long) {
         waitFor(hasTestTag(HomeTestTags.device(FIRST_CARD)))
         val card = hasTestTag(HomeTestTags.device(deviceId))
         compose.onNodeWithTag(HomeTestTags.LIST).performScrollToNode(card)
         compose.onNode(card).performClick()
         waitFor(hasTestTag(DeviceTestTags.STATUS))
-        compose.onNodeWithTag(LiveCardTestTags.FULLSCREEN).performClick()
-        waitFor(hasTestTag(LiveTestTags.SCREEN))
+        waitFor(hasTestTag(LiveCardTestTags.CARD))
         waitFor(hasTestTag(LiveTestTags.TALK))
     }
 

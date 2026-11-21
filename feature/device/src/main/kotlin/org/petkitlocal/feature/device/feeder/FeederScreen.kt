@@ -21,6 +21,7 @@ import org.petkitlocal.core.ui.rememberServerLabels
 import org.petkitlocal.feature.device.DeviceNavigation
 import org.petkitlocal.feature.device.R
 import org.petkitlocal.feature.device.common.CameraLiveCard
+import org.petkitlocal.feature.device.common.CameraLiveFullscreen
 import org.petkitlocal.feature.device.common.DeviceHeader
 import org.petkitlocal.feature.device.common.DeviceStatusLine
 import org.petkitlocal.feature.device.common.DeviceTestTags
@@ -142,6 +143,7 @@ internal fun FeederScreen(
             recentClips(page.device, clips, Modifier.gutter())
         }
     }
+    CameraLiveFullscreen(page?.device, live)
     FeederDialogs(uiState, callbacks)
 }
 
@@ -159,13 +161,14 @@ private fun LazyListScope.feederContent(
                 onBack = navigation.onBack,
                 onOpenSettings = { navigation.onOpenSettings(page.device.id) },
             )
-            CameraLiveCard(page.device, live, navigation, Modifier.padding(top = PkTheme.spacing.xs))
+            CameraLiveCard(page.device, live, Modifier.padding(top = PkTheme.spacing.xs))
             DeviceHero(
                 hotspots = page.hotspots,
                 anchors = ::feederAnchor,
                 onHotspot = callbacks.onHotspot,
                 modifier = Modifier.padding(top = PkTheme.spacing.xs),
                 photo = heroPhoto(page.device),
+                pictured = !page.device.isCamera,
             ) { FeederIllustration(page.dualHopper, Modifier.fillMaxSize()) }
         }
     }

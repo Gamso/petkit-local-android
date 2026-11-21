@@ -34,6 +34,7 @@ import org.petkitlocal.feature.device.DeviceNavigation
 import org.petkitlocal.feature.device.common.ActivityTestTags
 import org.petkitlocal.feature.device.common.DeviceTestTags
 import org.petkitlocal.feature.device.common.LiveCardUi
+import org.petkitlocal.feature.device.litter.HERO_PARTS
 import org.petkitlocal.feature.device.litter.PageCommandCallbacks
 import org.petkitlocal.feature.device.litter.PageTestTags
 import org.robolectric.RobolectricTestRunner
@@ -71,7 +72,6 @@ class FeederScreenTest {
     private val navigation = DeviceNavigation(
         onOpenHistory = { calls += "history:$it" },
         onOpenClip = { calls += "clip:${it.kind}" },
-        onOpenLive = { calls += "live:$it" },
     )
 
     private fun time(hour: Int, minute: Int) =
@@ -125,16 +125,17 @@ class FeederScreenTest {
     }
 
     @Test
-    fun `a camera feeder's live card plays in place, its full-screen button leading to the live video`() {
-        show(FeederFixtures.dualPaused, live = LiveCardUi(DeviceFixtures.liveCard))
+    fun `a camera feeder's live card plays in place, full screen staying on the page`() {
+        show(FeederFixtures.dualPaused, live = DeviceFixtures.liveCardUi(DeviceFixtures.liveCard, calls))
 
         compose.onNodeWithTag(LiveCardTestTags.CARD)
             .assertContentDescriptionEquals("Live video of YumShare Dual-Hopper. Still from ${time(5, 10)}")
             .performClick()
-        assertEquals("tapping the video does nothing", emptyList<String>(), calls)
+        assertEquals("tapping the video does nothing", listOf("live-visible"), calls)
         compose.onNodeWithContentDescription("Full screen").performClick()
-        compose.onNodeWithContentDescription("Live video").assertDoesNotExist()
-        assertEquals(listOf("live:2004"), calls)
+        assertEquals(listOf("live-visible", "live-fullscreen"), calls)
+        // The live video is the camera's picture: no product photo under it, only the parts.
+        compose.onNodeWithTag(HERO_PARTS).assertExists()
     }
 
     @Test

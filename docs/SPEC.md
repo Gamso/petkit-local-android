@@ -151,8 +151,9 @@ screen).
 
 ### 7 · Live video (camera models only)
 - Plays **in place** in the **live card** at the top of the camera's page (litter box, feeder,
-  fountain or any other device with `is_camera`), under the header and its chips and above the
-  illustration, as in PetKit's app (issue #97):
+  fountain or any other device with `is_camera`), under the header and its chips, as in PetKit's
+  app (issues #97, #99). The live video is the camera's picture: a camera's page shows no photo or
+  drawing of the device, only its parts' pills in rows.
   - it starts when the page is shown and stops, releasing its viewer slot, when the card leaves
     the screen, the app goes to the background or another screen covers the page: a stream must
     not run while nobody looks (a D4SH's camera is reached through a relay holding the device's
@@ -160,17 +161,20 @@ screen).
   - until the first frame, the latest still the camera produced (the thumbnail of its newest
     timeline media) with when it was taken, and a busy indicator; a start still going after 8 s
     says the camera is waking up (a D4SH's first open takes up to ~30 s), never an error;
-  - on the video: the "live" badge, the sound (muted at first) and full screen, which opens the
-    live video screen with Talk and snapshots after releasing the card's viewer (the server keeps
-    one view per camera for a session, and two per camera in all); errors and "Watch again" with
-    the live screen's own words. Tapping the video itself does nothing.
+  - on the video, at the top so the camera's own time stamp at the bottom stays readable: the
+    "live" badge, the sound (muted at first) and full screen; errors and "Watch again" with the
+    live screen's own words. Tapping the video itself does nothing;
+  - **Talk** under the card, as on the live screen (below);
+  - **full screen** is the same player and the same session in the whole window, on the page:
+    landscape, system bars hidden, the badges, sound, snapshot and the way back at the top, Talk
+    at the bottom. Back, or the button, returns to the page. No new viewer, no navigation.
   The header has no live button: the card is the way in.
-- The live video screen: full-width player, "live" badge (no delay figure: it meant nothing to
-  the owner), fullscreen, mute, snapshot.
+- The live video screen (full-width player, "live" badge with no delay figure, fullscreen, mute,
+  snapshot, recent clips) is no longer reached from the card; nothing navigates to it now.
 - Plays the fMP4-over-WebSocket stream (`/devices/{id}/live`); falls back to HLS automatically on
   close code `1013` or repeated failures.
-- Recent clips below.
-- **Talk**, under the controls: held to speak through the camera's speaker, walkie-talkie style,
+- **Talk**, under the card and in its full screen (and under the live screen's controls): held
+  to speak through the camera's speaker, walkie-talkie style,
   over `/devices/{id}/talk` (the phone's microphone as raw PCM, no encoder).
   - "Hold to talk" while the server says the camera can talk (`DeviceSummary.talk`); while held,
     "Connecting…" until the camera accepts, then "Talking · release to stop" with a red dot and

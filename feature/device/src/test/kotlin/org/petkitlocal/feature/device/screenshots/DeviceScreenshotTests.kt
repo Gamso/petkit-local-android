@@ -19,6 +19,7 @@ import org.petkitlocal.core.designsystem.component.PkPreviewSurface
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.core.domain.device.EntityWriteProblem
+import org.petkitlocal.core.domain.model.TalkAvailability
 import org.petkitlocal.core.domain.video.LiveFailure
 import org.petkitlocal.core.domain.video.LivePhase
 import org.petkitlocal.core.domain.video.LiveSession
@@ -29,6 +30,7 @@ import org.petkitlocal.core.ui.LiveCardCallbacks
 import org.petkitlocal.core.ui.PreviewImages
 import org.petkitlocal.core.ui.RecentClipsCard
 import org.petkitlocal.core.ui.live.LivePicture
+import org.petkitlocal.core.ui.talk.TalkUiState
 import org.petkitlocal.feature.device.DeviceFixtures
 import org.petkitlocal.feature.device.common.LiveCardUi
 import org.petkitlocal.feature.device.generic.GenericDeviceActions
@@ -109,7 +111,7 @@ class GenericDeviceScreenshotTest(private val variant: ScreenshotVariant) {
 }
 
 /**
- * A camera's live card in each of its states, playing in place: its still before it is shown,
+ * A camera's live card in each of its states, playing in place, with Talk under it: its still before it is shown,
  * none before the camera produced one, opening over the still, still opening after a while (a
  * D4SH's relay), playing on HLS with the sound on (a black placeholder: no player runs here),
  * waiting to reconnect, and stopped with its retry. The still is drawn as a placeholder: the
@@ -117,11 +119,11 @@ class GenericDeviceScreenshotTest(private val variant: ScreenshotVariant) {
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(qualifiers = "w360dp-h1600dp-xhdpi", sdk = [36])
+@Config(qualifiers = "w360dp-h2100dp-xhdpi", sdk = [36])
 class LiveCardScreenshotTest(private val variant: ScreenshotVariant) {
     @Test
     fun states() = capture("live_card_states", variant) {
-        val card = DeviceFixtures.liveCard
+        val card = DeviceFixtures.liveCard.copy(talk = TalkUiState(TalkAvailability.Available))
         fun session(phase: LivePhase, transport: LiveTransport = LiveTransport.WebSocket) =
             LiveSession(transport = transport, phase = phase, attempt = 1)
         val states = listOf(

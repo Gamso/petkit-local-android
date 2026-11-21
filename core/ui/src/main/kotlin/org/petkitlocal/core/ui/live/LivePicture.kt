@@ -215,8 +215,43 @@ fun LiveMuteButton(muted: Boolean, onToggle: () -> Unit, modifier: Modifier = Mo
     }
 }
 
-/** Full screen: the live video screen, where Talk and snapshots are. */
+/** Full screen: the picture takes the whole window, in landscape. */
 @Composable
 fun LiveFullscreenButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
     PkIconButton(PkIcons.Fullscreen, stringResource(R.string.live_fullscreen), onClick, modifier)
+}
+
+/** Back from full screen. */
+@Composable
+fun LiveExitFullscreenButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    PkIconButton(PkIcons.FullscreenExit, stringResource(R.string.live_exit_fullscreen), onClick, modifier)
+}
+
+/** What a snapshot came to, said near the controls for a few seconds. */
+enum class SnapshotResult { Saved, Failed, NoPicture }
+
+/** Takes a snapshot; one at a time, while the last one is still being saved. */
+@Composable
+fun LiveSnapshotButton(saving: Boolean, onSnapshot: () -> Unit, modifier: Modifier = Modifier) {
+    PkIconButton(PkIcons.PhotoCamera, stringResource(R.string.live_snapshot), { if (!saving) onSnapshot() }, modifier)
+}
+
+/** What the last snapshot came to, announced by TalkBack. */
+@Composable
+fun LiveSnapshotNotice(result: SnapshotResult?, modifier: Modifier = Modifier) {
+    if (result == null) return
+    val text = when (result) {
+        SnapshotResult.Saved -> R.string.live_snapshot_saved
+        SnapshotResult.Failed -> R.string.live_snapshot_failed
+        SnapshotResult.NoPicture -> R.string.live_snapshot_no_picture
+    }
+    Text(
+        stringResource(text),
+        style = PkTheme.typography.bodyMedium,
+        color = OnLivePicture,
+        textAlign = TextAlign.Center,
+        modifier = modifier
+            .padding(horizontal = PkTheme.spacing.s, vertical = PkTheme.spacing.xxs)
+            .semantics { liveRegion = LiveRegionMode.Polite },
+    )
 }

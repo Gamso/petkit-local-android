@@ -1,10 +1,6 @@
 package org.petkitlocal.feature.live
 
 import android.Manifest
-import android.content.Context
-import android.content.Intent
-import android.net.Uri
-import android.provider.Settings
 import android.view.SurfaceView
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -55,6 +51,8 @@ import org.petkitlocal.core.domain.video.LiveSession
 import org.petkitlocal.core.domain.video.LiveTransport
 import org.petkitlocal.core.ui.RecentClipsCard
 import org.petkitlocal.core.ui.live.DEFAULT_LIVE_ASPECT
+import org.petkitlocal.core.ui.live.DarkSystemBars
+import org.petkitlocal.core.ui.live.ImmersiveLandscape
 import org.petkitlocal.core.ui.live.LiveBadges
 import org.petkitlocal.core.ui.live.LivePicture
 import org.petkitlocal.core.ui.live.LivePlayerEvents
@@ -64,7 +62,9 @@ import org.petkitlocal.core.ui.live.applyMuted
 import org.petkitlocal.core.ui.live.aspectRatioOf
 import org.petkitlocal.core.ui.live.rememberLivePlayer
 import org.petkitlocal.core.ui.live.rememberVideoSize
-import org.petkitlocal.core.ui.startFirst
+import org.petkitlocal.core.ui.talk.TalkCallbacks
+import org.petkitlocal.core.ui.talk.TalkTestTags
+import org.petkitlocal.core.ui.talk.openAppSettings
 
 /** What the live screen's user can do; the route wires each to the ViewModel. */
 data class LiveCallbacks(
@@ -86,7 +86,10 @@ data class LiveCallbacks(
     val onTalkToggled: () -> Unit = {},
     /** This app's page in Android's settings, where the microphone can be allowed. */
     val onOpenAppSettings: () -> Unit = {},
-)
+) {
+    /** What Talk does here, for core:ui's [org.petkitlocal.core.ui.talk.TalkControls]. */
+    val talk: TalkCallbacks get() = TalkCallbacks(onTalkPressed, onTalkReleased, onTalkToggled, onOpenAppSettings)
+}
 
 object LiveTestTags {
     const val SCREEN = "live_screen"
@@ -100,16 +103,16 @@ object LiveTestTags {
     const val STATUS = LiveVideoTestTags.STATUS
 
     /** Talk, held to speak through the camera. */
-    const val TALK = "live_talk"
+    const val TALK = TalkTestTags.TALK
 
     /** Under Talk while talking: the red dot and what is happening. */
-    const val TALK_INDICATOR = "live_talk_indicator"
+    const val TALK_INDICATOR = TalkTestTags.INDICATOR
 
     /** Under Talk: what was said last (why it cannot talk, the microphone, an error). */
-    const val TALK_NOTICE = "live_talk_notice"
+    const val TALK_NOTICE = TalkTestTags.NOTICE
 
     /** Under Talk: why the server says the camera cannot talk now. */
-    const val TALK_REASON = "live_talk_reason"
+    const val TALK_REASON = TalkTestTags.REASON
 }
 
 @Composable
@@ -173,14 +176,6 @@ internal fun LiveRoute(
         ),
         aspectRatio = aspectRatioOf(videoSize),
     ) { modifier -> LiveVideoSurface(player, onView = { surface = it }, modifier = modifier) }
-}
-
-/** This app's page in Android's settings, where a refused microphone can be allowed. */
-private fun openAppSettings(context: Context) {
-    startFirst(
-        context,
-        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", context.packageName, null)),
-    )
 }
 
 /**

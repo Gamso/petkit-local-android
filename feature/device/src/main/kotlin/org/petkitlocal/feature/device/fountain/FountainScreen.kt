@@ -24,6 +24,7 @@ import org.petkitlocal.feature.device.DeviceNavigation
 import org.petkitlocal.feature.device.R
 import org.petkitlocal.feature.device.common.ActivityCard
 import org.petkitlocal.feature.device.common.CameraLiveCard
+import org.petkitlocal.feature.device.common.CameraLiveFullscreen
 import org.petkitlocal.feature.device.common.DayChartCard
 import org.petkitlocal.feature.device.common.DayDot
 import org.petkitlocal.feature.device.common.DeviceHeader
@@ -157,6 +158,7 @@ internal fun FountainScreen(
             recentClips(page.device, clips, Modifier.gutter())
         }
     }
+    CameraLiveFullscreen(page?.device, live)
     uiState.openHotspot?.let { hotspot ->
         HotspotDialog(
             hotspot = hotspot,
@@ -273,13 +275,14 @@ private fun FountainTop(
                 modifier = Modifier.padding(top = PkTheme.spacing.xs),
             )
         }
-        CameraLiveCard(page.device, live, navigation, Modifier.padding(top = PkTheme.spacing.xs))
+        CameraLiveCard(page.device, live, Modifier.padding(top = PkTheme.spacing.xs))
         DeviceHero(
             hotspots = page.hotspots,
             anchors = ::fountainAnchor,
             onHotspot = onHotspot,
             modifier = Modifier.padding(top = PkTheme.spacing.xs),
             photo = heroPhoto(page.device),
+            pictured = !page.device.isCamera,
         ) { FountainIllustration(Modifier.fillMaxSize()) }
     }
 }

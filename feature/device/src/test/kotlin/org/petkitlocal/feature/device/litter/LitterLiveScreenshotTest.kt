@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalInspectionMode
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -15,12 +16,15 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.DomainError
+import org.petkitlocal.core.domain.model.TalkAvailability
 import org.petkitlocal.core.domain.video.LiveFailure
 import org.petkitlocal.core.domain.video.LivePhase
 import org.petkitlocal.core.domain.video.LiveSession
 import org.petkitlocal.core.testing.ScreenshotVariant
 import org.petkitlocal.core.ui.PreviewImages
 import org.petkitlocal.core.ui.live.LivePicture
+import org.petkitlocal.core.ui.talk.TalkPhase
+import org.petkitlocal.core.ui.talk.TalkUiState
 import org.petkitlocal.feature.device.DeviceFixtures
 import org.petkitlocal.feature.device.DeviceNavigation
 import org.petkitlocal.feature.device.common.LiveCardUi
@@ -58,15 +62,45 @@ class LitterLiveScreenshotTest(private val variant: ScreenshotVariant) {
         capture("litter_live_error", session(stopped))
     }
 
+    /** Talk held under the playing picture: the red dot and what is happening. */
+    @Test
+    fun talking() {
+        if (variant.fontScale != 1f) return
+        val talking = TalkUiState(TalkAvailability.Available, TalkPhase.Talking)
+        capture("litter_live_talking", session(LivePhase.Playing), talk = talking) { modifier ->
+            Box(modifier.background(LivePicture))
+        }
+    }
+
+    /** Full screen in place, in landscape: the same card over the page, Talk at the bottom. */
+    @Test
+    @Config(qualifiers = "w780dp-h360dp-land-xhdpi", sdk = [36])
+    fun fullscreen() {
+        if (variant.fontScale != 1f) return
+        capture(
+            "litter_live_fullscreen",
+            session(LivePhase.Playing),
+            talk = TalkUiState(TalkAvailability.Available),
+            fullscreen = true,
+        ) { modifier -> Box(modifier.background(PlaceholderPicture)) }
+    }
+
     private fun session(phase: LivePhase) = LiveSession(phase = phase, attempt = 1)
 
     /** At 100 % only: the error carries the 130 % check. */
     private fun screen(name: String, session: LiveSession, video: @Composable (Modifier) -> Unit = {}) {
-        if (variant.fontScale == 1f) capture(name, session, video)
+        if (variant.fontScale == 1f) capture(name, session, video = video)
     }
 
-    private fun capture(name: String, session: LiveSession, video: @Composable (Modifier) -> Unit = {}) {
-        val live = LiveCardUi(state = DeviceFixtures.liveCard.copy(session = session), video = video)
+    private fun capture(
+        name: String,
+        session: LiveSession,
+        talk: TalkUiState = TalkUiState(TalkAvailability.Available),
+        fullscreen: Boolean = false,
+        video: @Composable (Modifier) -> Unit = {},
+    ) {
+        val state = DeviceFixtures.liveCard.copy(session = session, talk = talk, fullscreen = fullscreen)
+        val live = LiveCardUi(state = state, video = video)
         captureRoboImage(
             filePath = "src/test/screenshots/${name}_$variant.png",
             roborazziComposeOptions = variant.options(),
@@ -87,3 +121,6 @@ class LitterLiveScreenshotTest(private val variant: ScreenshotVariant) {
         fun variants(): List<ScreenshotVariant> = ScreenshotVariant.all
     }
 }
+
+/** A grey stand-in for the camera's picture, so the full screen's letterbox shows. */
+private val PlaceholderPicture = Color(0xFF3A3A3A)

@@ -1,4 +1,4 @@
-package org.petkitlocal.feature.live
+package org.petkitlocal.core.ui.talk
 
 import org.petkitlocal.core.domain.model.TalkAvailability
 import org.petkitlocal.core.domain.talk.TalkFailure
@@ -41,7 +41,7 @@ sealed interface TalkNotice {
     data class Failed(val failure: TalkFailure) : TalkNotice
 }
 
-/** Talk on the live screen: what the server says about the camera, what is happening, what to say. */
+/** Talk through a camera: what the server says about the camera, what is happening, what to say. */
 data class TalkUiState(
     val availability: TalkAvailability = TalkAvailability.Unsupported,
     val phase: TalkPhase = TalkPhase.Idle,
@@ -49,4 +49,31 @@ data class TalkUiState(
 ) {
     /** From the press until the server confirmed the end: the camera's own sound is off meanwhile. */
     val busy: Boolean get() = phase != TalkPhase.Idle
+}
+
+/** What Talk's user can do; the screen wires each to its ViewModel's [TalkController]. */
+data class TalkCallbacks(
+    /** The finger went down on Talk. */
+    val onTalkPressed: () -> Unit = {},
+    /** The finger went up, or slid off. */
+    val onTalkReleased: () -> Unit = {},
+    /** Talk activated without a press (TalkBack's double tap): starts or stops talking. */
+    val onTalkToggled: () -> Unit = {},
+    /** This app's page in Android's settings, where the microphone can be allowed. */
+    val onOpenAppSettings: () -> Unit = {},
+)
+
+/** Test tags of Talk, wherever it is. */
+object TalkTestTags {
+    /** Talk, held to speak through the camera. */
+    const val TALK = "live_talk"
+
+    /** Under Talk while talking: the red dot and what is happening. */
+    const val INDICATOR = "live_talk_indicator"
+
+    /** Under Talk: what was said last (why it cannot talk, the microphone, an error). */
+    const val NOTICE = "live_talk_notice"
+
+    /** Under Talk: why the server says the camera cannot talk now. */
+    const val REASON = "live_talk_reason"
 }

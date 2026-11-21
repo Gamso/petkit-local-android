@@ -18,6 +18,7 @@ import org.petkitlocal.core.ui.rememberServerLabels
 import org.petkitlocal.feature.device.DeviceNavigation
 import org.petkitlocal.feature.device.common.ActivityCard
 import org.petkitlocal.feature.device.common.CameraLiveCard
+import org.petkitlocal.feature.device.common.CameraLiveFullscreen
 import org.petkitlocal.feature.device.common.DeviceHeader
 import org.petkitlocal.feature.device.common.DeviceStatusLine
 import org.petkitlocal.feature.device.common.DeviceTestTags
@@ -100,6 +101,7 @@ internal fun LitterScreen(
             recentClips(page.device, clips, Modifier.gutter())
         }
     }
+    CameraLiveFullscreen(page?.device, live)
     uiState.openHotspot?.let { hotspot ->
         HotspotDialog(
             hotspot = hotspot,
@@ -130,13 +132,14 @@ private fun LazyListScope.litterContent(
                 onOpenSettings = { navigation.onOpenSettings(page.device.id) },
             )
             ModeChips(page.modes, uiState.commands.sending, callbacks.onModeToggle)
-            CameraLiveCard(page.device, live, navigation, Modifier.padding(top = PkTheme.spacing.xs))
+            CameraLiveCard(page.device, live, Modifier.padding(top = PkTheme.spacing.xs))
             DeviceHero(
                 hotspots = page.hotspots,
                 anchors = ::litterAnchor,
                 onHotspot = callbacks.onHotspot,
                 modifier = Modifier.padding(top = PkTheme.spacing.xs),
                 photo = heroPhoto(page.device),
+                pictured = !page.device.isCamera,
             ) { LitterBoxIllustration(Modifier.fillMaxSize()) }
         }
     }

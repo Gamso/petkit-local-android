@@ -40,6 +40,7 @@ import org.petkitlocal.core.testing.Household
 import org.petkitlocal.core.testing.MainDispatcherExtension
 import org.petkitlocal.core.ui.live.LivePlayback
 import org.petkitlocal.core.ui.live.LivePlayerFactory
+import org.petkitlocal.core.ui.live.SnapshotResult
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class LiveViewModelTest {

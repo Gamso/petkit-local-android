@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import org.petkitlocal.core.designsystem.theme.PkTheme
+import org.petkitlocal.core.ui.R as UiR
 import org.petkitlocal.core.ui.live.LIVE_SCRIM_ALPHA
 import org.petkitlocal.core.ui.live.LivePicture
 import org.petkitlocal.core.ui.live.LiveStatus
@@ -24,7 +25,7 @@ internal fun SessionOverlay(uiState: LiveUiState, onRetry: () -> Unit) {
     val status = when (uiState.availability) {
         LiveAvailability.Loading -> LiveStatus(busy = true, message = null)
         LiveAvailability.NotACamera -> LiveStatus(busy = false, message = stringResource(R.string.live_not_a_camera))
-        LiveAvailability.Gone -> LiveStatus(busy = false, message = stringResource(R.string.live_gone))
+        LiveAvailability.Gone -> LiveStatus(busy = false, message = stringResource(UiR.string.live_gone))
         LiveAvailability.Camera -> liveStatusOf(uiState.session)
     } ?: return
     LiveStatusContent(

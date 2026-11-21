@@ -1,5 +1,6 @@
 package org.petkitlocal.feature.device.litter
 
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
@@ -17,6 +18,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performSemanticsAction
 import java.util.Locale
 import kotlin.time.toKotlinInstant
 import org.junit.Assert.assertEquals
@@ -30,6 +32,7 @@ import org.petkitlocal.core.testing.Household
 import org.petkitlocal.core.ui.LiveCardTestTags
 import org.petkitlocal.core.ui.RecentClipsTestTags
 import org.petkitlocal.core.ui.formatTimeOfDay
+import org.petkitlocal.core.ui.talk.TalkTestTags
 import org.petkitlocal.feature.device.DeviceFixtures
 import org.petkitlocal.feature.device.DeviceNavigation
 import org.petkitlocal.feature.device.common.ActivityTestTags
@@ -55,7 +58,6 @@ class LitterScreenTest {
         onOpenSettings = { calls += "settings:$it" },
         onOpenHistory = { calls += "history:$it" },
         onOpenDevice = { calls += "device:$it" },
-        onOpenLive = { calls += "live:$it" },
     )
 
     private val callbacks = LitterCallbacks(
@@ -225,7 +227,7 @@ class LitterScreenTest {
     }
 
     @Test
-    fun `a camera's live card plays in place, and only its full-screen button leads to the live video`() {
+    fun `a camera's live card plays in place, with sound, full screen and Talk, and never navigates`() {
         show(LitterFixtures.trouble, live = DeviceFixtures.liveCardUi(DeviceFixtures.liveCard, calls))
         // Shown on a started page: it plays.
         assertEquals(listOf("live-visible"), calls)
@@ -238,22 +240,32 @@ class LitterScreenTest {
         assertEquals("tapping the video does nothing", listOf("live-visible"), calls)
 
         compose.onNodeWithContentDescription("Turn sound on").performClick()
-        // Full screen gives up the card's viewer before the live screen opens its own.
         compose.onNodeWithContentDescription("Full screen").performClick()
-        assertEquals(listOf("live-visible", "live-mute", "live-release", "live:1004"), calls)
-        // The card is the way to the live video: the header keeps only the gear.
-        compose.onNodeWithContentDescription("Live video").assertDoesNotExist()
+        compose.onNodeWithTag(TalkTestTags.TALK).performSemanticsAction(SemanticsActions.OnClick)
+        // Full screen is in place: no navigation, the page asks its ViewModel.
+        assertEquals(listOf("live-visible", "live-mute", "live-fullscreen", "talk-toggle"), calls)
         compose.onNodeWithContentDescription("Settings").assertExists()
     }
 
     @Test
-    fun `a camera with no still yet still has its live card`() {
+    fun `a camera with no still yet still has its live card, and no picture of the device, only its parts`() {
         show(LitterFixtures.trouble)
 
         compose.onNodeWithTag(LiveCardTestTags.CARD).assertContentDescriptionEquals("Live video of Purobot Ultra")
-        compose.onNodeWithContentDescription("Full screen").performClick()
+        compose.onNodeWithTag(HERO_PARTS).assertExists()
+    }
 
-        assertEquals(listOf("live:1004"), calls)
+    @Test
+    fun `full screen is the same card over the page, with its own way back, snapshot and Talk`() {
+        val fullscreen = DeviceFixtures.liveCard.copy(fullscreen = true)
+        show(LitterFixtures.trouble, live = DeviceFixtures.liveCardUi(fullscreen, calls))
+
+        compose.onNodeWithTag(LiveCardTestTags.FULLSCREEN_VIEW).assertIsDisplayed()
+        // The card and its full screen both show the video: the ViewModel counts them.
+        assertEquals(listOf("live-visible", "live-visible"), calls)
+        compose.onNodeWithTag(LiveCardTestTags.EXIT_FULLSCREEN).performClick()
+        compose.onNodeWithContentDescription("Save a snapshot").performClick()
+        assertEquals(listOf("live-visible", "live-visible", "live-exit", "live-snapshot"), calls)
     }
 
     @Test

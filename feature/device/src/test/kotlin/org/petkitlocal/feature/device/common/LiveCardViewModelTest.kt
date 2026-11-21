@@ -20,18 +20,29 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.RegisterExtension
+import org.petkitlocal.core.domain.device.ObserveDeviceUseCase
+import org.petkitlocal.core.domain.model.TalkAvailability
 import org.petkitlocal.core.domain.model.TimelineItem
+import org.petkitlocal.core.domain.repository.SnapshotRepository
+import org.petkitlocal.core.domain.talk.OpenTalkUseCase
 import org.petkitlocal.core.domain.video.LatestStill
 import org.petkitlocal.core.domain.video.LiveFailure
 import org.petkitlocal.core.domain.video.LivePhase
 import org.petkitlocal.core.domain.video.LiveSession
 import org.petkitlocal.core.domain.video.LiveTransport
 import org.petkitlocal.core.domain.video.ObserveLatestStillUseCase
+import org.petkitlocal.core.domain.video.SaveSnapshotUseCase
+import org.petkitlocal.core.testing.FakeDeviceRepository
+import org.petkitlocal.core.testing.FakeMicrophoneAccess
+import org.petkitlocal.core.testing.FakeTalkRepository
 import org.petkitlocal.core.testing.FakeTimelineRepository
 import org.petkitlocal.core.testing.Household
 import org.petkitlocal.core.testing.MainDispatcherExtension
 import org.petkitlocal.core.ui.live.LivePlayback
 import org.petkitlocal.core.ui.live.LivePlayerFactory
+import org.petkitlocal.core.ui.live.SnapshotResult
+import org.petkitlocal.core.ui.talk.TalkNotice
+import org.petkitlocal.core.ui.talk.TalkPhase
 import org.petkitlocal.feature.device.DEVICE_ID_KEY
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -42,10 +53,18 @@ class LiveCardViewModelTest {
 
     private val camera = Household.cameraLitterBox.id
     private val timeline = FakeTimelineRepository()
+    private val devices = FakeDeviceRepository(Household.devices)
+    private val talks = FakeTalkRepository()
+    private val microphone = FakeMicrophoneAccess(granted = true)
+    private val snapshots = FakeSnapshots()
 
     private fun viewModel() = LiveCardViewModel(
         SavedStateHandle(mapOf(DEVICE_ID_KEY to camera)),
         ObserveLatestStillUseCase(timeline),
+        ObserveDeviceUseCase(devices),
+        OpenTalkUseCase(talks),
+        microphone,
+        SaveSnapshotUseCase(snapshots, Household.clock),
         Household.clock,
         NoPlayers,
     )
@@ -193,25 +212,131 @@ class LiveCardViewModelTest {
     }
 
     @Test
-    fun `full screen releases the card's viewer first, and the card starts afresh when shown again`() =
+    fun `full screen is the same session, no new attempt, and it plays on while the card leaves`() =
         runTest(main.dispatcher) {
             val viewModel = viewModel()
             collect(viewModel)
             viewModel.onVisible()
-            viewModel.onPlayerFailed(1, LiveFailure.StreamEnded)
+            viewModel.onPlaying(1)
             runCurrent()
 
-            viewModel.onOpenFullscreen()
-            runCurrent()
-            assertNull(viewModel.playback.value, "the live screen must not meet the card's viewer")
-            assertEquals(LivePhase.Idle, viewModel.state.value.session.phase)
-
-            // Back from full screen: the page is started again.
-            viewModel.onHidden()
+            viewModel.onFullscreen(true)
+            // The full screen shows it too; turning to landscape may take the card off the list.
             viewModel.onVisible()
+            viewModel.onHidden()
             runCurrent()
-            assertEquals(LivePlayback(camera, LiveTransport.WebSocket, attempt = 2), viewModel.playback.value)
+            assertTrue(viewModel.state.value.fullscreen)
+            assertEquals(LivePlayback(camera, LiveTransport.WebSocket, attempt = 1), viewModel.playback.value)
+            assertEquals(LivePhase.Playing, viewModel.state.value.session.phase)
+
+            viewModel.onFullscreen(false)
+            runCurrent()
+            assertFalse(viewModel.state.value.fullscreen)
+            assertEquals(LivePlayback(camera, LiveTransport.WebSocket, attempt = 1), viewModel.playback.value)
         }
+
+    @Test
+    fun `in the background, neither the card nor its full screen keeps the viewer`() = runTest(main.dispatcher) {
+        val viewModel = viewModel()
+        collect(viewModel)
+        viewModel.onVisible()
+        viewModel.onFullscreen(true)
+        viewModel.onVisible()
+        runCurrent()
+
+        // ON_STOP reaches both.
+        viewModel.onHidden()
+        viewModel.onHidden()
+        runCurrent()
+        assertNull(viewModel.playback.value)
+        assertEquals(LivePhase.Idle, viewModel.state.value.session.phase)
+    }
+
+    @Test
+    fun `Talk on the card talks through the camera, and its sound is off meanwhile`() = runTest(main.dispatcher) {
+        val viewModel = viewModel()
+        collect(viewModel)
+        viewModel.onVisible()
+        runCurrent()
+        assertEquals(TalkAvailability.Available, viewModel.state.value.talk.availability)
+
+        viewModel.onToggleMute()
+        viewModel.onTalkPressed()
+        runCurrent()
+        assertEquals(TalkPhase.Connecting, viewModel.state.value.talk.phase)
+        assertTrue(viewModel.state.value.soundMuted, "the camera's own sound is off while talking")
+        assertFalse(viewModel.state.value.muted, "the user's choice is kept")
+
+        viewModel.onToggleMute()
+        runCurrent()
+        assertEquals(TalkNotice.SoundOffWhileTalking, viewModel.state.value.talk.notice)
+
+        // Leaving the page ends the talk with the video.
+        viewModel.onHidden()
+        runCurrent()
+        assertEquals(TalkPhase.Idle, viewModel.state.value.talk.phase)
+    }
+
+    @Test
+    fun `a camera that cannot talk keeps Talk pressable and says why`() = runTest(main.dispatcher) {
+        devices.devices.value = Household.devices.map {
+            if (it.id == camera) it.copy(talk = TalkAvailability.NeedsPatcher) else it
+        }
+        val viewModel = viewModel()
+        collect(viewModel)
+        runCurrent()
+
+        viewModel.onTalkPressed()
+        runCurrent()
+        assertEquals(TalkNotice.Unavailable(TalkAvailability.NeedsPatcher), viewModel.state.value.talk.notice)
+        assertEquals(TalkPhase.Idle, viewModel.state.value.talk.phase)
+    }
+
+    @Test
+    fun `the microphone is asked for at the first press`() = runTest(main.dispatcher) {
+        microphone.granted = false
+        val viewModel = viewModel()
+        collect(viewModel)
+        runCurrent()
+        val asked = mutableListOf<Unit>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.requestMicrophone.collect {
+                asked +=
+                    it
+            }
+        }
+
+        viewModel.onTalkPressed()
+        runCurrent()
+        assertEquals(1, asked.size)
+        assertEquals(TalkNotice.MicrophoneReason, viewModel.state.value.talk.notice)
+        viewModel.onMicrophoneResult(false)
+        runCurrent()
+        assertEquals(TalkNotice.MicrophoneDenied, viewModel.state.value.talk.notice)
+    }
+
+    @Test
+    fun `a snapshot of the full screen is saved under the camera's name`() = runTest(main.dispatcher) {
+        val viewModel = viewModel()
+        collect(viewModel)
+        viewModel.onSnapshot(byteArrayOf(1, 2, 3))
+        runCurrent()
+        assertEquals(SnapshotResult.Saved, viewModel.state.value.snapshot)
+        assertEquals(1, snapshots.saved.size)
+
+        viewModel.onSnapshot(null)
+        runCurrent()
+        assertEquals(SnapshotResult.NoPicture, viewModel.state.value.snapshot)
+    }
+
+    private class FakeSnapshots : SnapshotRepository {
+        val saved = mutableListOf<String>()
+
+        override suspend fun save(jpeg: ByteArray, fileName: String): Boolean {
+            saved += fileName
+            return true
+        }
+    }
 
     /** The ViewModel only hands the factory to the page; no test here builds a player. */
     private object NoPlayers : LivePlayerFactory {

@@ -116,15 +116,13 @@ class GenericDeviceScreenTest {
     }
 
     @Test
-    fun `a camera's live card comes before what it reports, its full-screen button leading to the live video`() {
-        val actions = actions.copy(onOpenLive = { calls += "live" })
-        show(DeviceFixtures.generic(), live = LiveCardUi(DeviceFixtures.liveCard), actions = actions)
+    fun `a camera's live card comes before what it reports, and goes full screen in place`() {
+        show(DeviceFixtures.generic(), live = DeviceFixtures.liveCardUi(DeviceFixtures.liveCard, calls))
 
         compose.onNodeWithTag(LiveCardTestTags.CARD).assertIsDisplayed().performClick()
-        assertEquals("tapping the video does nothing", emptyList<String>(), calls)
+        assertEquals("tapping the video does nothing", listOf("live-visible"), calls)
         compose.onNodeWithContentDescription("Full screen").performClick()
-        compose.onNodeWithContentDescription("Live video").assertDoesNotExist()
-        assertEquals(listOf("live"), calls)
+        assertEquals(listOf("live-visible", "live-fullscreen"), calls)
     }
 
     @Test

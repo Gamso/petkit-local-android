@@ -1,4 +1,4 @@
-package org.petkitlocal.feature.live
+package org.petkitlocal.core.ui.talk
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -45,19 +45,22 @@ import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.core.domain.model.TalkAvailability
 import org.petkitlocal.core.domain.talk.TalkFailure
+import org.petkitlocal.core.ui.R
 
 /**
- * Talk, under the live controls: held to speak through the camera's speaker, walkie-talkie
- * style. Under it, while talking, what is happening; otherwise what was said last (why it cannot
- * talk, the microphone, an error), announced by TalkBack as it appears; and, when the server says
- * the camera cannot talk now, the short reason. Talk stays pressable then, and pressing it says
- * what is missing and how to fix it.
+ * Talk, under a live picture (the live screen's controls, a camera page's live card, its full
+ * screen): held to speak through the camera's speaker, walkie-talkie style. Under it, while
+ * talking, what is happening; otherwise what was said last (why it cannot talk, the microphone, an
+ * error), announced by TalkBack as it appears; and, when the server says the camera cannot talk
+ * now, the short reason. Talk stays pressable then, and pressing it says what is missing and how
+ * to fix it.
  */
 @Composable
-internal fun TalkControls(talk: TalkUiState, callbacks: LiveCallbacks) {
+fun TalkControls(talk: TalkUiState, callbacks: TalkCallbacks, modifier: Modifier = Modifier) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(PkTheme.spacing.xs),
+        modifier = modifier,
     ) {
         TalkButton(talk, callbacks)
         when {
@@ -70,7 +73,7 @@ internal fun TalkControls(talk: TalkUiState, callbacks: LiveCallbacks) {
                 style = PkTheme.typography.bodyMedium,
                 color = PkTheme.colors.onSurfaceMuted,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.testTag(LiveTestTags.TALK_REASON),
+                modifier = Modifier.testTag(TalkTestTags.REASON),
             )
         }
     }
@@ -78,11 +81,11 @@ internal fun TalkControls(talk: TalkUiState, callbacks: LiveCallbacks) {
 
 /**
  * The button. A finger down presses it and a finger up (or sliding off) lets it go. TalkBack has
- * no practical hold, so its double tap is a toggle instead ([LiveCallbacks.onTalkToggled]),
+ * no practical hold, so its double tap is a toggle instead ([TalkCallbacks.onTalkToggled]),
  * named by the action TalkBack reads ("double tap to start talking").
  */
 @Composable
-private fun TalkButton(talk: TalkUiState, callbacks: LiveCallbacks) {
+private fun TalkButton(talk: TalkUiState, callbacks: TalkCallbacks) {
     val colors = PkTheme.colors
     val available = talk.availability == TalkAvailability.Available
     val enabled = talk.phase != TalkPhase.Stopping
@@ -102,7 +105,7 @@ private fun TalkButton(talk: TalkUiState, callbacks: LiveCallbacks) {
         modifier = Modifier
             .defaultMinSize(minHeight = PkTheme.spacing.minTouchTarget)
             .alpha(if (enabled) 1f else DISABLED_ALPHA)
-            .testTag(LiveTestTags.TALK)
+            .testTag(TalkTestTags.TALK)
             .holdToTalk(enabled, words, onPress = { press() }, onRelease = { release() }, onToggle = { toggle() }),
     ) {
         Row(
@@ -188,7 +191,7 @@ private fun TalkingIndicator() {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
-            .testTag(LiveTestTags.TALK_INDICATOR)
+            .testTag(TalkTestTags.INDICATOR)
             .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
     ) {
         Box(
@@ -210,7 +213,7 @@ private fun TalkingIndicator() {
 private fun TalkNoticeLine(notice: TalkNotice, onOpenAppSettings: () -> Unit) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.testTag(LiveTestTags.TALK_NOTICE),
+        modifier = Modifier.testTag(TalkTestTags.NOTICE),
     ) {
         Text(
             noticeText(notice),

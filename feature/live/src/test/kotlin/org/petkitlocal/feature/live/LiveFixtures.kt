@@ -9,6 +9,10 @@ import org.petkitlocal.core.domain.video.LiveSession
 import org.petkitlocal.core.domain.video.LiveTransport
 import org.petkitlocal.core.testing.Household
 import org.petkitlocal.core.ui.RecentClipsState
+import org.petkitlocal.core.ui.live.SnapshotResult
+import org.petkitlocal.core.ui.talk.TalkNotice
+import org.petkitlocal.core.ui.talk.TalkPhase
+import org.petkitlocal.core.ui.talk.TalkUiState
 
 /** The live screen's states, for its screen and screenshot tests. */
 internal object LiveFixtures {

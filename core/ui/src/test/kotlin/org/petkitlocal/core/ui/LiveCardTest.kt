@@ -1,5 +1,6 @@
 package org.petkitlocal.core.ui
 
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
@@ -10,6 +11,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -19,12 +21,18 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.DomainError
+import org.petkitlocal.core.domain.model.TalkAvailability
 import org.petkitlocal.core.domain.video.LatestStill
 import org.petkitlocal.core.domain.video.LiveFailure
 import org.petkitlocal.core.domain.video.LivePhase
 import org.petkitlocal.core.domain.video.LiveSession
 import org.petkitlocal.core.domain.video.LiveTransport
 import org.petkitlocal.core.ui.live.LiveVideoTestTags
+import org.petkitlocal.core.ui.live.SnapshotResult
+import org.petkitlocal.core.ui.talk.TalkCallbacks
+import org.petkitlocal.core.ui.talk.TalkPhase
+import org.petkitlocal.core.ui.talk.TalkTestTags
+import org.petkitlocal.core.ui.talk.TalkUiState
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
@@ -41,21 +49,27 @@ class LiveCardTest {
         onRetry = { calls += "retry" },
         onToggleMute = { calls += "mute" },
         onFullscreen = { calls += "fullscreen" },
+        onExitFullscreen = { calls += "exit" },
+        onSnapshot = { calls += "snapshot" },
+        talk = TalkCallbacks(onTalkToggled = { calls += "talk" }),
     )
 
     private fun show(
         still: LatestStill? = still(today, 4, 2),
         session: LiveSession = LiveSession(),
         muted: Boolean = true,
+        talk: TalkUiState = TalkUiState(),
+        fullscreen: Boolean = false,
     ) {
+        val state = LiveCardState(still, zone, today, session, muted, fullscreen, talk)
         compose.setContent {
             PreviewImages {
                 PkTheme {
-                    LiveCard(
-                        deviceName = "Purobot Ultra",
-                        state = LiveCardState(still, zone, today, session, muted),
-                        callbacks = callbacks,
-                    )
+                    if (fullscreen) {
+                        LiveCardFullscreen("Purobot Ultra", state, callbacks)
+                    } else {
+                        LiveCard("Purobot Ultra", state, callbacks)
+                    }
                 }
             }
         }
@@ -174,5 +188,57 @@ class LiveCardTest {
         compose.onNodeWithText("Réveil de la caméra… Cela peut prendre jusqu’à 30 secondes.").assertIsDisplayed()
         compose.onNodeWithContentDescription("Activer le son").assertExists()
         compose.onNodeWithContentDescription("Plein écran").assertExists()
+    }
+
+    @Test
+    fun `Talk is under the card, pressable even when the camera cannot talk, with the reason`() {
+        show(talk = TalkUiState(TalkAvailability.NeedsPatcher))
+
+        compose.onNodeWithTag(TalkTestTags.TALK).assertIsEnabled().performSemanticsAction(SemanticsActions.OnClick)
+        compose.onNodeWithText("Needs the Two-Way Talk patcher.").assertIsDisplayed()
+        assertEquals(listOf("talk"), calls)
+    }
+
+    @Test
+    fun `talking turns the camera's sound off on its button`() {
+        show(
+            session = session(LivePhase.Playing),
+            muted = false,
+            talk = TalkUiState(TalkAvailability.Available, TalkPhase.Talking),
+        )
+        compose.onNodeWithContentDescription("Turn sound on").assertExists()
+        compose.onNodeWithTag(TalkTestTags.INDICATOR).assertExists()
+    }
+
+    @Test
+    fun `full screen has the same picture with its way back, snapshot, sound and Talk`() {
+        show(session = session(LivePhase.Playing), fullscreen = true, talk = TalkUiState(TalkAvailability.Available))
+
+        compose.onNodeWithTag(LiveCardTestTags.FULLSCREEN_VIEW).assertIsDisplayed()
+        compose.onNodeWithTag(LiveVideoTestTags.BADGE).assertIsDisplayed()
+        compose.onNodeWithTag(LiveCardTestTags.FULLSCREEN).assertDoesNotExist()
+        compose.onNodeWithContentDescription("Turn sound on").performClick()
+        compose.onNodeWithContentDescription("Save a snapshot").performClick()
+        compose.onNodeWithTag(TalkTestTags.TALK).performSemanticsAction(SemanticsActions.OnClick)
+        compose.onNodeWithContentDescription("Exit full screen").performClick()
+        assertEquals(listOf("mute", "snapshot", "talk", "exit"), calls)
+    }
+
+    @Test
+    fun `full screen says what the snapshot came to`() {
+        compose.setContent {
+            PkTheme {
+                LiveCardFullscreen(
+                    "Purobot Ultra",
+                    LiveCardState(
+                        session = session(LivePhase.Playing),
+                        fullscreen = true,
+                        snapshot = SnapshotResult.Saved,
+                    ),
+                    callbacks,
+                )
+            }
+        }
+        compose.onNodeWithText("Snapshot saved in your pictures.").assertIsDisplayed()
     }
 }

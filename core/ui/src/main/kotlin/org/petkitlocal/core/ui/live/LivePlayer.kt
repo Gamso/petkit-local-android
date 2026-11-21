@@ -1,5 +1,6 @@
 package org.petkitlocal.core.ui.live
 
+import android.graphics.Bitmap
 import android.view.SurfaceView
 import android.view.TextureView
 import androidx.compose.runtime.Composable
@@ -15,6 +16,9 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.VideoSize
+import java.io.ByteArrayOutputStream
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.petkitlocal.core.domain.video.LiveFailure
 import org.petkitlocal.core.domain.video.LivePhase
 import org.petkitlocal.core.domain.video.LiveSession
@@ -113,15 +117,25 @@ fun LiveVideoSurface(player: Player?, onView: (SurfaceView?) -> Unit, modifier: 
 }
 
 /**
- * The live picture in a [TextureView]: a camera page's live card. Unlike a [SurfaceView], it is
- * drawn with the page, so it scrolls with it and takes the card's rounded corners.
+ * The live picture in a [TextureView]: a camera page's live card, and its full screen. Unlike a
+ * [SurfaceView], it is drawn with the page, so it scrolls with it and takes the card's rounded
+ * corners; [textureJpeg] copies its frame for a snapshot. [onView] hands the view over, and null
+ * once it is gone.
  */
 @Composable
-fun LiveVideoTexture(player: Player?, modifier: Modifier = Modifier) {
+fun LiveVideoTexture(player: Player?, modifier: Modifier = Modifier, onView: (TextureView?) -> Unit = {}) {
     var view by remember { mutableStateOf<TextureView?>(null) }
     AndroidView(
-        factory = { context -> TextureView(context).also { view = it } },
-        onRelease = { view = null },
+        factory = { context ->
+            TextureView(context).also {
+                view = it
+                onView(it)
+            }
+        },
+        onRelease = {
+            view = null
+            onView(null)
+        },
         modifier = modifier,
     )
     DisposableEffect(player, view) {
@@ -165,3 +179,18 @@ const val DEFAULT_LIVE_ASPECT = 16f / 9f
 fun Player.applyMuted(muted: Boolean) {
     if (isCommandAvailable(Player.COMMAND_SET_VOLUME)) volume = if (muted) 0f else 1f
 }
+
+/** The frame [view] shows, as a JPEG, or null when it has none yet. */
+suspend fun textureJpeg(view: TextureView): ByteArray? {
+    if (!view.isAvailable) return null
+    val bitmap = view.bitmap ?: return null
+    return withContext(Dispatchers.Default) {
+        ByteArrayOutputStream().use { out ->
+            bitmap.compress(Bitmap.CompressFormat.JPEG, SNAPSHOT_QUALITY, out)
+            bitmap.recycle()
+            out.toByteArray()
+        }
+    }
+}
+
+private const val SNAPSHOT_QUALITY = 92

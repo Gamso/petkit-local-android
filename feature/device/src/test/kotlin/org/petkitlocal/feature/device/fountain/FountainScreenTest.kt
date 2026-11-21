@@ -62,7 +62,6 @@ class FountainScreenTest {
         onOpenSettings = { calls += "settings:$it" },
         onOpenHistory = { calls += "history" },
         onOpenDevice = { calls += "device:$it" },
-        onOpenLive = { calls += "live:$it" },
     )
 
     private val callbacks = FountainCallbacks(
@@ -89,13 +88,13 @@ class FountainScreenTest {
     }
 
     @Test
-    fun `a camera fountain's live card leads to its live video in full screen, even before any still`() {
-        show(FountainFixtures.content, live = LiveCardUi(DeviceFixtures.liveCard.copy(still = null)))
+    fun `a camera fountain's live card goes full screen in place, even before any still`() {
+        val live = DeviceFixtures.liveCardUi(DeviceFixtures.liveCard.copy(still = null), calls)
+        show(FountainFixtures.content, live = live)
 
         compose.onNodeWithTag(LiveCardTestTags.CARD).assertContentDescriptionEquals("Live video of EverSweet Ultra AI")
         compose.onNodeWithContentDescription("Full screen").performClick()
-        compose.onNodeWithContentDescription("Live video").assertDoesNotExist()
-        assertEquals(listOf("live:3001"), calls)
+        assertEquals(listOf("live-visible", "live-fullscreen"), calls)
     }
 
     @Test

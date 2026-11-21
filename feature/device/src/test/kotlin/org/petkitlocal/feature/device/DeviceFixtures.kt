@@ -20,6 +20,7 @@ import org.petkitlocal.core.testing.Household
 import org.petkitlocal.core.ui.LiveCardCallbacks
 import org.petkitlocal.core.ui.LiveCardState
 import org.petkitlocal.core.ui.RecentClipsState
+import org.petkitlocal.core.ui.talk.TalkCallbacks
 import org.petkitlocal.feature.device.common.CommandFeedback
 import org.petkitlocal.feature.device.common.CommandResult
 import org.petkitlocal.feature.device.common.CommandState
@@ -58,7 +59,14 @@ object DeviceFixtures {
         callbacks = LiveCardCallbacks(
             onRetry = { calls += "live-retry" },
             onToggleMute = { calls += "live-mute" },
-            onFullscreen = { calls += "live-release" },
+            onFullscreen = { calls += "live-fullscreen" },
+            onExitFullscreen = { calls += "live-exit" },
+            onSnapshot = { calls += "live-snapshot" },
+            talk = TalkCallbacks(
+                onTalkPressed = { calls += "talk-press" },
+                onTalkReleased = { calls += "talk-release" },
+                onTalkToggled = { calls += "talk-toggle" },
+            ),
         ),
         onVisible = { calls += "live-visible" },
         onHidden = { calls += "live-hidden" },

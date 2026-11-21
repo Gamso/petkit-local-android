@@ -51,6 +51,7 @@ import org.petkitlocal.feature.device.DeviceNavigation
 import org.petkitlocal.feature.device.R
 import org.petkitlocal.feature.device.common.ActionConfirmation
 import org.petkitlocal.feature.device.common.CameraLiveCard
+import org.petkitlocal.feature.device.common.CameraLiveFullscreen
 import org.petkitlocal.feature.device.common.CommandFeedbackBanner
 import org.petkitlocal.feature.device.common.DeviceActionScaffold
 import org.petkitlocal.feature.device.common.DeviceGoneView
@@ -72,8 +73,6 @@ import org.petkitlocal.feature.device.deviceFallbackTitle
 data class GenericDeviceActions(
     val onBack: () -> Unit = {},
     val onOpenSettings: () -> Unit = {},
-    /** The live video, from the full-screen button of a camera's live card. */
-    val onOpenLive: () -> Unit = {},
     /** Another device's screen: for an accessory, the device relaying it. */
     val onOpenDevice: (deviceId: Long) -> Unit = {},
     val onRefresh: () -> Unit = {},
@@ -94,7 +93,6 @@ internal fun GenericDeviceRoute(navigation: DeviceNavigation, viewModel: Generic
         actions = GenericDeviceActions(
             onBack = navigation.onBack,
             onOpenSettings = { uiState.device?.let { navigation.onOpenSettings(it.id) } },
-            onOpenLive = { uiState.device?.let { navigation.onOpenLive(it.id) } },
             onOpenDevice = navigation.onOpenDevice,
             onRefresh = {
                 viewModel.onRefresh()
@@ -155,6 +153,7 @@ internal fun GenericDeviceScreen(
             DeviceList(uiState, actions, clips, live, bottomPadding)
         }
     }
+    CameraLiveFullscreen(device, live)
     uiState.commands.confirming?.let { action ->
         ActionConfirmation(action, onConfirm = actions.onConfirmAction, onDismiss = actions.onDismissConfirmation)
     }
@@ -204,7 +203,7 @@ private fun DeviceList(
 
             else -> {
                 if (device.isCamera) {
-                    item(key = "live") { CameraLiveCard(device, live, onOpenLive = actions.onOpenLive) }
+                    item(key = "live") { CameraLiveCard(device, live) }
                 }
                 deviceContent(uiState, device, labels, actions)
                 recentClips(device, clips)

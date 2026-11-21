@@ -135,8 +135,9 @@ in CI fails the build if a feature imports a data-layer package.
   - Close code `4409` (replaced) is silent.
   - The live screen and a camera page's live card play it the same way: the `LiveSession` state
     machine (core:domain), its `LiveSessionRunner` timing its waits, and the player pieces in
-    core:ui (`LivePlayerFactory`, bound in `:app`). The card releases its viewer before full
-    screen opens the live screen, and both stop their player when they are no longer visible.
+    core:ui (`LivePlayerFactory`, bound in `:app`); Talk is core:ui's `TalkController` and
+    `TalkControls` for both. The card's full screen is the same player and session drawn over the
+    page; both stop their player when nothing shows it any more.
 
 - **Talk**: `TalkRepository` opens `/devices/{id}/talk` (`TalkSocketClient`, on the shared
   OkHttp client and its bearer header) and records the microphone with `AudioRecord` only once

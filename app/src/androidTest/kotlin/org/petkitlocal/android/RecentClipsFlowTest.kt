@@ -81,22 +81,22 @@ class RecentClipsFlowTest {
     }
 
     @Test
-    fun aClipOpenedUnderTheLiveVideoStopsItUntilItIsClosed() {
+    fun aClipOpenedFromACameraPageStopsItsLiveVideoUntilItIsClosed() {
         signIn()
         openDevice(PUROBOT)
-        compose.onNodeWithTag(LiveCardTestTags.FULLSCREEN).performClick()
         waitFor(hasTestTag(LiveTestTags.BADGE))
         waitUntil("one live socket") { mockCount("live_sockets") == 1 }
 
-        compose.onNodeWithTag(LiveTestTags.SCREEN).performScrollToNode(hasTestTag(RecentClipsTestTags.SECTION))
+        compose.onNodeWithTag(PageTestTags.LIST).performScrollToNode(hasTestTag(RecentClipsTestTags.SECTION))
         waitFor(aClip)
-        compose.onAllNodes(aClip).onFirst().performScrollTo().performClick()
+        compose.onAllNodes(aClip).onFirst().scrollAboveActionSheet().performClick()
 
         waitFor(hasTestTag(HistoryTestTags.CLIP_PLAYER))
         waitFor(hasText("/ 0:02", substring = true))
         waitUntil("no live socket while the clip plays") { mockCount("live_sockets") == 0 }
 
         compose.onNodeWithContentDescription("Close").performClick()
+        compose.onNodeWithTag(PageTestTags.LIST).performScrollToNode(hasTestTag(LiveCardTestTags.CARD))
         waitFor(hasTestTag(LiveTestTags.BADGE))
         waitUntil("the live socket again") { mockCount("live_sockets") == 1 }
     }
