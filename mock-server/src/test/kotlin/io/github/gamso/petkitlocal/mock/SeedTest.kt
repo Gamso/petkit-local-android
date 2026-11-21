@@ -76,7 +76,9 @@ class SeedTest {
         assertEquals("9e00c402df8a023eeb176e65fc5672c4451ed5bc", catalog.source)
         world.devices.values.forEach { d ->
             val detail = d.detail()
-            assertEquals(catalog.model(d.type).entities.map { it.key }, detail.entities.map { it.key }, d.type)
+            // A T4 relaying a K3 also offers the K3's light, which the catalog has no rule for.
+            val linked = if (d.hasK3Light) listOf("k3_light") else emptyList()
+            assertEquals(catalog.model(d.type).entities.map { it.key } + linked, detail.entities.map { it.key }, d.type)
             assertEquals(catalog.model(d.type).actions.map { it.key }, detail.actions.map { it.key }, d.type)
         }
         val t4 = world.devices.getValue(Seed.T4).detail()
@@ -84,6 +86,7 @@ class SeedTest {
         assertTrue(
             t4.entities.map { it.key }.containsAll(listOf("device_status", "litter_percent", "waste_bin", "auto_work", "cleaning_delay")),
         )
+        assertTrue(world.devices.getValue(Seed.T4).hasK3Light, "the T4 relays the K3")
     }
 
     @Test

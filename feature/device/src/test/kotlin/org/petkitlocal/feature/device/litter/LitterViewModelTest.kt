@@ -239,4 +239,61 @@ class LitterViewModelTest {
         assertTrue(viewModel.uiState.value.loaded)
         assertNull(viewModel.uiState.value.page)
     }
+
+    @Test
+    fun `the Pura Air light writes the opposite of what the box reports, and changes only with it`() =
+        runTest(main.dispatcher) {
+            devices.devices.value = listOf(LitterFixtures.puraWithK3)
+            val viewModel = viewModel()
+            collect(viewModel)
+            advanceUntilIdle()
+            val light = viewModel.uiState.value.page!!.actions.first { it.key == "k3_light" }
+            assertEquals(true, light.switchedOn)
+
+            viewModel.onAction(light)
+            runCurrent()
+            assertEquals(
+                listOf(FakeDeviceCommandRepository.Write(1002, "k3_light", EntityValue.Bool(false))),
+                commands.writes,
+            )
+            assertTrue(commands.actions.isEmpty(), "a switch is no action the server runs")
+            // No optimistic UI: still on until the box reports it off.
+            assertEquals(true, viewModel.uiState.value.page!!.actions.first { it.key == "k3_light" }.switchedOn)
+
+            // The K3 turns its light off (by itself, or as asked): the box's report says so.
+            devices.devices.value = listOf(
+                LitterFixtures.puraWithK3.copy(
+                    entities = LitterFixtures.puraWithK3.entities.map {
+                        if (it.key == "k3_light") it.copy(value = EntityValue.Bool(false)) else it
+                    },
+                ),
+            )
+            advanceUntilIdle()
+            assertEquals(false, viewModel.uiState.value.page!!.actions.first { it.key == "k3_light" }.switchedOn)
+        }
+
+    @Test
+    fun `a refused Pura Air light says the server's reason`() = runTest(main.dispatcher) {
+        devices.devices.value = listOf(LitterFixtures.puraWithK3)
+        commands.result = Outcome.Failure(DomainError.Server(409, "accessory_unreachable", "the K3 is out of range"))
+        val viewModel = viewModel()
+        collect(viewModel)
+        advanceUntilIdle()
+
+        viewModel.onAction(viewModel.uiState.value.page!!.actions.first { it.key == "k3_light" })
+        runCurrent()
+        val result = viewModel.uiState.value.commands.feedback?.result
+        assertEquals(
+            CommandResult.Failed(DomainError.Server(409, "accessory_unreachable", "the K3 is out of range")),
+            result,
+        )
+    }
+
+    @Test
+    fun `a box without a linked K3 offers no Pura Air light`() = runTest(main.dispatcher) {
+        val viewModel = viewModel()
+        collect(viewModel)
+        advanceUntilIdle()
+        assertTrue(viewModel.uiState.value.page!!.actions.none { it.key == "k3_light" })
+    }
 }

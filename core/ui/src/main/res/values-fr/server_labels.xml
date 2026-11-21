@@ -95,6 +95,7 @@
     <string name="server_entity_indicator_light">Voyant lumineux</string>
     <string name="server_entity_k3_battery">Batterie du K3</string>
     <string name="server_entity_k3_liquid">Liquide du K3</string>
+    <string name="server_entity_k3_light">Lumière du Pura Air</string>
     <string name="server_entity_kitten">Mode chaton</string>
     <string name="server_entity_last_deep_clean">Dernier nettoyage en profondeur</string>
     <string name="server_entity_last_deep_clean_result">Résultat du dernier nettoyage en profondeur</string>

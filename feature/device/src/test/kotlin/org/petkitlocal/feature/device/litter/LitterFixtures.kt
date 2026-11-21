@@ -85,8 +85,14 @@ object LitterFixtures {
             DeviceAction("pack_waste", "Pack Waste", false),
     )
 
-    /** The Pura Max holding the household's Pura Air (63 % of N60) in its K3 slot. */
-    val puraWithK3 = pura.copy(accessories = listOf(AccessoryRef(4001, "k3", DeviceFamily.Purifier)))
+    /**
+     * The Pura Max holding the household's Pura Air (63 % of N60) in its K3 slot, the Pura Air's
+     * light on: with a K3 linked, the server offers the T4's `k3_light` switch (issue #100).
+     */
+    val puraWithK3 = pura.copy(
+        accessories = listOf(AccessoryRef(4001, "k3", DeviceFamily.Purifier)),
+        entities = pura.entities + switch("k3_light", "K3 Light", true),
+    )
 
     val puraAir: Device = Household.purifier
 

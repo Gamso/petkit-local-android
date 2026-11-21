@@ -357,4 +357,31 @@ class DeviceWritesTest {
             kotlinx.coroutines.delay(300)
             assertTrue(world.timeline.cards.size > before)
         }
+
+    @Test
+    fun `a T4 relaying a K3 offers its light, written like a switch and following the box's report`() =
+        mockTest { _, api ->
+            api.login()
+
+            suspend fun light(device: Int) =
+                api
+                    .get("/devices/{id}", "/devices/$device")["device"]
+                    .jsonObject["entities"]!!
+                    .jsonArray
+                    .map { it.jsonObject }
+                    .firstOrNull { it["key"]!!.jsonPrimitive.content == "k3_light" }
+            assertEquals("false", light(Seed.T4)!!["value"]!!.jsonPrimitive.content)
+            assertEquals("switch", light(Seed.T4)!!["component"]!!.jsonPrimitive.content)
+            // Only the T4 with its K3: no other litter box offers it.
+            assertEquals(null, light(Seed.T5))
+
+            val written = api.set(Seed.T4, "k3_light", "true")
+            assertEquals("true", written["entity"].jsonObject["value"]!!.jsonPrimitive.content)
+            assertEquals("true", light(Seed.T4)!!["value"]!!.jsonPrimitive.content)
+            assertEquals("refused", api.set(Seed.T4, "k3_light", "1").error)
+
+            // The K3 switches its light off by itself after its timer: the box reports it.
+            api.client.control(HttpMethod.Put, "/devices/${Seed.T4}/state", """{"state.k3LightSwitch":0}""")
+            assertEquals("false", light(Seed.T4)!!["value"]!!.jsonPrimitive.content)
+        }
 }

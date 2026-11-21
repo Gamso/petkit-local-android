@@ -136,9 +136,22 @@ class MockDevice(
             accessories = accessories.map { AccessoryRef(it.id, it.type, it.model.kind) },
         )
 
-    fun entities(): List<EntityDto> = model.entities.filter { it.component in VALUE_COMPONENTS }.map { render(it) }
+    /**
+     * Its value entities: the model's, and `k3_light` while it is a T4 relaying a K3, as
+     * petkit-local offers that switch only then (`k3LightSwitch`, petkit-local#133/#136).
+     */
+    fun valueEntities(): List<EntityDef> =
+        model.entities.filter { it.component in VALUE_COMPONENTS } + listOfNotNull(K3_LIGHT.takeIf { hasK3Light })
 
-    fun entity(key: String): EntityDto? = model.entity(key)?.takeIf { it.component in VALUE_COMPONENTS }?.let { render(it) }
+    /** One of [valueEntities], by key. */
+    fun valueEntity(key: String): EntityDef? = valueEntities().firstOrNull { it.key == key }
+
+    /** A T4 relaying a K3: its "K3 Light" switch is offered. */
+    val hasK3Light: Boolean get() = type == "t4" && accessories.any { it.type == "k3" }
+
+    fun entities(): List<EntityDto> = valueEntities().map { render(it) }
+
+    fun entity(key: String): EntityDto? = valueEntity(key)?.let { render(it) }
 
     fun changes(): Map<String, EntityChange> = entities().associate { it.key to it.change() }
 
@@ -195,6 +208,19 @@ class MockDevice(
 
     companion object {
         val DUAL_HOPPER = setOf("d4s", "d4sh")
+
+        /**
+         * The T4's K3 light (petkit-local#136): on is `start_action 7`, off `end_action 7`, and
+         * its state is the box's `k3LightSwitch`, which the K3 clears itself after its timer.
+         */
+        val K3_LIGHT =
+            EntityDef(
+                key = "k3_light",
+                name = "K3 Light",
+                component = "switch",
+                valuePath = "state.k3LightSwitch",
+                settable = true,
+            )
 
         /**
          * The option label a raw enum value stands for: `option_values`, else the index; then a

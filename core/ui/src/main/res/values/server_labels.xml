@@ -95,6 +95,8 @@
     <string name="server_entity_indicator_light">Indicator Light</string>
     <string name="server_entity_k3_battery">K3 Battery</string>
     <string name="server_entity_k3_liquid">K3 Liquid</string>
+    <!-- The T4's switch for its linked Pura Air (K3) light; the server calls it "K3 Light". -->
+    <string name="server_entity_k3_light">Pura Air light</string>
     <string name="server_entity_kitten">Kitten Mode</string>
     <string name="server_entity_last_deep_clean">Last Deep Clean</string>
     <string name="server_entity_last_deep_clean_result">Last Deep Clean Result</string>

@@ -47,6 +47,7 @@ private val ACTION_ICONS: Map<String, ImageVector> = mapOf(
     "pack_waste" to PkIcons.Clean,
     "dump_litter" to PkIcons.Clean,
     "light" to PkIcons.Lightbulb,
+    "k3_light" to PkIcons.Lightbulb,
     // A Bluetooth fountain's filter reset (`w5_*`, `ctw3_*`), a reset like the others.
     "w5_reset_filter" to PkIcons.Refresh,
     "ctw3_reset_filter" to PkIcons.Refresh,

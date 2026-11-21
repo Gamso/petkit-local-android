@@ -10,6 +10,7 @@ import com.github.takahirom.roborazzi.captureRoboImage
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.petkitlocal.core.designsystem.theme.PkTheme
+import org.petkitlocal.core.domain.device.ActionSwitches
 import org.petkitlocal.core.domain.device.DeviceActionOrder
 import org.petkitlocal.core.domain.device.QuickActionEditResult
 import org.petkitlocal.core.domain.model.Device
@@ -40,7 +41,7 @@ import org.robolectric.annotation.GraphicsMode
 @Config(qualifiers = "w360dp-h1500dp-xhdpi", sdk = [36])
 class QuickActionsScreenshotTest(private val variant: ScreenshotVariant) {
     private fun editorOf(device: Device, pinned: List<String>?, notice: QuickActionEditResult? = null) =
-        DeviceActionOrder.layout(device.actions, pinned).let { layout ->
+        DeviceActionOrder.layout(ActionSwitches.of(device), pinned).let { layout ->
             QuickActionsEditorState(
                 device.modelName,
                 layout.main,
@@ -69,6 +70,18 @@ class QuickActionsScreenshotTest(private val variant: ScreenshotVariant) {
             capture("quick_actions_editor_default") {
                 QuickActionsEditor(editorOf(DeviceFixtures.fountain, pinned = null), QuickActionsCallbacks())
             }
+        }
+    }
+
+    /**
+     * A Pura Max 2 with its Pura Air linked (issue #100): the light is one of its actions, in view
+     * right after Deodorize while the app chooses the row.
+     */
+    @Test
+    fun editorPuraAirLight() {
+        if (variant.fontScale != 1f) return
+        capture("quick_actions_editor_k3") {
+            QuickActionsEditor(editorOf(LitterFixtures.puraMax2, pinned = null), QuickActionsCallbacks())
         }
     }
 

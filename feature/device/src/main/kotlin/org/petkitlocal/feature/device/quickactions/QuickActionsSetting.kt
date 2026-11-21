@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import org.petkitlocal.core.designsystem.component.PkCard
 import org.petkitlocal.core.designsystem.icon.PkIcons
 import org.petkitlocal.core.designsystem.theme.PkTheme
+import org.petkitlocal.core.domain.device.ActionSwitches
 import org.petkitlocal.core.domain.device.DeviceActionOrder
 import org.petkitlocal.core.domain.fountain.FountainRules
 import org.petkitlocal.core.domain.model.Device
@@ -48,7 +49,7 @@ internal fun LazyListScope.quickActionsSetting(device: Device, quick: QuickActio
 private fun QuickActionsSettingCard(device: Device, pinned: List<String>?, onEdit: () -> Unit) {
     val labels = rememberServerLabels()
     val title = stringResource(R.string.quick_actions_title)
-    val row = DeviceActionOrder.layout(device.actions, pinned).main
+    val row = DeviceActionOrder.layout(ActionSwitches.of(device), pinned).main
     val summary = if (row.isEmpty()) {
         stringResource(R.string.quick_actions_none)
     } else {

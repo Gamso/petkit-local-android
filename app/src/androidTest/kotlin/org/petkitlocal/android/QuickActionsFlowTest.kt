@@ -33,7 +33,7 @@ import org.petkitlocal.feature.settings.SettingsTestTags
 
 /**
  * The quick actions end to end (issue #40), on a device, against the mock server (core:e2e):
- * on the Pura Max, Level Litter is taken out of the row and Dump Litter pinned in its place from
+ * on the Pura Max, the Pura Air light is taken out of the row and Dump Litter pinned in its place from
  * the expanded sheet; Dump Litter shows in the collapsed row and in the device's settings, still
  * asks before dumping, and is still there after signing out and back in to the same server: the
  * phone keeps its choices across sessions on one server. The test resets the row at the end, so
@@ -56,16 +56,18 @@ class QuickActionsFlowTest {
     fun aPinnedActionShowsInTheCollapsedRowAndOutlivesTheSession() {
         signIn()
         openLitterBox()
-        // The app's row: Scoop, Deodorize and Level Litter; Dump Litter cannot be undone, so it
-        // is under More.
+        // The app's row: Scoop, Deodorize and the Pura Air light (the box relays the mock's K3,
+        // issue #100); Dump Litter cannot be undone, so it is under More.
         compose.onNode(dumpInSheet).assertDoesNotExist()
 
         compose.onNodeWithTag(DeviceTestTags.SHEET_MORE).performClick()
         compose.onNodeWithTag(QuickActionsTestTags.EDIT_ENTRY).performClick()
         waitFor(hasTestTag(QuickActionsTestTags.EDITOR))
         // The row is full: one out first, then Dump Litter in.
-        compose.onNode(hasContentDescription("Remove Level Litter from quick actions")).performScrollTo().performClick()
-        waitFor(hasTestTag(QuickActionsTestTags.other(LEVEL)))
+        compose.onNode(
+            hasContentDescription("Remove Pura Air light from quick actions"),
+        ).performScrollTo().performClick()
+        waitFor(hasTestTag(QuickActionsTestTags.other(PURA_AIR_LIGHT)))
         compose.onNodeWithTag(QuickActionsTestTags.other(DUMP)).performScrollTo().performClick()
         waitFor(hasTestTag(QuickActionsTestTags.inView(DUMP)))
         compose.onNodeWithTag(QuickActionsTestTags.DONE).performScrollTo().performClick()
@@ -157,7 +159,7 @@ class QuickActionsFlowTest {
         const val PURA_MAX = 1002L
         const val FIRST_CARD = 1001L
         const val DUMP = "dump_litter"
-        const val LEVEL = "level_litter"
+        const val PURA_AIR_LIGHT = "k3_light"
         const val TIMEOUT_MS = 30_000L
     }
 }
