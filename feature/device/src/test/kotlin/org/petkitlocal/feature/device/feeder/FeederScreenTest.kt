@@ -131,9 +131,9 @@ class FeederScreenTest {
         compose.onNodeWithTag(LiveCardTestTags.CARD)
             .assertContentDescriptionEquals("Live video of YumShare Dual-Hopper. Still from ${time(5, 10)}")
             .performClick()
-        assertEquals("tapping the video does nothing", listOf("live-visible"), calls)
+        assertEquals("the middle of a card waiting for play is play", listOf("live-visible", "live-play"), calls)
         compose.onNodeWithContentDescription("Full screen").performClick()
-        assertEquals(listOf("live-visible", "live-fullscreen"), calls)
+        assertEquals(listOf("live-visible", "live-play", "live-fullscreen"), calls)
         // The live video is the camera's picture: no photo, and only the parts needing attention.
         compose.onNodeWithTag(PART_ALERTS).assertExists()
         compose.onNodeWithContentDescription("Hopper 2, Empty", substring = true).assertExists()

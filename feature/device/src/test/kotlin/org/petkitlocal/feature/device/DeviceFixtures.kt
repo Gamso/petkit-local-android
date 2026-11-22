@@ -59,6 +59,7 @@ object DeviceFixtures {
         callbacks = LiveCardCallbacks(
             onRetry = { calls += "live-retry" },
             onToggleMute = { calls += "live-mute" },
+            onPlay = { calls += "live-play" },
             onFullscreen = { calls += "live-fullscreen" },
             onExitFullscreen = { calls += "live-exit" },
             onSnapshot = { calls += "live-snapshot" },

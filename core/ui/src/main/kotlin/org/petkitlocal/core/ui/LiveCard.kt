@@ -1,6 +1,7 @@
 package org.petkitlocal.core.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -11,6 +12,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -22,6 +26,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -33,6 +38,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.util.Locale
 import kotlin.time.toKotlinInstant
+import org.petkitlocal.core.designsystem.icon.PkIcons
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.video.LatestStill
 import org.petkitlocal.core.domain.video.LivePhase
@@ -88,6 +94,8 @@ data class LiveCardState(
 
 /** What the controls on a camera page's live card, and its full screen, do. */
 data class LiveCardCallbacks(
+    /** Play: nothing connects until the user asks (issue #109). */
+    val onPlay: () -> Unit = {},
     /** "Watch again", after the video stopped for good. */
     val onRetry: () -> Unit = {},
     val onToggleMute: () -> Unit = {},
@@ -106,6 +114,9 @@ object LiveCardTestTags {
 
     /** The cached still, shown until the first frame. */
     const val STILL = "live_card_still"
+
+    /** Play, in the middle of a card that waits for it. */
+    const val PLAY = "live_card_play"
 
     /** Full screen in place. */
     const val FULLSCREEN = "live_card_fullscreen"
@@ -165,6 +176,12 @@ fun LiveCard(
                 ) {
                     LiveMuteButton(state.soundMuted, callbacks.onToggleMute)
                     LiveFullscreenButton(callbacks.onFullscreen, Modifier.testTag(LiveCardTestTags.FULLSCREEN))
+                }
+                // Nothing plays until asked (issue #109): the still, and play in its middle.
+                if (state.session.phase ==
+                    LivePhase.Idle
+                ) {
+                    PlayButton(callbacks.onPlay, Modifier.align(Alignment.Center))
                 }
             }
         }
@@ -311,6 +328,25 @@ private fun BoxScope.StatusOverlay(status: LiveStatus, onRetry: () -> Unit, full
     )
 }
 
+/** Play, round in the middle of the still; a button TalkBack names. */
+@Composable
+private fun PlayButton(onPlay: () -> Unit, modifier: Modifier = Modifier) {
+    val colors = PkTheme.colors
+    val label = stringResource(R.string.live_card_play)
+    Box(
+        contentAlignment = Alignment.Center,
+        modifier = modifier
+            .size(PLAY_SIZE)
+            .clip(CircleShape)
+            .background(colors.onSurface)
+            .clickable(onClickLabel = label, role = Role.Button, onClick = onPlay)
+            .semantics { contentDescription = label }
+            .testTag(LiveCardTestTags.PLAY),
+    ) {
+        Icon(PkIcons.PlayArrow, contentDescription = null, tint = colors.background, modifier = Modifier.size(32.dp))
+    }
+}
+
 /** When the still was taken, kept out of TalkBack's way: the card's description says it. */
 @Composable
 private fun StillPill(taken: String, modifier: Modifier = Modifier) {
@@ -337,6 +373,7 @@ private fun stillLabel(at: Instant, today: LocalDate, zone: ZoneId, locale: Loca
 }
 
 private const val CARD_ASPECT = 16f / 9f
+private val PLAY_SIZE = 56.dp
 
 /** Lighter than over an error: the still stays readable while the video opens. */
 private const val BUSY_SCRIM_ALPHA = 0.35f

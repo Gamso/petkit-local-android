@@ -76,8 +76,10 @@ class CertificateTrustFlowTest {
         waitUntil("the live updates and notification sockets") {
             mockCount("sockets") >= 1 && mockCount("notification_sockets") == 1
         }
-        // The camera's page plays its live video in place.
+        // The camera's page plays its live video in place, once played.
         openDevice(PUROBOT)
+        waitFor(hasTestTag(LiveCardTestTags.PLAY))
+        compose.onNodeWithTag(LiveCardTestTags.PLAY).performClick()
         waitFor(hasTestTag(LiveVideoTestTags.BADGE) and hasAnyAncestor(hasTestTag(LiveCardTestTags.CARD)))
         waitUntil("one live socket") { mockCount("live_sockets") == 1 }
 

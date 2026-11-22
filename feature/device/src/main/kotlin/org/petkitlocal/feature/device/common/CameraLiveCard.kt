@@ -77,11 +77,14 @@ import org.petkitlocal.feature.device.DEVICE_ID_KEY
  * ([RecentClipsViewModel]) reads the device's newest cards, and a live update writes a new one.
  *
  * The video is the live screen's own machinery: a [LiveSessionRunner] decides what to play and
- * when to try again, and the page builds the player with [playerFactory]. It plays only while
- * something shows it ([onVisible], [onHidden]: the card on a started page, or its full screen): a
- * stream must not run while nobody looks, as a D4SH's camera is reached through a relay holding
- * the device's only connection, and each viewer takes one of the server's two slots per camera.
- * Full screen is the same player and the same session in the whole window: no second viewer.
+ * when to try again, and the page builds the player with [playerFactory]. Nothing connects until
+ * the user asks for it (issue #109): play ([onPlay]), and also full screen, Talk and "Watch again",
+ * since each means watching. It then plays while something shows it ([onVisible], [onHidden]: the
+ * card on a started page, or its full screen), and once nothing does (the page left, the app in
+ * the background, another screen over it) it is released and waits for play again: coming back
+ * shows the still. A stream must not run while nobody looks, as a D4SH's camera is reached through
+ * a relay holding the device's only connection, and each viewer takes one of the server's two
+ * slots per camera. Full screen is the same player and the same session in the whole window.
  */
 @HiltViewModel
 @Suppress("TooManyFunctions") // One function per user intent and player event (ARCHITECTURE.md §3).
@@ -101,6 +104,9 @@ class LiveCardViewModel @Inject constructor(
     private val talk = TalkController(viewModelScope, deviceId, openTalk, microphone)
     private val local = MutableStateFlow(LiveCardState(zone = clock.zone, today = LocalDate.now(clock)))
     private var shown = 0
+
+    /** The user asked to watch since the card was last left: play, full screen, Talk or retry. */
+    private var wanted = false
     private var snapshotNotice: Job? = null
     private val device = observeDevice(deviceId)
 
@@ -126,25 +132,39 @@ class LiveCardViewModel @Inject constructor(
     /** Each time Android must be asked for the microphone; answer with [onMicrophoneResult]. */
     val requestMicrophone = talk.requestMicrophone
 
-    /** The card on a started page, or its full screen, shows the video: play. */
+    /** The card on a started page, or its full screen, is shown: it plays only if asked to. */
     fun onVisible() {
         shown++
-        live.start()
+        if (wanted) live.start()
     }
 
     /**
      * What showed it left, or the app went to the background: once nothing shows it, no player,
-     * no viewer slot, no talk.
+     * no viewer slot, no talk, and back to the still and its play button, out of full screen.
      */
     fun onHidden() {
         shown = (shown - 1).coerceAtLeast(0)
         if (shown == 0) {
+            wanted = false
             live.stop()
             talk.end()
+            local.update { it.copy(fullscreen = false) }
         }
     }
 
-    fun onRetry() = live.retry()
+    /** Play: the user asks for the live video. */
+    fun onPlay() = watch()
+
+    fun onRetry() {
+        wanted = true
+        live.retry()
+    }
+
+    /** Starts the video if it is not playing yet and something shows the card. */
+    private fun watch() {
+        wanted = true
+        if (shown > 0) live.start()
+    }
 
     /** The player of [attempt] shows its first frame. */
     fun onPlaying(attempt: Int) = live.playing(attempt)
@@ -157,14 +177,30 @@ class LiveCardViewModel @Inject constructor(
         if (talk.busy) talk.onSoundWhileTalking() else local.update { it.copy(muted = !it.muted) }
     }
 
-    /** Full screen in place, or back to the page: the same player, the same session. */
-    fun onFullscreen(on: Boolean) = local.update { it.copy(fullscreen = on) }
+    /**
+     * Full screen in place, or back to the page: the same player, the same session. Full screen
+     * on a card that waits for play starts it as well: one tap to watch, in the whole window.
+     */
+    fun onFullscreen(on: Boolean) {
+        if (on) watch()
+        local.update { it.copy(fullscreen = on) }
+    }
 
-    fun onTalkPressed() = talk.onPressed(state.value.talk.availability)
+    /**
+     * Talk pressed: it talks (or says why it cannot, the owner's rule), and the video starts with
+     * it if the card was waiting for play, to see who hears.
+     */
+    fun onTalkPressed() {
+        watch()
+        talk.onPressed(state.value.talk.availability)
+    }
 
     fun onTalkReleased() = talk.onReleased()
 
-    fun onTalkToggled() = talk.onToggled(state.value.talk.availability)
+    fun onTalkToggled() {
+        watch()
+        talk.onToggled(state.value.talk.availability)
+    }
 
     fun onMicrophoneResult(granted: Boolean) = talk.onMicrophoneResult(granted)
 
@@ -227,6 +263,7 @@ internal fun rememberLiveCard(viewModel: LiveCardViewModel = hiltViewModel()): L
     var texture by remember { mutableStateOf<TextureView?>(null) }
     val callbacks = remember(viewModel) {
         LiveCardCallbacks(
+            onPlay = viewModel::onPlay,
             onRetry = viewModel::onRetry,
             onToggleMute = viewModel::onToggleMute,
             onFullscreen = { viewModel.onFullscreen(true) },
@@ -257,7 +294,7 @@ internal fun rememberLiveCard(viewModel: LiveCardViewModel = hiltViewModel()): L
 
 /**
  * The live card at the top of [device]'s page, for a device the server says has a camera
- * (`is_camera`) only. It plays while it is composed on a started page: leaving the composition
+ * (`is_camera`) only. Once played, it plays while it is composed on a started page: leaving the composition
  * (the page left, or the card scrolled out of a list), the app going to the background and
  * another screen covering the page all stop it, unless its full screen still shows it.
  */

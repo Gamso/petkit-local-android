@@ -243,13 +243,13 @@ class LitterScreenTest {
             .assertContentDescriptionEquals("Live video of Purobot Ultra. Still from ${time(5, 10)}")
             .assert(hasClickAction().not())
         compose.onNodeWithTag(LiveCardTestTags.CARD).performClick()
-        assertEquals("tapping the video does nothing", listOf("live-visible"), calls)
+        assertEquals("the middle of a card waiting for play is play", listOf("live-visible", "live-play"), calls)
 
         compose.onNodeWithContentDescription("Turn sound on").performClick()
         compose.onNodeWithContentDescription("Full screen").performClick()
         compose.onNodeWithTag(TalkTestTags.TALK).performSemanticsAction(SemanticsActions.OnClick)
         // Full screen is in place: no navigation, the page asks its ViewModel.
-        assertEquals(listOf("live-visible", "live-mute", "live-fullscreen", "talk-toggle"), calls)
+        assertEquals(listOf("live-visible", "live-play", "live-mute", "live-fullscreen", "talk-toggle"), calls)
         compose.onNodeWithContentDescription("Settings").assertExists()
     }
 

@@ -118,14 +118,20 @@ class LiveCardViewModelTest {
     }
 
     @Test
-    fun `nothing plays until the card is shown, then it plays on the WebSocket, muted`() = runTest(main.dispatcher) {
+    fun `nothing opens when the card is shown, play opens it on the WebSocket, muted`() = runTest(main.dispatcher) {
         val viewModel = viewModel()
         collect(viewModel)
         advanceUntilIdle()
         assertNull(viewModel.playback.value, "the page opened, the card not shown yet")
         assertEquals(LivePhase.Idle, viewModel.state.value.session.phase)
 
+        // Shown (issue #109): still nothing, no socket and no viewer slot until play.
         viewModel.onVisible()
+        advanceUntilIdle()
+        assertNull(viewModel.playback.value)
+        assertEquals(LivePhase.Idle, viewModel.state.value.session.phase)
+
+        viewModel.onPlay()
         runCurrent()
         assertEquals(LivePlayback(camera, LiveTransport.WebSocket, attempt = 1), viewModel.playback.value)
         assertEquals(LivePhase.Starting, viewModel.state.value.session.phase)
@@ -138,6 +144,7 @@ class LiveCardViewModelTest {
             val viewModel = viewModel()
             collect(viewModel)
             viewModel.onVisible()
+            viewModel.onPlay()
             viewModel.onPlaying(1)
             runCurrent()
             assertEquals(LivePhase.Playing, viewModel.state.value.session.phase)
@@ -147,8 +154,14 @@ class LiveCardViewModelTest {
             assertNull(viewModel.playback.value)
             assertEquals(LivePhase.Idle, viewModel.state.value.session.phase)
 
-            // Shown again: a new attempt, a new player; the old one's late reports change nothing.
+            // Shown again: the still and play, no restart by itself.
             viewModel.onVisible()
+            advanceUntilIdle()
+            assertNull(viewModel.playback.value)
+            assertEquals(LivePhase.Idle, viewModel.state.value.session.phase)
+
+            // Played again: a new attempt, a new player; the old one's late reports change nothing.
+            viewModel.onPlay()
             viewModel.onPlayerFailed(1, LiveFailure.StreamEnded)
             runCurrent()
             assertEquals(LivePlayback(camera, LiveTransport.WebSocket, attempt = 2), viewModel.playback.value)
@@ -159,6 +172,7 @@ class LiveCardViewModelTest {
         val viewModel = viewModel()
         collect(viewModel)
         viewModel.onVisible()
+        viewModel.onPlay()
         viewModel.onPlayerFailed(1, LiveFailure.Network())
         viewModel.onHidden()
         advanceUntilIdle()
@@ -172,6 +186,7 @@ class LiveCardViewModelTest {
         val viewModel = viewModel()
         collect(viewModel)
         viewModel.onVisible()
+        viewModel.onPlay()
         advanceTimeBy(LiveSession.SLOW_START + 1.milliseconds)
         assertTrue(viewModel.state.value.session.startingSlowly)
         assertEquals(LivePhase.Starting, viewModel.state.value.session.phase)
@@ -187,6 +202,7 @@ class LiveCardViewModelTest {
         val viewModel = viewModel()
         collect(viewModel)
         viewModel.onVisible()
+        viewModel.onPlay()
         viewModel.onPlayerFailed(1, LiveFailure.StreamEnded)
         runCurrent()
         assertEquals(LivePhase.Stopped(LiveFailure.StreamEnded), viewModel.state.value.session.phase)
@@ -217,6 +233,7 @@ class LiveCardViewModelTest {
             val viewModel = viewModel()
             collect(viewModel)
             viewModel.onVisible()
+            viewModel.onPlay()
             viewModel.onPlaying(1)
             runCurrent()
 
@@ -250,6 +267,7 @@ class LiveCardViewModelTest {
         runCurrent()
         assertNull(viewModel.playback.value)
         assertEquals(LivePhase.Idle, viewModel.state.value.session.phase)
+        assertFalse(viewModel.state.value.fullscreen, "coming back shows the card, its still and play")
     }
 
     @Test
@@ -327,6 +345,45 @@ class LiveCardViewModelTest {
         viewModel.onSnapshot(null)
         runCurrent()
         assertEquals(SnapshotResult.NoPicture, viewModel.state.value.snapshot)
+    }
+
+    @Test
+    fun `full screen on a card waiting for play starts it, in one tap`() = runTest(main.dispatcher) {
+        val viewModel = viewModel()
+        collect(viewModel)
+        viewModel.onVisible()
+        runCurrent()
+        assertNull(viewModel.playback.value)
+
+        viewModel.onFullscreen(true)
+        runCurrent()
+        assertTrue(viewModel.state.value.fullscreen)
+        assertEquals(LivePlayback(camera, LiveTransport.WebSocket, attempt = 1), viewModel.playback.value)
+    }
+
+    @Test
+    fun `Talk on a card waiting for play talks, and starts the video to see who hears`() = runTest(main.dispatcher) {
+        val viewModel = viewModel()
+        collect(viewModel)
+        viewModel.onVisible()
+        runCurrent()
+
+        viewModel.onTalkPressed()
+        runCurrent()
+        assertEquals(TalkPhase.Connecting, viewModel.state.value.talk.phase)
+        assertEquals(LivePlayback(camera, LiveTransport.WebSocket, attempt = 1), viewModel.playback.value)
+    }
+
+    @Test
+    fun `play on a card nobody shows waits until it is shown`() = runTest(main.dispatcher) {
+        val viewModel = viewModel()
+        collect(viewModel)
+        viewModel.onPlay()
+        runCurrent()
+        assertNull(viewModel.playback.value)
+        viewModel.onVisible()
+        runCurrent()
+        assertEquals(LivePlayback(camera, LiveTransport.WebSocket, attempt = 1), viewModel.playback.value)
     }
 
     private class FakeSnapshots : SnapshotRepository {

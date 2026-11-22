@@ -1,6 +1,9 @@
 package org.petkitlocal.core.ui
 
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
@@ -46,6 +49,7 @@ class LiveCardTest {
     private val today = LocalDate.of(2026, 11, 15)
     private val calls = mutableListOf<String>()
     private val callbacks = LiveCardCallbacks(
+        onPlay = { calls += "play" },
         onRetry = { calls += "retry" },
         onToggleMute = { calls += "mute" },
         onFullscreen = { calls += "fullscreen" },
@@ -87,7 +91,8 @@ class LiveCardTest {
 
     @Test
     fun `the card names the device and when its still was taken, and tapping the video does nothing`() {
-        show()
+        // Asked for and opening: the still stays under its status, with no play button.
+        show(session = LiveSession(phase = LivePhase.Starting, attempt = 1))
 
         // The locale's own time format puts a narrow space before AM.
         card.assertContentDescriptionEquals("Live video of Purobot Ultra. Still from 4:02 AM")
@@ -240,5 +245,32 @@ class LiveCardTest {
             }
         }
         compose.onNodeWithText("Snapshot saved in your pictures.").assertIsDisplayed()
+    }
+
+    @Test
+    fun `waiting for play, the still has a play button in its middle, which plays`() {
+        show()
+
+        compose.onNodeWithTag(LiveCardTestTags.STILL).assertExists()
+        compose.onNodeWithTag(LiveVideoTestTags.STATUS).assertDoesNotExist()
+        compose.onNodeWithContentDescription("Play the live video")
+            .assertIsDisplayed()
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
+            .performClick()
+        assertEquals(listOf("play"), calls)
+    }
+
+    @Test
+    fun `once asked for, the play button gives way to what the video does`() {
+        show(session = session(LivePhase.Starting))
+        compose.onNodeWithTag(LiveCardTestTags.PLAY).assertDoesNotExist()
+        compose.onNodeWithText("Connecting…").assertIsDisplayed()
+    }
+
+    @Test
+    @Config(qualifiers = "fr")
+    fun `in French, play is Lire la video en direct`() {
+        show()
+        compose.onNodeWithContentDescription("Lire la vidéo en direct").assertIsDisplayed()
     }
 }

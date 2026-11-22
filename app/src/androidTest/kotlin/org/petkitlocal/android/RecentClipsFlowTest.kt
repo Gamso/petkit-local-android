@@ -81,9 +81,10 @@ class RecentClipsFlowTest {
     }
 
     @Test
-    fun aClipOpenedFromACameraPageStopsItsLiveVideoUntilItIsClosed() {
+    fun aClipOpenedFromACameraPageStopsItsLiveVideo() {
         signIn()
         openDevice(PUROBOT)
+        compose.onNodeWithTag(LiveCardTestTags.PLAY).performClick()
         waitFor(hasTestTag(LiveTestTags.BADGE))
         waitUntil("one live socket") { mockCount("live_sockets") == 1 }
 
@@ -96,9 +97,10 @@ class RecentClipsFlowTest {
         waitUntil("no live socket while the clip plays") { mockCount("live_sockets") == 0 }
 
         compose.onNodeWithContentDescription("Close").performClick()
+        // Back on the page: the still and play again (issue #109), nothing reopened by itself.
         compose.onNodeWithTag(PageTestTags.LIST).performScrollToNode(hasTestTag(LiveCardTestTags.CARD))
-        waitFor(hasTestTag(LiveTestTags.BADGE))
-        waitUntil("the live socket again") { mockCount("live_sockets") == 1 }
+        waitFor(hasTestTag(LiveCardTestTags.PLAY))
+        check(mockCount("live_sockets") == 0) { "the card reopened its video by itself" }
     }
 
     /** Any clip of the recent clips row. */
