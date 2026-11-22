@@ -45,6 +45,10 @@ import org.robolectric.annotation.GraphicsMode
 // Phone size, the top of the page. SDK 36: Robolectric's SDK 37 graphics capture some images blank.
 @Config(qualifiers = "w360dp-h640dp-xhdpi", sdk = [36])
 class LitterLiveScreenshotTest(private val variant: ScreenshotVariant) {
+    /** The page opened (issue #109): the still and play, nothing connected yet. */
+    @Test
+    fun idle() = screen("litter_live_idle", LiveSession())
+
     @Test
     fun loading() = screen("litter_live_loading", session(LivePhase.Starting))
 

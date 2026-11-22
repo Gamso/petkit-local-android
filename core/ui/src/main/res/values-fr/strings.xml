@@ -17,6 +17,7 @@
     <string name="live_card_still_on_day">Image du %1$s, %2$s</string>
     <string name="live_card_description">Vidéo en direct de %1$s</string>
     <string name="live_card_description_still">Vidéo en direct de %1$s. %2$s</string>
+    <string name="live_card_play">Lire la vidéo en direct</string>
 
     <string name="live_badge">Direct</string>
     <string name="live_hls">HLS</string>

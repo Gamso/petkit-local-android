@@ -175,10 +175,14 @@ screen).
   desiccant due, the bin full...) shows as its pill under the status line, opening its dialog; a
   part that is fine shows nothing. The pills' actions are in the action sheet, and the counter
   resets also in the settings' consumables; a box's Pura Air has its own button.
-  - it starts when the page is shown and stops, releasing its viewer slot, when the card leaves
-    the screen, the app goes to the background or another screen covers the page: a stream must
-    not run while nobody looks (a D4SH's camera is reached through a relay holding the device's
-    only connection);
+  - nothing connects when the page is shown (issue #109): the card shows the latest still with
+    a play button in its middle, and no socket or viewer slot is taken until play. Full screen
+    and Talk on a card waiting for play start it too, in one tap (both mean watching; Talk still
+    says why when the camera cannot talk). Once played, it stops, releasing its viewer slot, when
+    the card leaves the screen, the app goes to the background or another screen covers the
+    page, and coming back shows the still and play again, never restarting by itself: a stream
+    must not run while nobody looks (a D4SH's camera is reached through a relay holding the
+    device's only connection);
   - until the first frame, the latest still the camera produced (the thumbnail of its newest
     timeline media) with when it was taken, and a busy indicator; a start still going after 8 s
     says the camera is waking up (a D4SH's first open takes up to ~30 s), never an error;

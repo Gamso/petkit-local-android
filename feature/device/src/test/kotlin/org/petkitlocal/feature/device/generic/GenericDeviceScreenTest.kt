@@ -120,9 +120,9 @@ class GenericDeviceScreenTest {
         show(DeviceFixtures.generic(), live = DeviceFixtures.liveCardUi(DeviceFixtures.liveCard, calls))
 
         compose.onNodeWithTag(LiveCardTestTags.CARD).assertIsDisplayed().performClick()
-        assertEquals("tapping the video does nothing", listOf("live-visible"), calls)
+        assertEquals("the middle of a card waiting for play is play", listOf("live-visible", "live-play"), calls)
         compose.onNodeWithContentDescription("Full screen").performClick()
-        assertEquals(listOf("live-visible", "live-fullscreen"), calls)
+        assertEquals(listOf("live-visible", "live-play", "live-fullscreen"), calls)
     }
 
     @Test

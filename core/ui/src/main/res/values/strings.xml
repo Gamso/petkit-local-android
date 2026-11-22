@@ -27,6 +27,8 @@
     <string name="live_card_description">Live video of %1$s</string>
     <!-- %2$s is when the still was taken, as the card writes it ("Still from 14:32"). -->
     <string name="live_card_description_still">Live video of %1$s. %2$s</string>
+    <!-- The button in the middle of the card: nothing plays until it is pressed. -->
+    <string name="live_card_play">Play the live video</string>
 
     <!-- Over a camera's live picture, on its page and on the live video screen. -->
     <!-- The badge while frames are shown. -->

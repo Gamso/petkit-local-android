@@ -32,8 +32,8 @@ import org.petkitlocal.feature.live.LiveTestTags
 
 /**
  * Live video end to end, against the mock's test pattern: the live card at the top of a camera's
- * page plays its live video in place, and stops when the page is left or the app goes to the
- * background; its full-screen button puts the same player in the whole window, on the same
+ * page opens nothing until play (issue #109), then plays its live video in place, and stops when
+ * the page is left or the app goes to the background, coming back to the still and play; its full-screen button puts the same player in the whole window, on the same
  * socket; the socket closing with 1013 (the phone read too slowly) moves it to HLS by itself; and
  * every test leaves no socket open, which the mock counts (`GET /mock`: `live_sockets`,
  * `hls_views`).
@@ -49,12 +49,17 @@ class LiveFlowTest {
     val compose = createAndroidComposeRule<MainActivity>()
 
     @Test
-    fun theCameraPagePlaysItsLiveVideoInPlaceUntilThePageIsLeft() {
+    fun theCameraPageOpensNothingUntilPlayThenPlaysInPlaceUntilLeft() {
         signIn()
         openDevice(PUROBOT)
-        // The card plays by itself: its badge shows once the first frame did.
-        waitFor(hasTestTag(LiveVideoTestTags.BADGE) and hasAnyAncestor(hasTestTag(LiveCardTestTags.CARD)))
+        // The page shows the still and play (issue #109): no socket, no viewer slot.
+        waitFor(hasTestTag(LiveCardTestTags.PLAY))
+        assertNoSocketFor("the page opened")
+
+        play()
+        waitFor(cardBadge)
         waitUntil("one live socket") { mockCount("live_sockets") == 1 }
+        check(mockCount("live_sockets") == 1) { "play opened more than one viewer" }
 
         // Tapping the video stays on the page.
         compose.onNodeWithTag(LiveCardTestTags.CARD).performClick()
@@ -64,15 +69,34 @@ class LiveFlowTest {
     }
 
     @Test
-    fun theCameraPageStopsItsLiveVideoInTheBackground() {
+    fun backAndReturnShowTheStillAndPlayAgain() {
         signIn()
         openDevice(PUROBOT)
+        play()
+        waitUntil("one live socket") { mockCount("live_sockets") == 1 }
+        leaveToHome()
+
+        openDevice(PUROBOT)
+        waitFor(hasTestTag(LiveCardTestTags.PLAY))
+        assertNoSocketFor("the page came back")
+    }
+
+    @Test
+    fun theCameraPageStopsItsLiveVideoInTheBackgroundAndWaitsForPlay() {
+        signIn()
+        openDevice(PUROBOT)
+        play()
         waitUntil("one live socket") { mockCount("live_sockets") == 1 }
 
         compose.activityRule.scenario.moveToState(Lifecycle.State.CREATED)
         waitUntil("no live socket in the background") { mockCount("live_sockets") == 0 }
 
+        // Back from the background: the still and play, no restart by itself.
         compose.activityRule.scenario.moveToState(Lifecycle.State.RESUMED)
+        waitFor(hasTestTag(LiveCardTestTags.PLAY))
+        assertNoSocketFor("the app came back")
+
+        play()
         waitFor(cardBadge)
         waitUntil("one live socket again") { mockCount("live_sockets") == 1 }
 
@@ -80,21 +104,22 @@ class LiveFlowTest {
     }
 
     @Test
-    fun fullScreenIsTheSamePlayerInPlaceWithoutASecondViewer() {
+    fun fullScreenOnAnIdleCardPlaysInPlaceWithOneViewer() {
         signIn()
         openDevice(PUROBOT)
-        waitFor(cardBadge)
-        waitUntil("the page's live socket") { mockCount("live_sockets") == 1 }
+        waitFor(hasTestTag(LiveCardTestTags.PLAY))
+        assertNoSocketFor("the page opened")
 
+        // One tap: full screen starts the video too, on one socket, on the same page.
         compose.onNodeWithTag(LiveCardTestTags.FULLSCREEN).performClick()
         waitFor(hasTestTag(LiveCardTestTags.FULLSCREEN_VIEW))
         waitFor(hasTestTag(LiveVideoTestTags.BADGE) and hasAnyAncestor(hasTestTag(LiveCardTestTags.FULLSCREEN_VIEW)))
-        // Still on the camera's page, on the same socket: no navigation, no new viewer.
         compose.onNodeWithTag(LiveTestTags.SCREEN).assertDoesNotExist()
+        waitUntil("one live socket") { mockCount("live_sockets") == 1 }
         check(mockCount("live_sockets") == 1) { "full screen opened another viewer" }
         compose.onNodeWithContentDescription("Save a snapshot").assertExists()
 
-        // Back leaves full screen, not the page.
+        // Back leaves full screen, not the page, and the card plays on.
         compose.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
         compose.waitUntilDoesNotExist(hasTestTag(LiveCardTestTags.FULLSCREEN_VIEW), TIMEOUT_MS)
         waitFor(cardBadge)
@@ -107,6 +132,7 @@ class LiveFlowTest {
     fun closeCode1013FallsBackToHls() {
         signIn()
         openDevice(PUROBOT)
+        play()
         // Playing over the WebSocket first.
         waitFor(cardBadge)
         waitUntil("one live socket") { mockCount("live_sockets") == 1 }
@@ -124,6 +150,20 @@ class LiveFlowTest {
         // An HLS view has no connection to close: it lapses once nothing asks for it (5 s).
         waitUntil("the HLS view lapsed") { mockCount("hls_views") == 0 }
         waitUntil("no live socket") { mockCount("live_sockets") == 0 }
+    }
+
+    /** Play, in the middle of the card. */
+    private fun play() {
+        waitFor(hasTestTag(LiveCardTestTags.PLAY))
+        compose.onNodeWithTag(LiveCardTestTags.PLAY).performClick()
+    }
+
+    /** No socket opens by itself: still none a few seconds after [what]. */
+    private fun assertNoSocketFor(what: String) {
+        repeat(NO_SOCKET_CHECKS) {
+            check(mockCount("live_sockets") == 0 && mockCount("hls_views") == 0) { "a live view opened when $what" }
+            Thread.sleep(NO_SOCKET_INTERVAL_MS)
+        }
     }
 
     /** The live badge on the page's card: it is playing. */
@@ -176,6 +216,8 @@ class LiveFlowTest {
         /** The mock's T5, a camera. */
         const val PUROBOT = 1003L
         const val TIMEOUT_MS = 30_000L
+        const val NO_SOCKET_CHECKS = 6
+        const val NO_SOCKET_INTERVAL_MS = 500L
         const val MS = 1000
     }
 }
