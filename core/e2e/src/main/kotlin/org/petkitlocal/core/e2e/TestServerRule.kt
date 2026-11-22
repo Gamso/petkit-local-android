@@ -19,10 +19,14 @@ import org.junit.runners.model.Statement
  *   and the flows see the screens as a user who allowed it does;
  * - resets the server ([TestServer.reset]), so every test starts with no session and the
  *   configured password, and on the mock from the seeded household, whatever the test before
- *   it changed.
+ *   it changed;
+ * - then signs the app out on the phone ([AppUnderTest]), which forgets its pinned certificate
+ *   and its cached data with the session: each test starts on sign-in from a clean state, even
+ *   after a test that left the app unable to hear from the server that its session ended.
  *
  * A server that cannot be reached fails the test at once, saying how to start it, rather than
- * leaving each call to time out on its own.
+ * leaving each call to time out on its own; so does an app that cannot be signed out, rather than
+ * leaving the test to wait for a sign-in screen that will not come.
  *
  * ```
  * @get:Rule val server = TestServerRule()
@@ -49,6 +53,8 @@ class TestServerRule : TestRule {
                     e,
                 )
             }
+            // After the reset, so a server that cannot be reached is reported as such first.
+            AppUnderTest.installed?.signOut()
             base.evaluate()
         }
     }

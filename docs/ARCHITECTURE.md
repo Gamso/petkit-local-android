@@ -206,6 +206,9 @@ the cheapest kind able to see it.
 Rules:
 - No test reaches the internet; the only server is MockWebServer or the local container.
 - Fakes, not mocks, for repositories (`core:testing`), so ViewModel tests read like the app.
+- Each end-to-end test starts from a reset server and a signed-out app (`TestServerRule`, which
+  signs the app out through its own sign-out): the tests share one app process, so no test may
+  rely on the one before it having ended, or on the server alone to end the app's session.
 - Coverage targets: domain 90 %, data 80 %, ViewModels 80 %, measured with Kover and reported on
   each pull request (not a gate at first).
 

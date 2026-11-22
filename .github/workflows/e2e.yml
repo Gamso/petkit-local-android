@@ -122,9 +122,20 @@ jobs:
           # ("cache write denied: token has no writable scopes" on a pull request), and the
           # build itself had succeeded.
           cache-to: type=gha,mode=max,ignore-error=true
+      # `--wait` returns once the healthcheck (GET /app/v1/info on 8097) passes, and fails the
+      # job if it does not within the timeout; the HTTPS port has no healthcheck of its own, so
+      # both are asked once more here. A mock that cannot be reached is then a one-line error
+      # before the suite, not 47 tests timing out one by one.
       - name: Start the mock server
-        run: docker compose -f e2e/docker-compose.yml up --detach --wait
+        run: |
+          docker compose -f e2e/docker-compose.yml up --detach --wait --wait-timeout 120
+          curl --fail --silent --show-error --max-time 5 http://127.0.0.1:8097/app/v1/info
+          curl --fail --silent --show-error --max-time 5 --insecure https://127.0.0.1:8443/app/v1/info
 
+      # Every test starts signed out on the phone (core:e2e TestServerRule): the tests share the
+      # app's process, and one that left the app signed in where it could not hear that its
+      # session ended once failed every test after it (issue #111). A test that cannot sign the
+      # app out fails at once, saying so.
       - name: Instrumented tests on ${{ matrix.device.name }}
         run: >-
           scripts/gradle-ci.sh :app:${{ matrix.device.name }}DebugAndroidTest
@@ -154,7 +165,8 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: e2e-reports-${{ matrix.device.name }}
-          # Test results include the device's logcat for each test.
+          # Test results include the device's logcat for each test (logcat-<class>-<test>.txt),
+          # and build/e2e the mock's log: together they show what the app and the server did.
           path: |
             app/build/reports/androidTests/managedDevice/
             app/build/outputs/androidTest-results/managedDevice/

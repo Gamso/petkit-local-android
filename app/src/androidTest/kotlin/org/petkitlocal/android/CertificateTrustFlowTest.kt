@@ -47,8 +47,12 @@ import org.petkitlocal.feature.settings.SettingsTestTags
  * certificate is refused and asked about again; one for another host is refused with nothing to
  * trust.
  *
- * Each test starts on sign-in with no pin: a session the server ended (TestServerRule resets the
- * mock) takes its pin with it.
+ * Each test starts on sign-in with no pin, because TestServerRule signs the app out, and the pin
+ * goes with the session. The mock's reset alone did not: after the renewed certificate was
+ * trusted, the reset put the mock back on its first one, which the pin then refused, so the app
+ * never heard that its session had ended. Only a race let it hear the 4401 the reset sends down
+ * the sockets before the mock cut their TLS connections; once it lost, the app stayed on Home under
+ * the changed-certificate question and every later test waited for sign-in in vain (issue #111).
  */
 @MockOnly("the mock's HTTPS port and its certificates, switched through the control API")
 @OptIn(ExperimentalTestApi::class) // waitUntil...Exists
