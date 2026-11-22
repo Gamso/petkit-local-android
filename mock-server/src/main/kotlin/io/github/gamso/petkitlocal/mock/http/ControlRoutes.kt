@@ -107,6 +107,7 @@ private val CONTROL_ROUTES =
         "PUT    /mock/devices/{id}/talk               {talk}  available | needs_patcher | device_unreachable | unsupported",
         "PUT    /mock/devices/{id}/supports-ai        {supports_ai}  true | false  (not an accessory)",
         "PUT    /mock/devices/{id}/transport          {transport}  mqtt | http  (a device, not an accessory; its accessories follow)",
+        "PUT    /mock/devices/{id}/ble-secret         {secret: 16 hex | null}  a CTW3's pairing secret; null = none held",
         "POST   /mock/clock/advance                   {seconds}",
         "GET    /mock/sessions",
         "DELETE /mock/sessions/{id}                   revoke one (its sockets close 4401)",
@@ -176,6 +177,7 @@ fun Route.controlRoutes(
             )
         }
         deviceControl(world)
+        accessoryControl(world)
         sessionControl(world)
         harnessControl(world, scenario)
         tlsControl(world)
@@ -206,6 +208,22 @@ private fun Route.tlsControl(world: World) {
                 ?: throw ApiException(400, "bad_request", "certificate is one of ${MockTls.Certificate.entries.map { it.key }}")
         tls.use(which)
         call.ok(describe(tls))
+    }
+}
+
+/** An accessory's pairing secret, as petkit-local holds it or not (`BleSync`, petkit-local#141). */
+private fun Route.accessoryControl(world: World) {
+    route("/devices/{id}") {
+        put("/ble-secret") {
+            val device = world.controlDevice(call)
+            if (!device.isAccessory) throw ApiException(400, "bad_request", "only a Bluetooth accessory has a pairing secret")
+            val body = call.jsonBody()
+            if ("secret" !in body) throw ApiException(400, "bad_request", "send {\"secret\": \"<16 hex>\" | null}")
+            val secret = body.str("secret")
+            if (secret == null && body["secret"] !is JsonNull) throw ApiException(400, "bad_request", "secret is a string or null")
+            synchronized(world.lock) { device.bleSecret = secret }
+            call.ok()
+        }
     }
 }
 

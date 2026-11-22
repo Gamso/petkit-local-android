@@ -2,11 +2,13 @@ package io.github.gamso.petkitlocal.mock.http
 
 import io.github.gamso.petkitlocal.mock.api.ActionResult
 import io.github.gamso.petkitlocal.mock.api.ApiException
+import io.github.gamso.petkitlocal.mock.api.BleSync
 import io.github.gamso.petkitlocal.mock.api.ChangePasswordResponse
 import io.github.gamso.petkitlocal.mock.api.DeferredFeedDto
 import io.github.gamso.petkitlocal.mock.api.DeferredFeedResult
 import io.github.gamso.petkitlocal.mock.api.DeviceDetail
 import io.github.gamso.petkitlocal.mock.api.DeviceSummary
+import io.github.gamso.petkitlocal.mock.api.DrinkUploadResult
 import io.github.gamso.petkitlocal.mock.api.EntityWriteResult
 import io.github.gamso.petkitlocal.mock.api.EventDetail
 import io.github.gamso.petkitlocal.mock.api.FeedingPlanDto
@@ -26,9 +28,11 @@ import io.github.gamso.petkitlocal.mock.state.PasswordRejected
 import io.github.gamso.petkitlocal.mock.state.Timeline
 import io.github.gamso.petkitlocal.mock.state.World
 import io.github.gamso.petkitlocal.mock.state.addDeferredFeed
+import io.github.gamso.petkitlocal.mock.state.bleSync
 import io.github.gamso.petkitlocal.mock.state.deleteDeferredFeed
 import io.github.gamso.petkitlocal.mock.state.runAction
 import io.github.gamso.petkitlocal.mock.state.setEntity
+import io.github.gamso.petkitlocal.mock.state.uploadDrinks
 import io.github.gamso.petkitlocal.mock.state.writePlan
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
@@ -152,6 +156,7 @@ fun Route.apiRoutes(world: World) {
         metaRoutes(world)
         authRoutes(world)
         deviceRoutes(world)
+        accessoryRoutes(world)
         feedingRoutes(world)
         liveVideoRoutes(world)
         talkRoutes(world)
@@ -281,6 +286,27 @@ private fun Route.deviceRoutes(world: World) {
         val value = body["value"] ?: throw ApiException(400, "bad_request", "send {\"value\": ...}")
         val (delivered, entity) = synchronized(world.lock) { world.setEntity(device, def, value) }
         call.respondJson(EntityWriteResult.serializer(), EntityWriteResult(delivered = delivered, entity = entity))
+    }
+}
+
+/** A CTW3's drink history, synced by the phone over its own Bluetooth (petkit-local#141). */
+private fun Route.accessoryRoutes(world: World) {
+    fun World.accessoryOr404(call: ApplicationCall): MockDevice {
+        val id = call.pathInt("id", "accessory")
+        return synchronized(lock) { devices[id]?.takeIf { it.isAccessory } }
+            ?: throw ApiException(404, "accessory_not_found", "no Bluetooth accessory has this id")
+    }
+    get("/accessories/{id}/ble-sync") {
+        val device = world.accessoryOr404(call)
+        val sync = synchronized(world.lock) { world.bleSync(device) }
+        call.response.header(HttpHeaders.CacheControl, "no-store")
+        call.respondJson(BleSync.serializer(), sync)
+    }
+    post("/accessories/{id}/drinks") {
+        val device = world.accessoryOr404(call)
+        val body = call.jsonBody()
+        val result = synchronized(world.lock) { world.uploadDrinks(device, body) }
+        call.respondJson(DrinkUploadResult.serializer(), result)
     }
 }
 

@@ -60,6 +60,18 @@ class MockDevice(
     /** The device relaying this accessory; null for a WiFi device or an unlinked accessory. */
     var parent: MockDevice? = null
 
+    /** An accessory's Bluetooth address, `AA:BB:CC:DD:EE:FF` (`BleSync.mac`); null for a WiFi device. */
+    var bleMac: String? = null
+
+    /**
+     * A CTW3's pairing secret, 16 hex digits, as petkit-local holds it once imported from PetKit;
+     * null while it holds none (`409 secret_unknown`).
+     */
+    var bleSecret: String? = null
+
+    /** The `work_time` of every drink record uploaded for this accessory: a record's identity. */
+    val drinkRecords: MutableMap<Long, Double> = mutableMapOf()
+
     /**
      * Which generation of its codename this is, as the owner set it in petkit-local's panel or as
      * learned there; null while unknown. Only a generation the server names is reported.

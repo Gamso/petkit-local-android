@@ -122,6 +122,15 @@ the commit recorded in `api/SOURCE`.
     `on_battery` (after the relay check, as petkit-local orders them) and nothing is stored; Pause
     (`ctw3_working`) and the battery times (`ctw3_energy_interval` 15–300 s, `ctw3_sleep_time`
     60–10800 s) are still written. Picking a mode also powers the fountain on and un-pauses it.
+  - A CTW3's drink history, synced by the phone over its own Bluetooth (petkit-local#141):
+    `GET /accessories/{id}/ble-sync` gives its address (`A4:C1:38:00:0B:BB`), its pairing secret
+    (`0000a1b2c3d4e5f6`) and the newest record held (`Cache-Control: no-store`); any other
+    accessory answers `sync_supported: false`, a WiFi device 404. With no secret held, 409
+    `secret_unknown`; one that is not 16 hex digits, 409 `secret_invalid`. `POST
+    /accessories/{id}/drinks` stores each plausible record not held yet as a drinking card on the
+    accessory, timed by its stay and sent on `/ws`; a record held is a duplicate, an implausible
+    one (out of its width, a negative stay, before 2020 or over a day ahead) skipped; 413 over
+    5000 records.
 - **Feeding:** plan read, write and pause; one-off feeds with `invalid_schedule` / `invalid_feed`.
   Due meals and one-off feeds are served at their time.
 - **Timeline**
@@ -302,6 +311,7 @@ Under `/mock`, no authentication, JSON in and out. It is meant for the app's end
 | `PUT /mock/devices/{id}/talk` | `talk`: `available`, `needs_patcher`, `device_unreachable` or `unsupported` | Sets whether the device can be talked through, with a `device` message. |
 | `PUT /mock/devices/{id}/supports-ai` | `supports_ai`: boolean | Sets whether the device recognises pets, with a `device` message. 400 for an accessory (always false). |
 | `PUT /mock/devices/{id}/transport` | `transport`: `mqtt` or `http` | Moves a device (not an accessory) to that transport, with `device` messages for it and the accessories it relays: an accessory is written only through a parent on MQTT. Back online after `offline`, a device returns to its seeded transport. |
+| `PUT /mock/devices/{id}/ble-secret` | `secret`: 16 hex digits, or `null` | The pairing secret petkit-local holds for a Bluetooth accessory; `null` holds none, so the CTW3's `ble-sync` answers 409 `secret_unknown`. A reset gives it back. 400 for a WiFi device. |
 | `PUT /mock/devices/{id}/state` | `{"<value_path>": value, ...}` | Sets raw state behind any entity, for example `{"consumables.liquid": 5}`. |
 | `POST /mock/clock/advance` | `seconds` | Moves the fake clock forward, for session expiry and lockouts. |
 | `GET /mock/sessions` | | Live sessions, with the notification `kinds` each chose. |

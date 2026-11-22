@@ -20,6 +20,7 @@ import org.petkitlocal.core.network.dto.AccessoryRefDto
 import org.petkitlocal.core.network.dto.ActionDto
 import org.petkitlocal.core.network.dto.ActionRequestDto
 import org.petkitlocal.core.network.dto.ActionResultDto
+import org.petkitlocal.core.network.dto.BleSyncDto
 import org.petkitlocal.core.network.dto.ChangePasswordRequestDto
 import org.petkitlocal.core.network.dto.ChangePasswordResponseDto
 import org.petkitlocal.core.network.dto.DeferredFeedDto
@@ -30,6 +31,9 @@ import org.petkitlocal.core.network.dto.DeviceConnection
 import org.petkitlocal.core.network.dto.DeviceDetailDto
 import org.petkitlocal.core.network.dto.DeviceKind
 import org.petkitlocal.core.network.dto.DeviceSummaryDto
+import org.petkitlocal.core.network.dto.DrinkRecordUploadDto
+import org.petkitlocal.core.network.dto.DrinkUploadRequestDto
+import org.petkitlocal.core.network.dto.DrinkUploadResultDto
 import org.petkitlocal.core.network.dto.DeviceTalk
 import org.petkitlocal.core.network.dto.DeviceTransport
 import org.petkitlocal.core.network.dto.EntityCategory
@@ -105,6 +109,10 @@ class SchemaContractTest {
         "ActionRequest" to ActionRequestDto.serializer(),
         "WriteResult" to WriteResultDto.serializer(),
         "ActionResult" to ActionResultDto.serializer(),
+        "BleSync" to BleSyncDto.serializer(),
+        "DrinkUploadRequest" to DrinkUploadRequestDto.serializer(),
+        "DrinkRecordUpload" to DrinkRecordUploadDto.serializer(),
+        "DrinkUploadResult" to DrinkUploadResultDto.serializer(),
         "EntityWriteRequest" to EntityWriteRequestDto.serializer(),
         "EntityWriteResult" to EntityWriteResultDto.serializer(),
         "EntityChange" to EntityChangeDto.serializer(),

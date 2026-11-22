@@ -182,6 +182,27 @@ data class ActionResult(
     val delivered: String,
 )
 
+/** `BleSync`: what the phone needs to sync a CTW3's drink history over its own Bluetooth. */
+@Serializable
+data class BleSync(
+    val id: Int,
+    val type: String,
+    val mac: String,
+    @SerialName("sync_supported") val syncSupported: Boolean,
+    val secret: String?,
+    @SerialName("history_cursor") val historyCursor: Long?,
+    @SerialName("clock_epoch") val clockEpoch: Long,
+)
+
+/** `DrinkUploadResult`. */
+@Serializable
+data class DrinkUploadResult(
+    val stored: Int,
+    val duplicates: Int,
+    val skipped: Int,
+    val cursor: Long?,
+)
+
 @Serializable
 data class WriteResult(
     val ok: Boolean = true,
