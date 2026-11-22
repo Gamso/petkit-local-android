@@ -69,7 +69,9 @@ class DrinkSyncFlowTest {
         } else {
             listOf(Manifest.permission.ACCESS_FINE_LOCATION)
         }
-        permissions.forEach { instrumentation.uiAutomation.grantRuntimePermission(instrumentation.targetContext.packageName, it) }
+        permissions.forEach {
+            instrumentation.uiAutomation.grantRuntimePermission(instrumentation.targetContext.packageName, it)
+        }
     }
 
     @After
@@ -132,7 +134,10 @@ class DrinkSyncFlowTest {
 
         button().performClick()
 
-        waitFor(hasTestTag(FountainTestTags.DRINK_SYNC_STATUS) and hasText("petkit-local has no pairing key for this fountain."))
+        waitFor(
+            hasTestTag(FountainTestTags.DRINK_SYNC_STATUS) and
+                hasText("petkit-local has no pairing key for this fountain."),
+        )
         waitFor(hasTestTag(FountainTestTags.DRINK_SYNC_STATUS) and hasText("Import from PetKit", substring = true))
         assertEquals(emptyList<String>(), fountain.connectedTo)
     }
@@ -182,7 +187,8 @@ class DrinkSyncFlowTest {
 
         /** The mock's CTW3 (mock-server Seed): its address and its pairing secret's bytes. */
         const val MAC = "A4:C1:38:00:0B:BB"
-        val SECRET = byteArrayOf(0, 0, 0xA1.toByte(), 0xB2.toByte(), 0xC3.toByte(), 0xD4.toByte(), 0xE5.toByte(), 0xF6.toByte())
+        val SECRET =
+            byteArrayOf(0, 0, 0xA1.toByte(), 0xB2.toByte(), 0xC3.toByte(), 0xD4.toByte(), 0xE5.toByte(), 0xF6.toByte())
 
         const val CLOCK_EPOCH = 946_684_800L
         const val MS_PER_S = 1000L

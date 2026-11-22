@@ -43,7 +43,14 @@ class Ctw3SessionTest {
         // 00, seconds since 2000 (UTC), Paris's +1 h + 12.
         val seconds = Instant.parse("2026-11-15T09:00:00Z").epochSecond - Ctw3Payloads.CLOCK_EPOCH
         assertArrayEquals(
-            byteArrayOf(0, (seconds shr 24).toByte(), (seconds shr 16).toByte(), (seconds shr 8).toByte(), seconds.toByte(), 13),
+            byteArrayOf(
+                0,
+                (seconds shr 24).toByte(),
+                (seconds shr 16).toByte(),
+                (seconds shr 8).toByte(),
+                seconds.toByte(),
+                13,
+            ),
             requests.single { it.cmd == 84 }.data,
         )
         assertArrayEquals(byteArrayOf(0, 0, 0, 32, 0, 0, 0, 247.toByte()), requests.single { it.cmd == 80 }.data)
@@ -96,10 +103,20 @@ class Ctw3SessionTest {
     @Test
     fun `a refused clock and a refused stream each say so`() = runTest {
         val clockRefused = ScriptedFountain(replies = mapOf(84 to byteArrayOf(2)))
-        assertEquals(FountainLinkFailure.ClockRefused, assertThrows<BleLinkException> { session(clockRefused).run {} }.failure)
+        assertEquals(
+            FountainLinkFailure.ClockRefused,
+            assertThrows<BleLinkException> {
+                session(clockRefused).run {}
+            }.failure,
+        )
 
         val streamRefused = ScriptedFountain(records = listOf(first), replies = mapOf(80 to byteArrayOf(0)))
-        assertEquals(FountainLinkFailure.StreamRefused, assertThrows<BleLinkException> { session(streamRefused).run {} }.failure)
+        assertEquals(
+            FountainLinkFailure.StreamRefused,
+            assertThrows<BleLinkException> {
+                session(streamRefused).run {}
+            }.failure,
+        )
     }
 
     @Test

@@ -112,22 +112,44 @@ class AndroidBleTransport @Inject constructor(@ApplicationContext private val co
 
     /** Connects, once more after Android's common first-try failure (status 133). */
     private suspend fun open(device: BluetoothDevice): BleLink {
-        var last: BleLinkException? = null
+        var last = BleLinkException(FountainLinkFailure.ConnectionLost, "no connection")
         repeat(CONNECT_ATTEMPTS) {
-            val link = AndroidBleLink(context, device)
-            try {
-                withTimeoutOrNull(CONNECT_TIMEOUT_MS) { link.open() }
-                    ?: throw BleLinkException(FountainLinkFailure.NotFound, "no connection within ${CONNECT_TIMEOUT_MS / MS_PER_S} s")
-                return link
-            } catch (e: BleLinkException) {
-                link.close()
-                last = e
-            } catch (e: Throwable) {
-                link.close()
-                throw e
+            when (val attempt = attempt(device)) {
+                is Attempt.Open -> return attempt.link
+                is Attempt.Failed -> last = attempt.failure
             }
         }
-        throw last ?: BleLinkException(FountainLinkFailure.ConnectionLost, "no connection")
+        throw last
+    }
+
+    private sealed interface Attempt {
+        class Open(val link: BleLink) : Attempt
+
+        class Failed(val failure: BleLinkException) : Attempt
+    }
+
+    /** One connection attempt; a link that did not open is closed, whatever stopped it (cancellation too). */
+    private suspend fun attempt(device: BluetoothDevice): Attempt {
+        val link = AndroidBleLink(context, device)
+        var opened = false
+        return try {
+            val ready = withTimeoutOrNull(CONNECT_TIMEOUT_MS) { link.open() } != null
+            opened = ready
+            if (ready) {
+                Attempt.Open(link)
+            } else {
+                Attempt.Failed(
+                    BleLinkException(
+                        FountainLinkFailure.NotFound,
+                        "no connection within ${CONNECT_TIMEOUT_MS / MS_PER_S} s",
+                    ),
+                )
+            }
+        } catch (e: BleLinkException) {
+            Attempt.Failed(e)
+        } finally {
+            if (!opened) link.close()
+        }
     }
 
     private companion object {
@@ -201,7 +223,11 @@ private class AndroidBleLink(private val context: Context, private val device: B
         @Deprecated("Called below Android 13 only")
         @Suppress("DEPRECATION")
         override fun onCharacteristicChanged(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic) {
-            if (characteristic.uuid == PetkitGatt.NOTIFY) characteristic.value?.let { notifications.trySend(it.copyOf()) }
+            if (characteristic.uuid ==
+                PetkitGatt.NOTIFY
+            ) {
+                characteristic.value?.let { notifications.trySend(it.copyOf()) }
+            }
         }
 
         override fun onCharacteristicWrite(

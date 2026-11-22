@@ -62,7 +62,10 @@ class SyncDrinksUseCaseTest {
         assertEquals(now, repository.lastSync.value)
         assertEquals("AA:BB:CC:DD:EE:FF", bluetooth.mac)
         // The secret the session got, then wiped once it was over.
-        assertArrayEquals(byteArrayOf(0x12, 0x34, 0x56, 0x78, 0x9a.toByte(), 0xbc.toByte(), 0xde.toByte(), 0xf0.toByte()), bluetooth.secretSeen)
+        assertArrayEquals(
+            byteArrayOf(0x12, 0x34, 0x56, 0x78, 0x9a.toByte(), 0xbc.toByte(), 0xde.toByte(), 0xf0.toByte()),
+            bluetooth.secretSeen,
+        )
         assertArrayEquals(ByteArray(FountainSecret.LENGTH), bluetooth.secret!!.bytes())
     }
 
@@ -103,7 +106,8 @@ class SyncDrinksUseCaseTest {
 
     @Test
     fun `the server's secret_unknown is said with its own message`() = runTest {
-        repository.bleSyncResult = Outcome.Failure(DomainError.Server(409, "secret_unknown", "Import from PetKit in the panel"))
+        repository.bleSyncResult =
+            Outcome.Failure(DomainError.Server(409, "secret_unknown", "Import from PetKit in the panel"))
 
         val last = sync(ACCESSORY).toList().last()
 
@@ -121,7 +125,10 @@ class SyncDrinksUseCaseTest {
         assertEquals(DrinkSyncStep.Failed(DrinkSyncFailure.Unsupported), sync(ACCESSORY).toList().last())
 
         repository.bleSyncResult = Outcome.Failure(DomainError.Network())
-        assertEquals(DrinkSyncStep.Failed(DrinkSyncFailure.Server(DomainError.Network())), sync(ACCESSORY).toList().last())
+        assertEquals(
+            DrinkSyncStep.Failed(DrinkSyncFailure.Server(DomainError.Network())),
+            sync(ACCESSORY).toList().last(),
+        )
     }
 
     @Test

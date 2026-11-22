@@ -148,7 +148,9 @@ private fun StatusIcon(state: DrinkSyncState, tint: Color) {
 private fun statusText(state: DrinkSyncState): String {
     val nearby = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     return when (val step = state.step) {
-        null -> stringResource(if (nearby) R.string.fountain_sync_permission_reason else R.string.fountain_sync_location_reason)
+        null -> stringResource(
+            if (nearby) R.string.fountain_sync_permission_reason else R.string.fountain_sync_location_reason,
+        )
 
         DrinkSyncStep.Searching -> stringResource(R.string.fountain_sync_searching)
 
@@ -171,17 +173,10 @@ private fun statusText(state: DrinkSyncState): String {
 @Composable
 private fun failureText(reason: DrinkSyncFailure, nearby: Boolean): String = when (reason) {
     is DrinkSyncFailure.Link -> stringResource(
-        when (reason.reason) {
-            FountainLinkFailure.BluetoothUnavailable -> R.string.fountain_sync_bluetooth_unavailable
-            FountainLinkFailure.BluetoothOff -> R.string.fountain_sync_bluetooth_off
-            FountainLinkFailure.PermissionMissing ->
-                if (nearby) R.string.fountain_sync_permission_refused else R.string.fountain_sync_location_refused
-            FountainLinkFailure.NotFound -> R.string.fountain_sync_not_found
-            FountainLinkFailure.SecretRefused -> R.string.fountain_sync_secret_refused
-            FountainLinkFailure.ClockRefused -> R.string.fountain_sync_clock_refused
-            FountainLinkFailure.StreamRefused -> R.string.fountain_sync_stream_refused
-            FountainLinkFailure.Timeout -> R.string.fountain_sync_timeout
-            FountainLinkFailure.ConnectionLost -> R.string.fountain_sync_connection_lost
+        if (reason.reason == FountainLinkFailure.PermissionMissing && !nearby) {
+            R.string.fountain_sync_location_refused
+        } else {
+            LINK_FAILURE_TEXTS.getValue(reason.reason)
         },
     )
 
@@ -193,6 +188,19 @@ private fun failureText(reason: DrinkSyncFailure, nearby: Boolean): String = whe
 
     is DrinkSyncFailure.Server -> stringResource(R.string.fountain_sync_server_failed, errorText(reason.error))
 }
+
+/** What each way the link failed says (a refused permission names location before Android 12). */
+private val LINK_FAILURE_TEXTS: Map<FountainLinkFailure, Int> = mapOf(
+    FountainLinkFailure.BluetoothUnavailable to R.string.fountain_sync_bluetooth_unavailable,
+    FountainLinkFailure.BluetoothOff to R.string.fountain_sync_bluetooth_off,
+    FountainLinkFailure.PermissionMissing to R.string.fountain_sync_permission_refused,
+    FountainLinkFailure.NotFound to R.string.fountain_sync_not_found,
+    FountainLinkFailure.SecretRefused to R.string.fountain_sync_secret_refused,
+    FountainLinkFailure.ClockRefused to R.string.fountain_sync_clock_refused,
+    FountainLinkFailure.StreamRefused to R.string.fountain_sync_stream_refused,
+    FountainLinkFailure.Timeout to R.string.fountain_sync_timeout,
+    FountainLinkFailure.ConnectionLost to R.string.fountain_sync_connection_lost,
+)
 
 /** Under a refusal of the secret: the server's own words when it gave some, else what to do in its panel. */
 @Composable
@@ -217,7 +225,9 @@ private fun lastSyncText(at: Instant?, today: LocalDate, zone: ZoneId): String {
     val time = DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale).format(local)
     return when (val day = local.toLocalDate()) {
         today -> stringResource(R.string.fountain_sync_last_today, time)
+
         today.minusDays(1) -> stringResource(R.string.fountain_sync_last_yesterday, time)
+
         else -> stringResource(
             R.string.fountain_sync_last_date,
             DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale).format(day),

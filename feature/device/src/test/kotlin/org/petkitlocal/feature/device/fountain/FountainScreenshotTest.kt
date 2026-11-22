@@ -104,7 +104,9 @@ class FountainScreenshotTest(private val variant: ScreenshotVariant) {
                     Modifier.background(PkTheme.colors.background).padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    chunk.forEach { DrinkSyncCard(it, Household.today, Household.zone, onSync = {}, onOpenSettings = {}) }
+                    chunk.forEach {
+                        DrinkSyncCard(it, Household.today, Household.zone, onSync = {}, onOpenSettings = {})
+                    }
                 }
             }
         }

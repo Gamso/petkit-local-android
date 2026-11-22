@@ -56,10 +56,12 @@ class Ctw3Session(
                 refusal(step, reply)?.let { fail(it, "the fountain refused $step") }
             }
             val history = request(Ctw3Cmd.SYNC_HISTORY)
-            val bytes = Ctw3Payloads.historyBytes(history) ?: fail(FountainLinkFailure.ConnectionLost, "short 212 reply")
+            val bytes =
+                Ctw3Payloads.historyBytes(history) ?: fail(FountainLinkFailure.ConnectionLost, "short 212 reply")
             if (bytes == 0L) return@coroutineScope emptyList()
             onReading((bytes / Ctw3Payloads.RECORD_LEN).toInt())
-            val setting = request(Ctw3Cmd.STREAM_SETTING, Ctw3Payloads.streamSetting(Ctw3Payloads.STREAM_BATCH, link.mtu))
+            val setting =
+                request(Ctw3Cmd.STREAM_SETTING, Ctw3Payloads.streamSetting(Ctw3Payloads.STREAM_BATCH, link.mtu))
             if (setting.firstOrNull()?.toInt() != OK) fail(FountainLinkFailure.StreamRefused, "the fountain refused 80")
             stream(bytes)
         } finally {
@@ -74,7 +76,14 @@ class Ctw3Session(
             for (bytes in link.notifications) {
                 for (frame in assembler.feed(bytes)) {
                     if (!frame.isStream && frame.cmd == Ctw3Cmd.DEVICE_STATUS && frame.type != PetkitFrame.RESPONSE) {
-                        link.write(PetkitFrames.encode(Ctw3Cmd.DEVICE_STATUS, PetkitFrame.RESPONSE, 0, byteArrayOf(OK.toByte())))
+                        link.write(
+                            PetkitFrames.encode(
+                                Ctw3Cmd.DEVICE_STATUS,
+                                PetkitFrame.RESPONSE,
+                                0,
+                                byteArrayOf(OK.toByte()),
+                            ),
+                        )
                     } else {
                         frames.send(frame)
                     }
@@ -107,42 +116,55 @@ class Ctw3Session(
 
     /** The stream after a 80 accepted: packets in batches, each batch checked, until the 69. */
     private suspend fun stream(announced: Long): List<DrinkRecord> {
+        val stream = StreamBatches()
+        while (true) {
+            val frame = withTimeoutOrNull(timing.streamIdleMs) { receive() }
+            when {
+                frame == null -> {
+                    stream.commit()
+                    // Everything announced came, only the end was lost: the records are whole.
+                    if (stream.received < announced) fail(FountainLinkFailure.Timeout, "the stream stopped")
+                    return stream.records
+                }
+
+                frame.isStream -> if (frame.cmd in DATA) stream.add(frame)
+
+                frame.cmd == Ctw3Cmd.STREAM_CHECK -> {
+                    val (bitmap, complete) = stream.check()
+                    link.write(PetkitFrames.encode(Ctw3Cmd.STREAM_CHECK, PetkitFrame.RESPONSE, frame.seq, bitmap))
+                    if (complete) stream.commit()
+                }
+
+                frame.cmd == Ctw3Cmd.STREAM_END -> {
+                    link.write(PetkitFrames.encode(Ctw3Cmd.STREAM_END, PetkitFrame.RESPONSE, frame.seq))
+                    stream.commit()
+                    return stream.records
+                }
+            }
+        }
+    }
+
+    /** The stream's packets, kept by index within their batch until a check finds the batch whole. */
+    private class StreamBatches {
         val records = mutableListOf<DrinkRecord>()
-        val batch = sortedMapOf<Int, ByteArray>()
-        var batchTotal = 0
         var received = 0L
+            private set
+        private val batch = sortedMapOf<Int, ByteArray>()
+        private var batchTotal = 0
+
+        fun add(packet: PetkitFrame) {
+            if (batch.isEmpty()) batchTotal = packet.total
+            batch[packet.seq] = packet.data
+        }
+
+        /** The 67's answer, and whether the batch is whole (`PetkitBleClient` takes 32 for a batch it has none of). */
+        fun check(): Pair<ByteArray, Boolean> =
+            Ctw3Payloads.streamCheck(batch.keys, if (batch.isEmpty()) Ctw3Payloads.STREAM_BATCH else batchTotal)
+
         fun commit() {
             batch.values.forEach { records += Ctw3Payloads.records(it) }
             received += batch.values.sumOf { it.size }
             batch.clear()
-        }
-        while (true) {
-            val frame = withTimeoutOrNull(timing.streamIdleMs) { receive() }
-            if (frame == null) {
-                commit()
-                // Everything announced came, only the end was lost: the records are whole.
-                if (received >= announced) return records
-                fail(FountainLinkFailure.Timeout, "the stream stopped")
-            }
-            when {
-                frame.isStream && frame.cmd in DATA -> {
-                    if (batch.isEmpty()) batchTotal = frame.total
-                    batch[frame.seq] = frame.data
-                }
-
-                !frame.isStream && frame.cmd == Ctw3Cmd.STREAM_CHECK -> {
-                    val total = if (batch.isEmpty()) Ctw3Payloads.STREAM_BATCH else batchTotal
-                    val (bitmap, complete) = Ctw3Payloads.streamCheck(batch.keys, total)
-                    link.write(PetkitFrames.encode(Ctw3Cmd.STREAM_CHECK, PetkitFrame.RESPONSE, frame.seq, bitmap))
-                    if (complete) commit()
-                }
-
-                !frame.isStream && frame.cmd == Ctw3Cmd.STREAM_END -> {
-                    link.write(PetkitFrames.encode(Ctw3Cmd.STREAM_END, PetkitFrame.RESPONSE, frame.seq))
-                    commit()
-                    return records
-                }
-            }
         }
     }
 
@@ -154,6 +176,7 @@ class Ctw3Session(
 
     private fun payload(cmd: Int): ByteArray = when (cmd) {
         Ctw3Cmd.SECURITY_CHECK -> secret.copyOf()
+
         Ctw3Cmd.SYNC_TIME -> {
             val now = clock.instant()
             Ctw3Payloads.time(now.epochSecond, clock.zone.rules.getOffset(now).totalSeconds)

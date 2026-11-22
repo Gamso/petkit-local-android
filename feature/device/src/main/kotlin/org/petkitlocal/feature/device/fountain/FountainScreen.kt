@@ -15,7 +15,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import java.time.Instant
-import java.time.LocalDate
 import kotlinx.coroutines.delay
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.devicepage.DevicePart
@@ -238,7 +237,7 @@ private fun LazyListScope.fountainContent(
         item(key = "drink-sync") {
             DrinkSyncCard(
                 state = uiState.drinkSync,
-                today = LocalDate.ofInstant(uiState.now, uiState.zone),
+                today = uiState.now.atZone(uiState.zone).toLocalDate(),
                 zone = uiState.zone,
                 onSync = callbacks.onSyncDrinks,
                 onOpenSettings = callbacks.onOpenAppSettings,

@@ -15,10 +15,7 @@ import org.petkitlocal.core.domain.drinksync.DrinkRecord
  * and streams [records] in one batch of one-record packets. Installed through the debug build's
  * [EndToEndBleTransport]; the protocol itself is tested in core:data (`Ctw3SessionTest`).
  */
-class ScriptedFountainTransport(
-    private val secret: ByteArray,
-    private val records: List<DrinkRecord>,
-) : BleTransport {
+class ScriptedFountainTransport(private val secret: ByteArray, private val records: List<DrinkRecord>) : BleTransport {
     /** Every MAC the app connected to. */
     val connectedTo = mutableListOf<String>()
 
@@ -39,7 +36,10 @@ class ScriptedFountainTransport(
             for (frame in assembler.feed(bytes)) {
                 when {
                     frame.type == PetkitFrame.REQUEST -> answer(frame)
-                    frame.cmd == Ctw3Cmd.STREAM_CHECK -> push(PetkitFrames.encode(Ctw3Cmd.STREAM_END, PetkitFrame.REQUEST, pushSeq++))
+
+                    frame.cmd == Ctw3Cmd.STREAM_CHECK -> push(
+                        PetkitFrames.encode(Ctw3Cmd.STREAM_END, PetkitFrame.REQUEST, pushSeq++),
+                    )
                 }
             }
         }
@@ -86,8 +86,12 @@ class ScriptedFountainTransport(
             byteArrayOf(0, (bytes shr 24).toByte(), (bytes shr 16).toByte(), (bytes shr 8).toByte(), bytes.toByte())
 
         fun DrinkRecord.bytes() = byteArrayOf(
-            (workTime shr 24).toByte(), (workTime shr 16).toByte(), (workTime shr 8).toByte(), workTime.toByte(),
-            (stayTime shr 8).toByte(), stayTime.toByte(),
+            (workTime shr 24).toByte(),
+            (workTime shr 16).toByte(),
+            (workTime shr 8).toByte(),
+            workTime.toByte(),
+            (stayTime shr 8).toByte(),
+            stayTime.toByte(),
         )
     }
 }

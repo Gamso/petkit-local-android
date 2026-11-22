@@ -24,10 +24,8 @@ import org.petkitlocal.core.network.error.apiCall
  * success, kept on the phone. The secret goes from the answer straight into a [FountainSecret];
  * it is not cached, logged or written, and the answer is `Cache-Control: no-store`.
  */
-class DrinkSyncRepositoryImpl @Inject constructor(
-    private val api: PetkitApi,
-    private val store: DrinkSyncStore,
-) : DrinkSyncRepository {
+class DrinkSyncRepositoryImpl @Inject constructor(private val api: PetkitApi, private val store: DrinkSyncStore) :
+    DrinkSyncRepository {
     override suspend fun bleSync(accessoryId: Long): Outcome<BleSyncInfo> = apiCall {
         api.getAccessoryBleSync(accessoryId)
     }.map { dto ->

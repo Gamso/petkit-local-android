@@ -527,7 +527,9 @@ class FountainScreenTest {
 
     @Test
     fun `each step of a sync is said on the card, and the button waits while it runs`() {
-        var state by mutableStateOf(FountainFixtures.paused.copy(drinkSync = DrinkSyncState(step = DrinkSyncStep.Searching)))
+        var state by mutableStateOf(
+            FountainFixtures.paused.copy(drinkSync = DrinkSyncState(step = DrinkSyncStep.Searching)),
+        )
         compose.setContent { PkTheme { FountainScreen(state, navigation, callbacks) } }
         compose.onNodeWithTag(PageTestTags.LIST).performScrollToNode(hasTestTag(FountainTestTags.DRINK_SYNC))
         val status = compose.onNodeWithTag(FountainTestTags.DRINK_SYNC_STATUS)
@@ -542,15 +544,19 @@ class FountainScreenTest {
             drinkSync = DrinkSyncState(step = DrinkSyncStep.Done(12), lastSync = FountainFixtures.now.minusSeconds(60)),
         )
         status.assertTextContains("Done: 12 new drinks")
-        compose.onNodeWithTag(FountainTestTags.DRINK_SYNC_LAST).assertTextContains("Last synced today at", substring = true)
+        compose.onNodeWithTag(
+            FountainTestTags.DRINK_SYNC_LAST,
+        ).assertTextContains("Last synced today at", substring = true)
         compose.onNodeWithTag(FountainTestTags.DRINK_SYNC_BUTTON).assertIsEnabled()
     }
 
     @Test
-    fun `a failed sync says why, a missing secret with the server's words, a refused permission with a way to settings`() {
+    fun `a failed sync says why, with the server's words or a way to settings`() {
         var state by mutableStateOf(
             FountainFixtures.paused.copy(
-                drinkSync = DrinkSyncState(step = DrinkSyncStep.Failed(DrinkSyncFailure.SecretUnknown("Press Import from PetKit."))),
+                drinkSync = DrinkSyncState(
+                    step = DrinkSyncStep.Failed(DrinkSyncFailure.SecretUnknown("Press Import from PetKit.")),
+                ),
             ),
         )
         compose.setContent { PkTheme { FountainScreen(state, navigation, callbacks) } }
@@ -561,13 +567,17 @@ class FountainScreenTest {
         status.assertTextContains("Press Import from PetKit.")
 
         state = state.copy(
-            drinkSync = DrinkSyncState(step = DrinkSyncStep.Failed(DrinkSyncFailure.Link(FountainLinkFailure.BluetoothOff))),
+            drinkSync = DrinkSyncState(
+                step = DrinkSyncStep.Failed(DrinkSyncFailure.Link(FountainLinkFailure.BluetoothOff)),
+            ),
         )
         status.assertTextContains("Bluetooth is off. Turn it on, then sync again.")
         compose.onNodeWithTag(FountainTestTags.DRINK_SYNC_BUTTON).assertIsEnabled()
 
         state = state.copy(
-            drinkSync = DrinkSyncState(step = DrinkSyncStep.Failed(DrinkSyncFailure.Link(FountainLinkFailure.PermissionMissing))),
+            drinkSync = DrinkSyncState(
+                step = DrinkSyncStep.Failed(DrinkSyncFailure.Link(FountainLinkFailure.PermissionMissing)),
+            ),
         )
         compose.onNodeWithText("Open settings").performClick()
         assertEquals(listOf("app-settings"), calls)

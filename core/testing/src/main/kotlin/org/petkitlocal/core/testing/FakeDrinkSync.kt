@@ -27,6 +27,7 @@ class FakeDrinkSyncRepository : DrinkSyncRepository {
     override suspend fun bleSync(accessoryId: Long): Outcome<BleSyncInfo> = when (val result = bleSyncResult) {
         // A fresh secret each time: the use case wipes the one it got.
         is Outcome.Success -> Outcome.Success(result.value.copy(secret = FountainSecret.fromHex(SECRET)))
+
         is Outcome.Failure -> result
     }
 

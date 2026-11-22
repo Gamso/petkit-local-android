@@ -482,7 +482,8 @@ class FountainViewModelTest {
 
     @Test
     fun `only a CTW3 offers the drink sync`() = runTest(main.dispatcher) {
-        devices.devices.value = listOf(FountainFixtures.w7h, FountainFixtures.w5, FountainFixtures.ctw3, FountainFixtures.onlineRelay)
+        devices.devices.value =
+            listOf(FountainFixtures.w7h, FountainFixtures.w5, FountainFixtures.ctw3, FountainFixtures.onlineRelay)
         val w5 = viewModel(3002L)
         val ctw3 = viewModel(3003L)
         collect(w5)
@@ -495,33 +496,34 @@ class FountainViewModelTest {
     }
 
     @Test
-    fun `Sync drinks shows each step, uploads what is new, re-reads History and keeps the time`() = runTest(main.dispatcher) {
-        devices.devices.value = listOf(FountainFixtures.ctw3, FountainFixtures.onlineRelay)
-        val gate = CompletableDeferred<Unit>().also { bluetooth.gate = it }
-        val drink = DrinkRecord(Household.clock.instant().epochSecond - 3600 - 946_684_800L, 25)
-        bluetooth.records = listOf(drink)
-        val viewModel = viewModel(3003L)
-        collect(viewModel)
-        advanceUntilIdle()
-        timeline.refreshedDays.clear()
+    fun `Sync drinks shows each step, uploads what is new, re-reads History and keeps the time`() =
+        runTest(main.dispatcher) {
+            devices.devices.value = listOf(FountainFixtures.ctw3, FountainFixtures.onlineRelay)
+            val gate = CompletableDeferred<Unit>().also { bluetooth.gate = it }
+            val drink = DrinkRecord(Household.clock.instant().epochSecond - 3600 - 946_684_800L, 25)
+            bluetooth.records = listOf(drink)
+            val viewModel = viewModel(3003L)
+            collect(viewModel)
+            advanceUntilIdle()
+            timeline.refreshedDays.clear()
 
-        viewModel.onSyncDrinks()
-        runCurrent()
-        assertEquals(DrinkSyncStep.Connected, viewModel.uiState.value.drinkSync.step)
-        assertTrue(viewModel.uiState.value.drinkSync.running)
-        // A second press while it runs starts nothing.
-        viewModel.onSyncDrinks()
+            viewModel.onSyncDrinks()
+            runCurrent()
+            assertEquals(DrinkSyncStep.Connected, viewModel.uiState.value.drinkSync.step)
+            assertTrue(viewModel.uiState.value.drinkSync.running)
+            // A second press while it runs starts nothing.
+            viewModel.onSyncDrinks()
 
-        gate.complete(Unit)
-        advanceUntilIdle()
-        val state = viewModel.uiState.value.drinkSync
-        assertEquals(DrinkSyncStep.Done(1), state.step)
-        assertFalse(state.running)
-        assertEquals(Household.clock.instant(), state.lastSync)
-        assertEquals(listOf(listOf(drink)), drinkSync.uploads)
-        assertEquals(listOf(FakeDrinkSyncRepository.MAC), bluetooth.macs)
-        assertEquals(listOf(Household.today), timeline.refreshedDays)
-    }
+            gate.complete(Unit)
+            advanceUntilIdle()
+            val state = viewModel.uiState.value.drinkSync
+            assertEquals(DrinkSyncStep.Done(1), state.step)
+            assertFalse(state.running)
+            assertEquals(Household.clock.instant(), state.lastSync)
+            assertEquals(listOf(listOf(drink)), drinkSync.uploads)
+            assertEquals(listOf(FakeDrinkSyncRepository.MAC), bluetooth.macs)
+            assertEquals(listOf(Household.today), timeline.refreshedDays)
+        }
 
     @Test
     fun `without the Bluetooth permissions Android is asked, and a refusal is said`() = runTest(main.dispatcher) {
@@ -530,7 +532,12 @@ class FountainViewModelTest {
         val viewModel = viewModel(3003L)
         collect(viewModel)
         val asked = mutableListOf<Unit>()
-        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.requestBluetoothPermission.collect { asked += it } }
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.requestBluetoothPermission.collect {
+                asked +=
+                    it
+            }
+        }
         advanceUntilIdle()
 
         viewModel.onSyncDrinks()
@@ -555,37 +562,38 @@ class FountainViewModelTest {
     }
 
     @Test
-    fun `Bluetooth off, a missing secret and a refusal by the fountain are each the card's reason`() = runTest(main.dispatcher) {
-        devices.devices.value = listOf(FountainFixtures.ctw3, FountainFixtures.onlineRelay)
-        val viewModel = viewModel(3003L)
-        collect(viewModel)
-        advanceUntilIdle()
+    fun `Bluetooth off, a missing secret and a refusal by the fountain are each the card's reason`() =
+        runTest(main.dispatcher) {
+            devices.devices.value = listOf(FountainFixtures.ctw3, FountainFixtures.onlineRelay)
+            val viewModel = viewModel(3003L)
+            collect(viewModel)
+            advanceUntilIdle()
 
-        bluetooth.availability = BluetoothAvailability.Off
-        viewModel.onSyncDrinks()
-        advanceUntilIdle()
-        assertEquals(
-            DrinkSyncStep.Failed(DrinkSyncFailure.Link(FountainLinkFailure.BluetoothOff)),
-            viewModel.uiState.value.drinkSync.step,
-        )
+            bluetooth.availability = BluetoothAvailability.Off
+            viewModel.onSyncDrinks()
+            advanceUntilIdle()
+            assertEquals(
+                DrinkSyncStep.Failed(DrinkSyncFailure.Link(FountainLinkFailure.BluetoothOff)),
+                viewModel.uiState.value.drinkSync.step,
+            )
 
-        bluetooth.availability = BluetoothAvailability.Ready
-        drinkSync.bleSyncResult = Outcome.Failure(DomainError.Server(409, "secret_unknown", "Import from PetKit."))
-        viewModel.onSyncDrinks()
-        advanceUntilIdle()
-        assertEquals(
-            DrinkSyncStep.Failed(DrinkSyncFailure.SecretUnknown("Import from PetKit.")),
-            viewModel.uiState.value.drinkSync.step,
-        )
+            bluetooth.availability = BluetoothAvailability.Ready
+            drinkSync.bleSyncResult = Outcome.Failure(DomainError.Server(409, "secret_unknown", "Import from PetKit."))
+            viewModel.onSyncDrinks()
+            advanceUntilIdle()
+            assertEquals(
+                DrinkSyncStep.Failed(DrinkSyncFailure.SecretUnknown("Import from PetKit.")),
+                viewModel.uiState.value.drinkSync.step,
+            )
 
-        drinkSync.bleSyncResult = Outcome.Success(FakeDrinkSyncRepository.info())
-        bluetooth.failure = FountainLinkFailure.SecretRefused
-        viewModel.onSyncDrinks()
-        advanceUntilIdle()
-        assertEquals(
-            DrinkSyncStep.Failed(DrinkSyncFailure.Link(FountainLinkFailure.SecretRefused)),
-            viewModel.uiState.value.drinkSync.step,
-        )
-        assertNull(viewModel.uiState.value.drinkSync.lastSync)
-    }
+            drinkSync.bleSyncResult = Outcome.Success(FakeDrinkSyncRepository.info())
+            bluetooth.failure = FountainLinkFailure.SecretRefused
+            viewModel.onSyncDrinks()
+            advanceUntilIdle()
+            assertEquals(
+                DrinkSyncStep.Failed(DrinkSyncFailure.Link(FountainLinkFailure.SecretRefused)),
+                viewModel.uiState.value.drinkSync.step,
+            )
+            assertNull(viewModel.uiState.value.drinkSync.lastSync)
+        }
 }

@@ -145,11 +145,17 @@ object PetkitFrames {
         private fun parseHead(): Head {
             val stream = u8(2) == STREAM_MARK
             val headerLen = if (stream) STREAM_HEADER_LEN else COMMAND_HEADER_LEN
-            if (buffer.size < headerLen) return Head.Incomplete
-            val lengthAt = headerLen - 2
-            val length = u8(lengthAt) or (u8(lengthAt + 1) shl 8)
-            if (length > MAX_DATA) return Head.NotAHeader
-            if (buffer.size < headerLen + length) return Head.Incomplete
+            val length = if (buffer.size < headerLen) -1 else u8(headerLen - 2) or (u8(headerLen - 1) shl 8)
+            return when {
+                length < 0 -> Head.Incomplete
+                length > MAX_DATA -> Head.NotAHeader
+                buffer.size < headerLen + length -> Head.Incomplete
+                else -> Head.Frame(take(stream, headerLen, length))
+            }
+        }
+
+        /** Consumes the whole frame at the start of the buffer, and its trailer if one follows. */
+        private fun take(stream: Boolean, headerLen: Int, length: Int): PetkitFrame {
             val data = buffer.copyOfRange(headerLen, headerLen + length)
             var consumed = headerLen + length
             if (buffer.size > consumed && u8(consumed) == TRAILER) consumed++
@@ -159,18 +165,15 @@ object PetkitFrames {
                 PetkitFrame(u8(3), u8(4), u8(5), data)
             }
             buffer = buffer.copyOfRange(consumed, buffer.size)
-            return Head.Frame(frame)
+            return frame
         }
 
-        private fun headerStart(): Int {
-            for (i in 0..buffer.size - 3) {
-                if (buffer[i] == COMMAND_HEADER[0] && buffer[i + 1] == COMMAND_HEADER[1] &&
-                    (u8(i + 2) == COMMAND_MARK || u8(i + 2) == STREAM_MARK)
-                ) {
-                    return i
-                }
-            }
-            return -1
+        private fun headerStart(): Int = (0..buffer.size - 3).firstOrNull(::isHeaderAt) ?: -1
+
+        private fun isHeaderAt(i: Int): Boolean {
+            val mark = u8(i + 2)
+            val lead = buffer[i] == COMMAND_HEADER[0] && buffer[i + 1] == COMMAND_HEADER[1]
+            return lead && (mark == COMMAND_MARK || mark == STREAM_MARK)
         }
 
         private fun partialHeaderStart(): Int {
@@ -195,7 +198,7 @@ object Ctw3Payloads {
     /** One record: `u32 workTime`, `s16 stayTime`, big-endian. */
     const val RECORD_LEN = 6
 
-    /** Packets per batch, the app's constant (`CTW3BleClient.onReceiveCustomData` @0x0070, `setMaxPackageCount(32)`). */
+    /** Packets per batch, the app's constant (`CTW3BleClient.onReceiveCustomData` @0x0070: 32). */
     const val STREAM_BATCH = 32
 
     /**
@@ -229,7 +232,7 @@ object Ctw3Payloads {
         return u32(bitmap) to !missing
     }
 
-    /** The 212 reply's byte count: data bytes 1-4, big-endian (`ByteUtil.bytes2Int` -> `maxDataLength`); null if short. */
+    /** The 212 reply's byte count: data bytes 1-4, big-endian (`ByteUtil.bytes2Int`); null if short. */
     fun historyBytes(data: ByteArray): Long? {
         if (data.size < 5) return null
         return (1..4).fold(0L) { acc, i -> (acc shl 8) or (data[i].toLong() and 0xFF) }

@@ -57,7 +57,11 @@ class DrinkSyncRepositoryImplTest {
 
     private fun kotlinx.coroutines.test.TestScope.repository() = DrinkSyncRepositoryImpl(
         api,
-        DrinkSyncStore(PreferenceDataStoreFactory.create(scope = backgroundScope) { File(dir, "drink_sync.preferences_pb") }),
+        DrinkSyncStore(
+            PreferenceDataStoreFactory.create(scope = backgroundScope) {
+                File(dir, "drink_sync.preferences_pb")
+            },
+        ),
     )
 
     @Test
@@ -70,7 +74,10 @@ class DrinkSyncRepositoryImplTest {
         assertEquals("GET /app/v1/accessories/3003/ble-sync", requests.single())
         assertEquals("AA:BB:CC:DD:EE:FF", info.mac)
         assertEquals(1_763_190_000L, info.historyCursor)
-        assertArrayEquals(byteArrayOf(0, 0, 0, 0, 0xDE.toByte(), 0xAD.toByte(), 0xBE.toByte(), 0xEF.toByte()), info.secret!!.bytes())
+        assertArrayEquals(
+            byteArrayOf(0, 0, 0, 0, 0xDE.toByte(), 0xAD.toByte(), 0xBE.toByte(), 0xEF.toByte()),
+            info.secret!!.bytes(),
+        )
         assertEquals("FountainSecret(<redacted>)", info.secret.toString())
     }
 
@@ -80,7 +87,10 @@ class DrinkSyncRepositoryImplTest {
 
         val failure = repository().bleSync(3003)
 
-        assertEquals(Outcome.Failure(DomainError.Server(409, "secret_unknown", "Import from PetKit in the panel.")), failure)
+        assertEquals(
+            Outcome.Failure(DomainError.Server(409, "secret_unknown", "Import from PetKit in the panel.")),
+            failure,
+        )
     }
 
     @Test
@@ -92,7 +102,8 @@ class DrinkSyncRepositoryImplTest {
         assertEquals(Outcome.Success(DrinkUploadResult(2, 0, 0, 1_763_193_600L)), result)
         assertEquals(
             "POST /app/v1/accessories/3003/drinks " +
-                """{"records":[{"work_time":816508800,"stay_time":12},{"work_time":816512400,"stay_time":30}],"source":"phone-ble"}""",
+                """{"records":[{"work_time":816508800,"stay_time":12},""" +
+                """{"work_time":816512400,"stay_time":30}],"source":"phone-ble"}""",
             requests.single(),
         )
     }

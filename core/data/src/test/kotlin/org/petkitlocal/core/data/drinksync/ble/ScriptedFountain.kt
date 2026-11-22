@@ -65,7 +65,11 @@ class ScriptedFountain(
             null
         }
         if (glue && status != null) notify(reply + status) else listOfNotNull(reply, status).forEach(::notify)
-        if (request.cmd == Ctw3Cmd.STREAM_SETTING && (replies[request.cmd] ?: OK)[0].toInt() == 1) stream(firstPass = true)
+        if (request.cmd == Ctw3Cmd.STREAM_SETTING &&
+            (replies[request.cmd] ?: OK)[0].toInt() == 1
+        ) {
+            stream(firstPass = true)
+        }
     }
 
     /** The session's answers to the stream (67, 69) and its 230 acks. */
@@ -109,8 +113,12 @@ class ScriptedFountain(
             byteArrayOf(0, (bytes shr 24).toByte(), (bytes shr 16).toByte(), (bytes shr 8).toByte(), bytes.toByte())
 
         fun record(r: DrinkRecord): ByteArray = byteArrayOf(
-            (r.workTime shr 24).toByte(), (r.workTime shr 16).toByte(), (r.workTime shr 8).toByte(), r.workTime.toByte(),
-            (r.stayTime shr 8).toByte(), r.stayTime.toByte(),
+            (r.workTime shr 24).toByte(),
+            (r.workTime shr 16).toByte(),
+            (r.workTime shr 8).toByte(),
+            r.workTime.toByte(),
+            (r.stayTime shr 8).toByte(),
+            r.stayTime.toByte(),
         )
     }
 }

@@ -31,11 +31,11 @@ import org.petkitlocal.core.network.dto.DeviceConnection
 import org.petkitlocal.core.network.dto.DeviceDetailDto
 import org.petkitlocal.core.network.dto.DeviceKind
 import org.petkitlocal.core.network.dto.DeviceSummaryDto
+import org.petkitlocal.core.network.dto.DeviceTalk
+import org.petkitlocal.core.network.dto.DeviceTransport
 import org.petkitlocal.core.network.dto.DrinkRecordUploadDto
 import org.petkitlocal.core.network.dto.DrinkUploadRequestDto
 import org.petkitlocal.core.network.dto.DrinkUploadResultDto
-import org.petkitlocal.core.network.dto.DeviceTalk
-import org.petkitlocal.core.network.dto.DeviceTransport
 import org.petkitlocal.core.network.dto.EntityCategory
 import org.petkitlocal.core.network.dto.EntityChangeDto
 import org.petkitlocal.core.network.dto.EntityComponent

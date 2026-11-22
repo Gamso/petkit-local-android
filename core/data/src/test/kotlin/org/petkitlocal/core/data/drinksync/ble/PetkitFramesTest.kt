@@ -21,7 +21,10 @@ class PetkitFramesTest {
     fun `a command frame is the app's bytes, its length little-endian`() {
         // An empty 212, sequence 2: petkit-local's relay sent exactly this (#140).
         assertArrayEquals(hex("fafcfdd401020000fb"), PetkitFrames.encode(212, 1, 2))
-        assertArrayEquals(hex("fafcfd500103080000000020000000f7fb"), PetkitFrames.encode(80, 1, 3, Ctw3Payloads.streamSetting(32, 247)))
+        assertArrayEquals(
+            hex("fafcfd500103080000000020000000f7fb"),
+            PetkitFrames.encode(80, 1, 3, Ctw3Payloads.streamSetting(32, 247)),
+        )
     }
 
     @Test
@@ -51,7 +54,9 @@ class PetkitFramesTest {
     @Test
     fun `a header announcing an impossible length is skipped`() {
         val assembler = PetkitFrames.Assembler()
-        val frames = assembler.feed(hex("fafcfd010100ffff") + hex("fafcfdd4020500000001fb".substring(0, 16)) + hex("fb"))
+        val frames = assembler.feed(
+            hex("fafcfd010100ffff") + hex("fafcfdd4020500000001fb".substring(0, 16)) + hex("fb"),
+        )
         assertEquals(listOf(212), frames.map { it.cmd })
     }
 
@@ -92,7 +97,8 @@ class PetkitFramesTest {
         assertTrue(fountain.closed)
         assertEquals("aa:bb:cc:dd:ee:ff", transport.connectedTo)
 
-        val away = BleFountainBluetooth(ScriptedTransport(null, FountainLinkFailure.NotFound), java.time.Clock.systemUTC())
+        val away =
+            BleFountainBluetooth(ScriptedTransport(null, FountainLinkFailure.NotFound), java.time.Clock.systemUTC())
         assertEquals(
             FountainReadResult.Failure(FountainLinkFailure.NotFound),
             away.readHistory("aa:bb:cc:dd:ee:ff", FountainSecret.fromHex("0000000000000001")!!) {},

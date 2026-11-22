@@ -13,10 +13,8 @@ import org.petkitlocal.core.domain.drinksync.FountainSecret
  * closed whatever happened (cancellation included). The secret's bytes are copied for the session
  * only and zeroed after it. Nothing here logs.
  */
-class BleFountainBluetooth @Inject constructor(
-    private val transport: BleTransport,
-    private val clock: Clock,
-) : FountainBluetooth {
+class BleFountainBluetooth @Inject constructor(private val transport: BleTransport, private val clock: Clock) :
+    FountainBluetooth {
     /** Waits, overridable by tests. */
     internal var timing: Ctw3Timing = Ctw3Timing()
 

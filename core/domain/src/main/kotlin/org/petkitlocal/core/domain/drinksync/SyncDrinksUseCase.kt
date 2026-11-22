@@ -68,28 +68,42 @@ class SyncDrinksUseCase @Inject constructor(
     }
 
     private suspend fun sync(accessoryId: Long, report: suspend (DrinkSyncStep) -> Unit): DrinkSyncStep {
-        when (bluetooth.availability()) {
-            BluetoothAvailability.Unavailable -> return failed(FountainLinkFailure.BluetoothUnavailable)
-            BluetoothAvailability.Off -> return failed(FountainLinkFailure.BluetoothOff)
-            BluetoothAvailability.Ready -> Unit
-        }
-        val info = when (val answer = repository.bleSync(accessoryId)) {
-            is Outcome.Failure -> return DrinkSyncStep.Failed(serverFailure(answer.error))
-            is Outcome.Success -> answer.value
-        }
-        val secret = info.secret
-        if (!info.syncSupported) return DrinkSyncStep.Failed(DrinkSyncFailure.Unsupported)
-        if (secret == null) return DrinkSyncStep.Failed(DrinkSyncFailure.SecretInvalid(null))
+        val ready = prepare(accessoryId)
+        if (ready !is Preparation.Ready) return (ready as Preparation.Refused).step
         val read = try {
-            bluetooth.readHistory(info.mac, secret) { progress -> report(progress.toStep()) }
+            bluetooth.readHistory(ready.info.mac, ready.secret) { progress -> report(progress.toStep()) }
         } finally {
-            secret.wipe()
+            ready.secret.wipe()
         }
-        val records = when (read) {
-            is FountainReadResult.Failure -> return failed(read.reason)
-            is FountainReadResult.Success -> read.records
+        return when (read) {
+            is FountainReadResult.Failure -> failed(read.reason)
+            is FountainReadResult.Success -> upload(ready.info, read.records, report)
         }
-        return upload(info, records, report)
+    }
+
+    private sealed interface Preparation {
+        class Ready(val info: BleSyncInfo, val secret: FountainSecret) : Preparation
+
+        class Refused(val step: DrinkSyncStep.Failed) : Preparation
+    }
+
+    /** The phone's Bluetooth checked, then the server asked for the fountain's address and secret. */
+    private suspend fun prepare(accessoryId: Long): Preparation {
+        val off = when (bluetooth.availability()) {
+            BluetoothAvailability.Unavailable -> FountainLinkFailure.BluetoothUnavailable
+            BluetoothAvailability.Off -> FountainLinkFailure.BluetoothOff
+            BluetoothAvailability.Ready -> null
+        }
+        if (off != null) return Preparation.Refused(failed(off))
+        val answer = repository.bleSync(accessoryId)
+        val info = (answer as? Outcome.Success)?.value
+        val secret = info?.secret
+        return when {
+            answer is Outcome.Failure -> Preparation.Refused(DrinkSyncStep.Failed(serverFailure(answer.error)))
+            info?.syncSupported != true -> Preparation.Refused(DrinkSyncStep.Failed(DrinkSyncFailure.Unsupported))
+            secret == null -> Preparation.Refused(DrinkSyncStep.Failed(DrinkSyncFailure.SecretInvalid(null)))
+            else -> Preparation.Ready(info, secret)
+        }
     }
 
     private suspend fun upload(
@@ -123,12 +137,13 @@ class SyncDrinksUseCase @Inject constructor(
      * but freshness: the cards are on the server, and the next refresh brings them.
      */
     private suspend fun refreshDays(times: List<Instant>) {
-        val days: List<LocalDate> = times.map { LocalDate.ofInstant(it, clock.zone) }
+        val days: List<LocalDate> = times.map { it.atZone(clock.zone).toLocalDate() }
             .distinct().sortedDescending().take(MAX_DAYS_REFRESHED)
         days.forEach { timeline.refreshDay(it) }
     }
 
-    private fun failed(reason: FountainLinkFailure) = DrinkSyncStep.Failed(DrinkSyncFailure.Link(reason))
+    private fun failed(reason: FountainLinkFailure): DrinkSyncStep.Failed =
+        DrinkSyncStep.Failed(DrinkSyncFailure.Link(reason))
 
     private fun serverFailure(error: DomainError): DrinkSyncFailure {
         val server = error as? DomainError.Server
