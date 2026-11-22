@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -140,9 +141,30 @@ private fun StatusIcon(state: DrinkSyncState, tint: Color) {
     if (icon != null) {
         Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
     } else {
-        CircularProgressIndicator(color = PkTheme.colors.accent, strokeWidth = 2.dp, modifier = Modifier.size(20.dp))
+        SearchingIndicator()
     }
 }
+
+/**
+ * The spinner while the fountain is searched for. Still in inspection mode (previews, screenshot
+ * tests): animated, it never lets Robolectric's looper go idle and the capture hangs.
+ */
+@Composable
+private fun SearchingIndicator() {
+    val modifier = Modifier.size(20.dp)
+    if (LocalInspectionMode.current) {
+        CircularProgressIndicator(
+            progress = { STILL_PROGRESS },
+            color = PkTheme.colors.accent,
+            strokeWidth = 2.dp,
+            modifier = modifier,
+        )
+    } else {
+        CircularProgressIndicator(color = PkTheme.colors.accent, strokeWidth = 2.dp, modifier = modifier)
+    }
+}
+
+private const val STILL_PROGRESS = 0.25f
 
 @Composable
 private fun statusText(state: DrinkSyncState): String {

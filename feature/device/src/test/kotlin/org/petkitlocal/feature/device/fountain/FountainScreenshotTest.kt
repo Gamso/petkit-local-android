@@ -9,7 +9,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -100,14 +102,22 @@ class FountainScreenshotTest(private val variant: ScreenshotVariant) {
         if (variant.fontScale != 1f) return
         states.chunked(SYNC_CARDS_PER_IMAGE).forEachIndexed { index, chunk ->
             capture("${name}_${index + 1}") {
-                Column(
-                    Modifier.background(PkTheme.colors.background).padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    chunk.forEach {
-                        DrinkSyncCard(it, Household.today, Household.zone, onSync = {}, onOpenSettings = {})
-                    }
+                // Inspection mode stills the searching spinner, which would never let the capture idle.
+                CompositionLocalProvider(LocalInspectionMode provides true) {
+                    SyncCards(chunk)
                 }
+            }
+        }
+    }
+
+    @Composable
+    private fun SyncCards(chunk: List<DrinkSyncState>) {
+        Column(
+            Modifier.background(PkTheme.colors.background).padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            chunk.forEach {
+                DrinkSyncCard(it, Household.today, Household.zone, onSync = {}, onOpenSettings = {})
             }
         }
     }
