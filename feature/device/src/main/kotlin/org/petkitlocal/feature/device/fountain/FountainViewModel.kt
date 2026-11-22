@@ -10,12 +10,15 @@ import java.time.ZoneId
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -28,6 +31,13 @@ import org.petkitlocal.core.domain.device.SetEntityValueUseCase
 import org.petkitlocal.core.domain.devicepage.DevicePart
 import org.petkitlocal.core.domain.devicepage.Hotspot
 import org.petkitlocal.core.domain.devicepage.RefreshDevicePageUseCase
+import org.petkitlocal.core.domain.drinksync.BluetoothAccess
+import org.petkitlocal.core.domain.drinksync.DrinkSyncFailure
+import org.petkitlocal.core.domain.drinksync.DrinkSyncRules
+import org.petkitlocal.core.domain.drinksync.DrinkSyncStep
+import org.petkitlocal.core.domain.drinksync.FountainLinkFailure
+import org.petkitlocal.core.domain.drinksync.ObserveLastDrinkSyncUseCase
+import org.petkitlocal.core.domain.drinksync.SyncDrinksUseCase
 import org.petkitlocal.core.domain.fountain.FountainPage
 import org.petkitlocal.core.domain.fountain.ObserveFountainUseCase
 import org.petkitlocal.core.domain.home.TodayUseCase
@@ -69,6 +79,8 @@ data class FountainUiState(
     val editor: SettingEditorState? = null,
     /** What "Seen 2 min ago" counts from: the page's clock, moved on every minute while shown. */
     val now: Instant = Instant.EPOCH,
+    /** A CTW3's drink history synced over the phone's Bluetooth (issue #104). */
+    val drinkSync: DrinkSyncState = DrinkSyncState(),
 ) : PageLoadState {
     val offline: Boolean get() = liveUnreachable || refreshError is DomainError.Network
 
@@ -80,6 +92,24 @@ data class FountainUiState(
 
     /** The hotspot of [openPart], as the cache has it now. */
     val openHotspot: Hotspot? get() = page?.hotspots?.firstOrNull { it.part == openPart }
+
+    /** Whether the page offers to sync the drinks over Bluetooth: a CTW3 ([DrinkSyncRules]). */
+    val syncsDrinks: Boolean get() = page?.device?.let(DrinkSyncRules::canSync) == true
+}
+
+/**
+ * The drink sync's card: what the last press is doing or did ([step], null before the first one),
+ * whether Android is being asked for the Bluetooth permissions, and when a sync last succeeded on
+ * this phone.
+ */
+data class DrinkSyncState(
+    val step: DrinkSyncStep? = null,
+    val askingPermission: Boolean = false,
+    val lastSync: Instant? = null,
+) {
+    /** From the press until the sync is over: the button waits meanwhile. */
+    val running: Boolean
+        get() = askingPermission || (step != null && step !is DrinkSyncStep.Done && step !is DrinkSyncStep.Failed)
 }
 
 /**
@@ -102,6 +132,9 @@ class FountainViewModel @Inject constructor(
     setEntityValue: SetEntityValueUseCase,
     private val today: TodayUseCase,
     private val clock: Clock,
+    private val syncDrinks: SyncDrinksUseCase,
+    observeLastDrinkSync: ObserveLastDrinkSyncUseCase,
+    private val bluetoothAccess: BluetoothAccess,
 ) : ViewModel() {
     val deviceId: Long = checkNotNull(savedStateHandle[DEVICE_ID_KEY]) { "no $DEVICE_ID_KEY argument" }
 
@@ -110,12 +143,22 @@ class FountainViewModel @Inject constructor(
     private val day = MutableStateFlow(today())
     private val local = MutableStateFlow(FountainUiState(zone = clock.zone, now = clock.instant()))
     private var modeConfirmation: Job? = null
+    private val drinkSync = MutableStateFlow(DrinkSyncState())
+    private var syncJob: Job? = null
+    private val bluetoothRequests = Channel<Unit>(Channel.BUFFERED)
+
+    /** Each time Android must be asked for the Bluetooth permissions; answer with [onBluetoothPermissionResult]. */
+    val requestBluetoothPermission: Flow<Unit> = bluetoothRequests.receiveAsFlow()
+
+    private val pageState = combine(local, drinkSync, observeLastDrinkSync(deviceId)) { state, sync, lastSync ->
+        state.copy(drinkSync = sync.copy(lastSync = lastSync))
+    }
 
     val uiState: StateFlow<FountainUiState> = combine(
         day.flatMapLatest { observeFountain(deviceId, it) },
         observeLiveUpdates(),
         commands.state,
-        local,
+        pageState,
         editor.open,
     ) { page, live, commands, state, editing ->
         state.copy(
@@ -205,6 +248,40 @@ class FountainViewModel @Inject constructor(
     /** The editor's value: checked first, then sent; the editor closes once the server took it. */
     fun onSave(key: String, value: EntityValue) {
         uiState.value.page?.device?.entity(key)?.let { editor.onSave(it, value) }
+    }
+
+    /**
+     * Sync drinks: the fountain's history read over the phone's Bluetooth and sent to the server,
+     * the card saying each step. Without the Bluetooth permissions, Android is asked first (the
+     * card says why); a press while a sync runs does nothing.
+     */
+    fun onSyncDrinks() {
+        if (drinkSync.value.running) return
+        if (!bluetoothAccess.granted()) {
+            drinkSync.update { it.copy(askingPermission = true, step = null) }
+            bluetoothRequests.trySend(Unit)
+            return
+        }
+        startSync()
+    }
+
+    /** Android's answer about the Bluetooth permissions: allowed, the sync starts; refused, the card says so. */
+    fun onBluetoothPermissionResult(granted: Boolean) {
+        drinkSync.update { it.copy(askingPermission = false) }
+        if (granted) {
+            startSync()
+        } else {
+            drinkSync.update {
+                it.copy(step = DrinkSyncStep.Failed(DrinkSyncFailure.Link(FountainLinkFailure.PermissionMissing)))
+            }
+        }
+    }
+
+    private fun startSync() {
+        syncJob?.cancel()
+        syncJob = viewModelScope.launch {
+            syncDrinks(deviceId).collect { step -> drinkSync.update { it.copy(step = step) } }
+        }
     }
 
     /** A minute has passed: "Seen 2 min ago" counts it. */

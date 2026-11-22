@@ -9,6 +9,19 @@
     <!-- Talking through a camera from the live video screen: asked the first time Talk is held
          (feature:live). -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- A CTW3 fountain's drink history, read over the phone's own Bluetooth from its page, asked
+         the first time Sync drinks is pressed (feature:device, issue #104). Android 12+: nearby
+         devices, the scan never used for location. Android 10-11 (minSdk 29): the legacy pair and
+         the precise location a scan needs there. A phone without Bluetooth LE installs the app
+         all the same and says so on the button's press. -->
+    <uses-feature android:name="android.hardware.bluetooth_le" android:required="false" />
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation"
+        tools:targetApi="s" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30" />
 
     <application
         android:name=".PetkitLocalApplication"

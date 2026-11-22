@@ -31,6 +31,8 @@ info:
     here too, under their own id, as in Home Assistant: `connection` is `ble`,
     `parent_id` names the device relaying them, and that device lists them in
     `accessories`. They have entities and actions, never a schedule or live video.
+    A CTW3's drink history is read by the app itself, over its own Bluetooth link
+    (`/accessories/{id}/ble-sync`, `/accessories/{id}/drinks`).
 
     Adding a field to a response is a compatible change; removing or renaming one
     is not and requires `/app/v2`.
@@ -42,6 +44,7 @@ tags:
   - name: meta
   - name: auth
   - name: devices
+  - name: accessories
   - name: updates
   - name: video
   - name: talk
@@ -623,6 +626,115 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
+
+  /accessories/{id}/ble-sync:
+    get:
+      tags: [accessories]
+      operationId: getAccessoryBleSync
+      summary: What the phone needs to sync a fountain's drink history over Bluetooth itself.
+      description: |
+        A CTW3's drink history is read only over a DIRECT phone-to-fountain Bluetooth
+        link: the device relaying it passes reads, never the history. So the app runs
+        the session itself (PetKit's: security check `86` with `secret`, clock `84`,
+        then `212` and the history stream) and uploads the records to
+        `POST /accessories/{id}/drinks`.
+
+        **`secret` is a credential**: the accessory's pairing secret, which the fountain
+        checks before it answers anything else. Keep it in memory for the session
+        only; do not log, cache or show it. The answer carries `Cache-Control: no-store`
+        and the server never logs the value.
+
+        A CTW3 with no secret held is refused with 409 `secret_unknown`: the owner gets
+        it in the petkit-local panel, with **Import from PetKit** on the device the
+        fountain is paired to. That button is the only thing that asks PetKit's
+        account, and nothing here presses it. An accessory of any other kind answers
+        with `sync_supported` false and no secret.
+      parameters:
+        - { $ref: "#/components/parameters/AccessoryId" }
+      responses:
+        "200":
+          description: The sync details.
+          headers:
+            Cache-Control:
+              description: Always `no-store`.
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BleSync" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404":
+          description: "`accessory_not_found`: no Bluetooth accessory has this id (a WiFi
+            device's id included)."
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "409":
+          description: |
+            `secret_unknown`: no pairing secret is held for this CTW3, or
+            `secret_invalid`: the one held is not 8 bytes of hex. `message` says what
+            the owner does in the panel (Import from PetKit). Retry once it is done.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /accessories/{id}/drinks:
+    post:
+      tags: [accessories]
+      operationId: uploadAccessoryDrinks
+      summary: Upload drink records the phone read from a CTW3 over Bluetooth.
+      description: |
+        Each record is stored exactly as one relayed by the fountain's parent would
+        be: one `drinking` timeline card on the ACCESSORY's id, timed by
+        `stay_time`. A record's identity is the accessory and its `work_time`, so a
+        record already held (from an earlier upload, or from the relay) is counted
+        in `duplicates` and not doubled. Records are not filtered by the cursor:
+        an upload can be retried, or split and sent in any order. Send only what
+        is newer than `BleSync.history_cursor` to keep uploads small.
+
+        A record that is not plausible is counted in `skipped`, never refused: a
+        field missing or not an integer, out of its width, a negative stay, or a
+        time before 2020 or more than a day ahead. At most 5000 records and 512 KiB
+        per upload; send a longer history in several. Every `/ws` socket gets the
+        new cards that fall within its live window as `timeline` messages.
+      parameters:
+        - { $ref: "#/components/parameters/AccessoryId" }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/DrinkUploadRequest" }
+      responses:
+        "200":
+          description: Stored.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DrinkUploadResult" }
+        "400":
+          description: "`sync_unsupported`: the accessory is not a CTW3; `bad_parameter`:
+            `records` is not a list, or `source` is not `phone-ble`; `bad_json`."
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404":
+          description: "`accessory_not_found`."
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "413":
+          description: "`too_many_records` (over 5000) or `payload_too_large` (over
+            512 KiB). Nothing was stored; split the upload."
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "415": { $ref: "#/components/responses/UnsupportedMediaType" }
+        "500":
+          description: "`drinks_not_stored`: the server could not write them. Nothing
+            changed; send them again."
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+        "503": { $ref: "#/components/responses/Unavailable" }
 
   /timeline:
     get:
@@ -1315,6 +1427,13 @@ components:
       in: path
       required: true
       schema: { type: integer }
+    AccessoryId:
+      name: id
+      in: path
+      required: true
+      description: A Bluetooth accessory's id (`DeviceSummary.id` where `connection`
+        is `ble`).
+      schema: { type: integer }
     PetId:
       name: id
       in: path
@@ -1854,6 +1973,86 @@ components:
       properties:
         ok: { type: boolean, const: true }
         delivered: { $ref: "#/components/schemas/Delivered" }
+
+    BleSync:
+      type: object
+      required: [id, type, mac, sync_supported, secret, history_cursor, clock_epoch]
+      properties:
+        id: { type: integer }
+        type:
+          type: string
+          description: The accessory's type, as `DeviceSummary.type` (`ctw3`).
+        mac:
+          type: string
+          description: Its Bluetooth address, `AA:BB:CC:DD:EE:FF`, as Android's
+            `BluetoothAdapter.getRemoteDevice` takes it.
+        sync_supported:
+          type: boolean
+          description: Whether the app can sync this accessory's history (a `ctw3`
+            today). When false, `secret` and `history_cursor` are null.
+        secret:
+          type: [string, "null"]
+          format: password
+          pattern: "^[0-9a-f]{16}$"
+          description: |
+            CREDENTIAL. The pairing secret, 8 bytes as 16 lowercase hex digits,
+            already left-padded with zeros: send these bytes as the data of the
+            security check (`86`). Never log, persist or display it.
+        history_cursor:
+          type: [integer, "null"]
+          description: Unix seconds of the newest drink record petkit-local holds for
+            this accessory; null for none. A record's Unix time is
+            `work_time + clock_epoch`.
+        clock_epoch:
+          type: integer
+          const: 946684800
+          description: The fountain's clock counts seconds from 2000-01-01 UTC; this is
+            that instant in Unix seconds.
+
+    DrinkUploadRequest:
+      type: object
+      required: [records]
+      properties:
+        records:
+          type: array
+          maxItems: 5000
+          items: { $ref: "#/components/schemas/DrinkRecordUpload" }
+        source:
+          type: string
+          const: phone-ble
+          description: Where the records were read. `phone-ble` (the default) is the
+            only value.
+
+    DrinkRecordUpload:
+      type: object
+      required: [work_time, stay_time]
+      properties:
+        work_time:
+          type: integer
+          minimum: 0
+          maximum: 4294967295
+          description: The record's `workTime` exactly as the fountain sent it (a
+            big-endian u32), seconds since 2000-01-01 UTC. Do not convert it; it is
+            the record's identity.
+        stay_time:
+          type: integer
+          minimum: 0
+          maximum: 32767
+          description: The record's `stayTime` (a signed 16-bit value), the seconds the
+            pet drank. A negative value is skipped.
+
+    DrinkUploadResult:
+      type: object
+      required: [stored, duplicates, skipped, cursor]
+      properties:
+        stored: { type: integer, description: Records stored for the first time. }
+        duplicates: { type: integer, description: Records already held. }
+        skipped:
+          type: integer
+          description: Records that were not plausible and were left out.
+        cursor:
+          type: [integer, "null"]
+          description: "`BleSync.history_cursor` after this upload."
 
     ActionResult:
       type: object

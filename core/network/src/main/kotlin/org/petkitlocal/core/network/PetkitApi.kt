@@ -4,6 +4,7 @@ import okhttp3.RequestBody
 import okhttp3.ResponseBody
 import org.petkitlocal.core.network.dto.ActionRequestDto
 import org.petkitlocal.core.network.dto.ActionResultDto
+import org.petkitlocal.core.network.dto.BleSyncDto
 import org.petkitlocal.core.network.dto.ChangePasswordRequestDto
 import org.petkitlocal.core.network.dto.ChangePasswordResponseDto
 import org.petkitlocal.core.network.dto.DeferredFeedListResponseDto
@@ -11,6 +12,8 @@ import org.petkitlocal.core.network.dto.DeferredFeedRequestDto
 import org.petkitlocal.core.network.dto.DeferredFeedResultDto
 import org.petkitlocal.core.network.dto.DeviceListResponseDto
 import org.petkitlocal.core.network.dto.DeviceResponseDto
+import org.petkitlocal.core.network.dto.DrinkUploadRequestDto
+import org.petkitlocal.core.network.dto.DrinkUploadResultDto
 import org.petkitlocal.core.network.dto.EntityWriteRequestDto
 import org.petkitlocal.core.network.dto.EntityWriteResultDto
 import org.petkitlocal.core.network.dto.EventResponseDto
@@ -131,6 +134,15 @@ interface PetkitApi {
 
     @DELETE("devices/{id}/deferred-feeds/{feed_id}")
     suspend fun deleteDeferredFeed(@Path("id") id: Long, @Path("feed_id") feedId: String): WriteResultDto
+
+    // accessories: a CTW3's drink history, read by the phone over its own Bluetooth
+
+    /** Answers 409 `secret_unknown` / `secret_invalid` for a CTW3 whose pairing secret is not held. */
+    @GET("accessories/{id}/ble-sync")
+    suspend fun getAccessoryBleSync(@Path("id") id: Long): BleSyncDto
+
+    @POST("accessories/{id}/drinks")
+    suspend fun uploadAccessoryDrinks(@Path("id") id: Long, @Body body: DrinkUploadRequestDto): DrinkUploadResultDto
 
     // timeline
 

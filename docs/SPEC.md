@@ -2,7 +2,8 @@
 
 The Android client for [petkit-local](https://github.com/Gamso/petkit-local): it talks only to
 the user's own petkit-local server, through the authenticated phone-app API (`/app/v1`), and
-never to PetKit's cloud or to Home Assistant.
+never to PetKit's cloud or to Home Assistant. The one exception is a CTW3 fountain the owner stands
+next to, whose drink history the phone reads over its own Bluetooth (§5.9, decision 6).
 
 Mockups: the design canvas "Android app mockups" (eight screens, French copy). Screens below are
 numbered as on the canvas.
@@ -269,6 +270,18 @@ screen).
   screen's editor. On battery, Continuous and Intermittent stay enabled: a tap is sent, and the
   server's refusal (422 `on_battery`) is said in the banner over the bar, in the app's words.
   Pause works on battery too.
+- **Drink history** (CTW3, issue #104): the fountain keeps its drinks and gives them only over a
+  direct Bluetooth link, so its page has a card with **Sync drinks** ("Synchroniser les
+  passages"). The button is always there; it waits only while a sync runs. Pressed, the card
+  says each step: Searching for the fountain…, Connected over Bluetooth, Reading N drinks…,
+  Sending N drinks to petkit-local…, then Done (N new drinks, or none), or why it failed:
+  Bluetooth off, no Bluetooth LE on the phone, the permission refused (with a way to Android's
+  settings), the fountain not found, petkit-local holding no pairing key (`secret_unknown`, with
+  the server's own words), the fountain refusing the key, the clock or the stream, the fountain no
+  longer answering, the link lost, or the server unreachable. Under it, when a sync last
+  succeeded on this phone. The permissions are asked only on the press, the card saying why. The
+  records newer than what the server holds are uploaded, and the timeline of the days they fall
+  on is read again, so History and the page's activity show them.
 
 ## 6. Cross-cutting behaviour
 
@@ -367,3 +380,8 @@ screen).
    hold or toggle open, and the owner chose press-and-hold.
    - Changed on 2026-11-19: the first version of this decision kept two-way talk out of v1, as it
      was thought to need WebRTC through a TURN relay.
+6. **A CTW3's drink history over the phone's own Bluetooth** (ADR 0008, issue #104; server side
+   petkit-local#141): the fountain answers its history only over a direct link, so the app runs
+   PetKit's own session with it, on the owner's press only, with the address and pairing secret
+   petkit-local gives, and uploads the records to petkit-local. The secret is kept in memory for
+   that one sync and never logged or stored.

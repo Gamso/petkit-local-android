@@ -470,6 +470,69 @@ class ContractTest {
             assertEquals(401, api.patch(path, body = """{"pets_source":"local"}""", token = null).status)
         }
 
+    @Test
+    @Order(15)
+    fun `accessories - a CTW3's Bluetooth sync and its drinks`() =
+        mockTest { world, api ->
+            val sync = "/accessories/{id}/ble-sync"
+            val drinks = "/accessories/{id}/drinks"
+            assertEquals(401, api.get(sync, "/accessories/${Seed.CTW3}/ble-sync", token = null).status)
+            api.login()
+
+            val details = api.get(sync, "/accessories/${Seed.CTW3}/ble-sync")
+            assertEquals(200, details.status)
+            assertEquals("no-store", details.headers[HttpHeaders.CacheControl])
+            assertEquals(Seed.CTW3_SECRET, details["secret"].jsonPrimitive.content)
+            assertEquals("A4:C1:38:00:0B:BB", details["mac"].jsonPrimitive.content)
+            assertEquals(JsonNull, details["history_cursor"])
+            // A W5 keeps no history; a WiFi device is no accessory.
+            assertEquals(false, api.get(sync, "/accessories/${Seed.W5}/ble-sync")["sync_supported"].jsonPrimitive.boolean)
+            assertEquals(404, api.get(sync, "/accessories/${Seed.T4}/ble-sync").status)
+
+            // 2026-01-01T00:00:00Z and an hour later, in the fountain's clock.
+            val first = 1_767_225_600L - 946_684_800L
+            val body =
+                """{"records":[{"work_time":$first,"stay_time":12},{"work_time":${first + 3600},"stay_time":30},""" +
+                    """{"work_time":5,"stay_time":3},{"work_time":$first,"stay_time":-1}],"source":"phone-ble"}"""
+            val stored = api.post(drinks, "/accessories/${Seed.CTW3}/drinks", body).json
+            assertEquals(listOf(2, 0, 2), listOf("stored", "duplicates", "skipped").map { stored[it]!!.jsonPrimitive.int })
+            assertEquals(1_767_225_600L + 3600, stored["cursor"]!!.jsonPrimitive.content.toLong())
+            val again = api.post(drinks, "/accessories/${Seed.CTW3}/drinks", body).json
+            assertEquals(2, again["duplicates"]!!.jsonPrimitive.int)
+            assertEquals(
+                1_767_225_600L + 3600,
+                api
+                    .get(sync, "/accessories/${Seed.CTW3}/ble-sync")["history_cursor"]
+                    .jsonPrimitive.content
+                    .toLong(),
+            )
+            val cards =
+                api
+                    .get("/timeline", "/timeline?device=${Seed.CTW3}&limit=50")["items"]
+                    .jsonArray
+                    .map { it.jsonObject }
+                    .filter { it["kind"]!!.jsonPrimitive.content == "drinking" }
+            assertEquals(listOf(30, 12), cards.map { it["duration_sec"]!!.jsonPrimitive.int })
+
+            assertEquals("sync_unsupported", api.post(drinks, "/accessories/${Seed.W5}/drinks", """{"records":[]}""").error)
+            assertEquals("bad_parameter", api.post(drinks, "/accessories/${Seed.CTW3}/drinks", """{"records":{}}""").error)
+            assertEquals("bad_parameter", api.post(drinks, "/accessories/${Seed.CTW3}/drinks", """{"records":[],"source":"relay"}""").error)
+            val tooMany = (0..5000).joinToString(",", """{"records":[""", "]}") { """{"work_time":$it,"stay_time":1}""" }
+            assertEquals(413, api.post(drinks, "/accessories/${Seed.CTW3}/drinks", tooMany).status)
+            assertEquals(
+                415,
+                api.call(HttpMethod.Post, drinks, "/accessories/${Seed.CTW3}/drinks", "x", contentType = ContentType.Text.Plain).status,
+            )
+            assertEquals(404, api.post(drinks, "/accessories/99/drinks", """{"records":[]}""").status)
+            assertEquals(401, api.post(drinks, "/accessories/${Seed.CTW3}/drinks", """{"records":[]}""", token = null).status)
+
+            // No secret held, then one that is not 8 bytes: each refused with its code.
+            api.client.control(HttpMethod.Put, "/devices/${Seed.CTW3}/ble-secret", """{"secret":null}""")
+            assertEquals("secret_unknown", api.get(sync, "/accessories/${Seed.CTW3}/ble-sync").error)
+            synchronized(world.lock) { world.devices.getValue(Seed.CTW3).bleSecret = "abc" }
+            assertEquals("secret_invalid", api.get(sync, "/accessories/${Seed.CTW3}/ble-sync").error)
+        }
+
     /**
      * UnifiedPush: in the spec, not served, as the app does not use it (ADR 0007). Every session
      * the mock hands out says `push: null`, which is true. The notification socket is covered by

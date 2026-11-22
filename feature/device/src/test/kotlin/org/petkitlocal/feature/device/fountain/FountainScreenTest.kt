@@ -1,15 +1,21 @@
 package org.petkitlocal.feature.device.fountain
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
@@ -33,6 +39,9 @@ import org.junit.runner.RunWith
 import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.DomainError
 import org.petkitlocal.core.domain.devicepage.DevicePart
+import org.petkitlocal.core.domain.drinksync.DrinkSyncFailure
+import org.petkitlocal.core.domain.drinksync.DrinkSyncStep
+import org.petkitlocal.core.domain.drinksync.FountainLinkFailure
 import org.petkitlocal.core.ui.LiveCardTestTags
 import org.petkitlocal.feature.device.DeviceFixtures
 import org.petkitlocal.feature.device.DeviceNavigation
@@ -73,6 +82,8 @@ class FountainScreenTest {
         onEdit = { calls += "edit:$it" },
         onPetFilter = { calls += "pet:$it" },
         onHotspot = { calls += "hotspot:$it" },
+        onSyncDrinks = { calls += "sync" },
+        onOpenAppSettings = { calls += "app-settings" },
         commands = PageCommandCallbacks(
             onAction = { calls += "action:${it.key}" },
             onConfirmAction = { calls += "confirm" },
@@ -495,5 +506,80 @@ class FountainScreenTest {
 
     private companion object {
         const val WAITING = "Requested, waiting for the fountain"
+    }
+
+    @Test
+    fun `a CTW3 offers Sync drinks, says it was never synced, and the press reaches the page`() {
+        show(FountainFixtures.paused)
+        compose.onNodeWithTag(PageTestTags.LIST).performScrollToNode(hasTestTag(FountainTestTags.DRINK_SYNC))
+
+        compose.onNodeWithTag(FountainTestTags.DRINK_SYNC_LAST).assertTextEquals("Never synced from this phone")
+        compose.onNodeWithTag(FountainTestTags.DRINK_SYNC_STATUS).assertDoesNotExist()
+        compose.onNodeWithTag(FountainTestTags.DRINK_SYNC_BUTTON).assertIsEnabled().performClick()
+        assertEquals(listOf("sync"), calls)
+    }
+
+    @Test
+    fun `a W5 has no drink sync`() {
+        show(FountainFixtures.bluetooth)
+        compose.onNodeWithTag(FountainTestTags.DRINK_SYNC).assertDoesNotExist()
+    }
+
+    @Test
+    fun `each step of a sync is said on the card, and the button waits while it runs`() {
+        var state by mutableStateOf(
+            FountainFixtures.paused.copy(drinkSync = DrinkSyncState(step = DrinkSyncStep.Searching)),
+        )
+        compose.setContent { PkTheme { FountainScreen(state, navigation, callbacks) } }
+        compose.onNodeWithTag(PageTestTags.LIST).performScrollToNode(hasTestTag(FountainTestTags.DRINK_SYNC))
+        val status = compose.onNodeWithTag(FountainTestTags.DRINK_SYNC_STATUS)
+
+        status.assertTextContains("Searching for the fountain…")
+        compose.onNodeWithTag(FountainTestTags.DRINK_SYNC_BUTTON).assertIsNotEnabled()
+        state = state.copy(drinkSync = DrinkSyncState(step = DrinkSyncStep.Connected))
+        status.assertTextContains("Connected over Bluetooth")
+        state = state.copy(drinkSync = DrinkSyncState(step = DrinkSyncStep.Reading(14)))
+        status.assertTextContains("Reading 14 drinks…")
+        state = state.copy(
+            drinkSync = DrinkSyncState(step = DrinkSyncStep.Done(12), lastSync = FountainFixtures.now.minusSeconds(60)),
+        )
+        status.assertTextContains("Done: 12 new drinks")
+        compose.onNodeWithTag(
+            FountainTestTags.DRINK_SYNC_LAST,
+        ).assertTextContains("Last synced today at", substring = true)
+        compose.onNodeWithTag(FountainTestTags.DRINK_SYNC_BUTTON).assertIsEnabled()
+    }
+
+    @Test
+    fun `a failed sync says why, with the server's words or a way to settings`() {
+        var state by mutableStateOf(
+            FountainFixtures.paused.copy(
+                drinkSync = DrinkSyncState(
+                    step = DrinkSyncStep.Failed(DrinkSyncFailure.SecretUnknown("Press Import from PetKit.")),
+                ),
+            ),
+        )
+        compose.setContent { PkTheme { FountainScreen(state, navigation, callbacks) } }
+        compose.onNodeWithTag(PageTestTags.LIST).performScrollToNode(hasTestTag(FountainTestTags.DRINK_SYNC))
+        val status = compose.onNodeWithTag(FountainTestTags.DRINK_SYNC_STATUS)
+
+        status.assertTextContains("petkit-local has no pairing key for this fountain.")
+        status.assertTextContains("Press Import from PetKit.")
+
+        state = state.copy(
+            drinkSync = DrinkSyncState(
+                step = DrinkSyncStep.Failed(DrinkSyncFailure.Link(FountainLinkFailure.BluetoothOff)),
+            ),
+        )
+        status.assertTextContains("Bluetooth is off. Turn it on, then sync again.")
+        compose.onNodeWithTag(FountainTestTags.DRINK_SYNC_BUTTON).assertIsEnabled()
+
+        state = state.copy(
+            drinkSync = DrinkSyncState(
+                step = DrinkSyncStep.Failed(DrinkSyncFailure.Link(FountainLinkFailure.PermissionMissing)),
+            ),
+        )
+        compose.onNodeWithText("Open settings").performClick()
+        assertEquals(listOf("app-settings"), calls)
     }
 }

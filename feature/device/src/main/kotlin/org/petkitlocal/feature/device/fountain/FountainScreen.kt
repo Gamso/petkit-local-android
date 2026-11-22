@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -19,7 +20,9 @@ import org.petkitlocal.core.designsystem.theme.PkTheme
 import org.petkitlocal.core.domain.devicepage.DevicePart
 import org.petkitlocal.core.domain.fountain.FountainPage
 import org.petkitlocal.core.domain.model.EntityValue
+import org.petkitlocal.core.ui.BluetoothPermissionRequests
 import org.petkitlocal.core.ui.rememberServerLabels
+import org.petkitlocal.core.ui.talk.openAppSettings
 import org.petkitlocal.feature.device.DeviceNavigation
 import org.petkitlocal.feature.device.R
 import org.petkitlocal.feature.device.common.ActivityCard
@@ -62,6 +65,10 @@ data class FountainCallbacks(
     val onSave: (key: String, value: EntityValue) -> Unit = { _, _ -> },
     val onPetFilter: (Long?) -> Unit = {},
     val onHotspot: (DevicePart?) -> Unit = {},
+    /** The drink history card's Sync drinks. */
+    val onSyncDrinks: () -> Unit = {},
+    /** Android's page for this app, where a refused Bluetooth permission is allowed. */
+    val onOpenAppSettings: () -> Unit = {},
     val commands: PageCommandCallbacks = PageCommandCallbacks(),
 )
 
@@ -69,6 +76,8 @@ data class FountainCallbacks(
 internal fun FountainRoute(navigation: DeviceNavigation, viewModel: FountainViewModel = hiltViewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val clips = rememberRecentClips(navigation)
+    val context = LocalContext.current
+    BluetoothPermissionRequests(viewModel.requestBluetoothPermission, viewModel::onBluetoothPermissionResult)
     // "Seen 2 min ago" moves on while the page is shown.
     LaunchedEffect(viewModel) {
         while (true) {
@@ -93,6 +102,8 @@ internal fun FountainRoute(navigation: DeviceNavigation, viewModel: FountainView
             onSave = viewModel::onSave,
             onPetFilter = viewModel::onPetFilter,
             onHotspot = viewModel::onHotspot,
+            onSyncDrinks = viewModel::onSyncDrinks,
+            onOpenAppSettings = { openAppSettings(context) },
             commands = PageCommandCallbacks(
                 onAction = viewModel::onAction,
                 onConfirmAction = viewModel::onConfirmAction,
@@ -109,7 +120,8 @@ private const val TICK_MS = 60_000L
  * The fountain page: header with the settings gear; under it the battery and the features that
  * are on, and for a Bluetooth fountain when it was seen and through which device (online or not);
  * a camera's live card; the hero with the parts the model has, the live status line, today against yesterday, the
- * drinks' 24-hour chart and the day's activity on a fountain that records them, a camera's recent
+ * drinks' 24-hour chart and the day's activity on a fountain that records them, a CTW3's drink
+ * history synced over the phone's Bluetooth, a camera's recent
  * clips, and the action sheet every device screen shares. When the server lets the fountain's
  * mode be set, the sheet's collapsed row is the mode selector, every action behind More; a
  * cordless fountain's battery mode there opens its times, and their editors over them.
@@ -221,6 +233,18 @@ private fun LazyListScope.fountainContent(
             RefreshBanner(uiState.offline, uiState.refreshError)
         }
     }
+    if (uiState.syncsDrinks) {
+        item(key = "drink-sync") {
+            DrinkSyncCard(
+                state = uiState.drinkSync,
+                today = uiState.now.atZone(uiState.zone).toLocalDate(),
+                zone = uiState.zone,
+                onSync = callbacks.onSyncDrinks,
+                onOpenSettings = callbacks.onOpenAppSettings,
+                modifier = Modifier.gutter(),
+            )
+        }
+    }
     if (page.recordsDrinks || page.pumpTodaySec != null) {
         item(key = "today") { FountainTodayCard(page, Modifier.gutter()) }
     }
@@ -307,6 +331,12 @@ object FountainTestTags {
     /** The bar's battery mode tile, and the window it opens. */
     const val BATTERY_MODE = "fountain:battery-mode"
     const val BATTERY_MODE_DIALOG = "fountain:battery-mode-dialog"
+
+    /** A CTW3's drink history card, its step or reason, its last sync and its Sync drinks. */
+    const val DRINK_SYNC = "fountain:drink-sync"
+    const val DRINK_SYNC_STATUS = "fountain:drink-sync:status"
+    const val DRINK_SYNC_LAST = "fountain:drink-sync:last"
+    const val DRINK_SYNC_BUTTON = "fountain:drink-sync:button"
 
     /** An option of the mode selector, by its value (`smart`, `continuous`...). */
     fun mode(option: String): String = "fountain:mode:$option"

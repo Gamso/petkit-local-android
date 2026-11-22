@@ -2,6 +2,9 @@ package org.petkitlocal.feature.device.fountain
 
 import java.time.Instant
 import org.petkitlocal.core.domain.DomainError
+import org.petkitlocal.core.domain.drinksync.DrinkSyncFailure
+import org.petkitlocal.core.domain.drinksync.DrinkSyncStep
+import org.petkitlocal.core.domain.drinksync.FountainLinkFailure
 import org.petkitlocal.core.domain.fountain.FountainPage
 import org.petkitlocal.core.domain.fountain.FountainRules
 import org.petkitlocal.core.domain.model.Device
@@ -213,6 +216,7 @@ object FountainFixtures {
         loaded = true,
         zone = Household.zone,
         now = now,
+        drinkSync = DrinkSyncState(step = DrinkSyncStep.Failed(DrinkSyncFailure.Link(FountainLinkFailure.NotFound))),
         refreshError = DomainError.Network("timeout"),
         commands = CommandState(
             feedback = CommandFeedback(
@@ -235,6 +239,7 @@ object FountainFixtures {
         loaded = true,
         zone = Household.zone,
         now = now,
+        drinkSync = DrinkSyncState(step = DrinkSyncStep.Done(12), lastSync = now.minusSeconds(48 * 60)),
         commands = CommandState(
             feedback = CommandFeedback(
                 CommandSubject.Setting("ctw3_mode", "Flow Mode"),
@@ -255,6 +260,41 @@ object FountainFixtures {
     )
 
     val sent = CommandResult.Sent(CommandDelivery.Mqtt)
+
+    /** The drink sync card's states, from idle to done: each one a golden (FountainScreenshotTest). */
+    val syncProgress: List<DrinkSyncState> = listOf(
+        DrinkSyncState(),
+        DrinkSyncState(lastSync = now.minus(java.time.Duration.ofHours(13).plusMinutes(20))),
+        DrinkSyncState(askingPermission = true),
+        DrinkSyncState(step = DrinkSyncStep.Searching),
+        DrinkSyncState(step = DrinkSyncStep.Connected),
+        DrinkSyncState(step = DrinkSyncStep.Reading(14)),
+        DrinkSyncState(step = DrinkSyncStep.Uploading(3)),
+        DrinkSyncState(step = DrinkSyncStep.Done(12), lastSync = now),
+        DrinkSyncState(step = DrinkSyncStep.Done(0), lastSync = now),
+    )
+
+    /** Every reason a sync fails, as the card says it. */
+    val syncFailures: List<DrinkSyncState> = listOf(
+        FountainLinkFailure.BluetoothUnavailable,
+        FountainLinkFailure.BluetoothOff,
+        FountainLinkFailure.PermissionMissing,
+        FountainLinkFailure.NotFound,
+        FountainLinkFailure.SecretRefused,
+        FountainLinkFailure.ClockRefused,
+        FountainLinkFailure.StreamRefused,
+        FountainLinkFailure.Timeout,
+        FountainLinkFailure.ConnectionLost,
+    ).map { DrinkSyncFailure.Link(it) }.plus(
+        listOf(
+            DrinkSyncFailure.SecretUnknown(
+                "petkit-local holds no pairing secret for this fountain: press Import from PetKit in the panel.",
+            ),
+            DrinkSyncFailure.SecretInvalid(null),
+            DrinkSyncFailure.Unsupported,
+            DrinkSyncFailure.Server(DomainError.Network("timeout")),
+        ),
+    ).map { DrinkSyncState(step = DrinkSyncStep.Failed(it), lastSync = now.minus(java.time.Duration.ofDays(3))) }
 
     private const val DAY = 86_400L
 

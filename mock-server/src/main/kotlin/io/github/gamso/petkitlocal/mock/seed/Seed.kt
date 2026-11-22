@@ -78,6 +78,10 @@ class Seed(
         ACCESSORIES.forEach { (accessory, parent) -> world.link(world.devices.getValue(accessory), world.devices.getValue(parent)) }
         // With its K3 linked, the T4 offers the K3's light (petkit-local#136): off until switched on.
         world.devices.getValue(T4).doc[MockDevice.K3_LIGHT.valuePath] = JsonPrimitive(0)
+        // Every accessory has its Bluetooth address; the CTW3's pairing secret is held (imported
+        // from PetKit in the panel), so the phone can sync its drink history (petkit-local#141).
+        ACCESSORIES.forEach { (accessory, _) -> world.devices.getValue(accessory).bleMac = macOf(accessory) }
+        world.devices.getValue(CTW3).bleSecret = CTW3_SECRET
         // A Bluetooth fountain whose last frame decoded three hours ago: out of its parent's range.
         world.devices.getValue(W5).lastSeen = clock.now() - 3 * 3600 - 412
         // Mochi has two face photos, Tigrou none; face ids come from the world's one counter.
@@ -492,6 +496,12 @@ class Seed(
                 SeedDevice(CTW3, "ctw3", null, "2.06", generation = 2),
                 SeedDevice(K3, "k3", null, "1.03"),
             )
+
+        /** The CTW3's pairing secret, as `BleSync.secret` gives it: 16 lowercase hex digits. */
+        const val CTW3_SECRET = "0000a1b2c3d4e5f6"
+
+        /** An accessory's Bluetooth address, made from its id: `A4:C1:38:00:0B:BB` for 3003. */
+        fun macOf(id: Int): String = "A4:C1:38:%02X:%02X:%02X".format(id shr 16 and 0xFF, id shr 8 and 0xFF, id and 0xFF)
 
         /** Each Bluetooth accessory and the device relaying it, in the order the parent lists them. */
         val ACCESSORIES = listOf(K3 to T4, W5 to D4SH, CTW3 to D4)

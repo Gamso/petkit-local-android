@@ -4,10 +4,14 @@
 package org.petkitlocal.feature.device.fountain
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -33,7 +37,8 @@ import org.robolectric.annotation.GraphicsMode
  * trouble with its relay offline and the server's refusal (neither has More: their one button is
  * on the filter's pill), the CTW3 unplugged, its battery mode filled and a mode refused with the
  * server's `on_battery`, all four also at 130 % font scale; the W7H whose drinks came without
- * durations, the W5's filter explanation and the CTW3's battery mode window. The golden images are
+ * durations, the W5's filter explanation, the CTW3's battery mode window, and its drink sync card in
+ * every state (issue #104). The golden images are
  * in src/test/screenshots.
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
@@ -85,6 +90,38 @@ class FountainScreenshotTest(private val variant: ScreenshotVariant) {
         }
     }
 
+    /** The drink sync card from idle to done, then every reason it fails: each state of #104 in two images. */
+    @Test
+    fun drinkSyncProgress() = captureSync("fountain_drink_sync_progress", FountainFixtures.syncProgress)
+
+    @Test
+    fun drinkSyncFailures() = captureSync("fountain_drink_sync_failures", FountainFixtures.syncFailures)
+
+    /** Five cards to an image, `<name>_1`, `<name>_2`..., so each fits the phone's height. */
+    private fun captureSync(name: String, states: List<DrinkSyncState>) {
+        if (variant.fontScale != 1f) return
+        states.chunked(SYNC_CARDS_PER_IMAGE).forEachIndexed { index, chunk ->
+            capture("${name}_${index + 1}") {
+                // Inspection mode stills the searching spinner, which would never let the capture idle.
+                CompositionLocalProvider(LocalInspectionMode provides true) {
+                    SyncCards(chunk)
+                }
+            }
+        }
+    }
+
+    @Composable
+    private fun SyncCards(chunk: List<DrinkSyncState>) {
+        Column(
+            Modifier.background(PkTheme.colors.background).padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            chunk.forEach {
+                DrinkSyncCard(it, Household.today, Household.zone, onSync = {}, onOpenSettings = {})
+            }
+        }
+    }
+
     @Composable
     private fun Screen(state: FountainUiState, clips: RecentClipsUi? = null, live: LiveCardUi = LiveCardUi()) =
         FountainScreen(state, DeviceNavigation(), FountainCallbacks(), clips = clips, live = live)
@@ -99,6 +136,8 @@ class FountainScreenshotTest(private val variant: ScreenshotVariant) {
     }
 
     companion object {
+        private const val SYNC_CARDS_PER_IMAGE = 5
+
         @JvmStatic
         @ParameterizedRobolectricTestRunner.Parameters(name = "{0}")
         fun variants(): List<ScreenshotVariant> = ScreenshotVariant.all

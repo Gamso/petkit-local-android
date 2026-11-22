@@ -105,4 +105,49 @@
         <item quantity="many">%1$d sans durée connue, sur l\'axe</item>
         <item quantity="other">%1$d sans durée connue, sur l\'axe</item>
     </plurals>
+
+    <!-- L'historique des passages d'une CTW3, lu par le Bluetooth du téléphone (issue #104). -->
+    <string name="fountain_sync_title">Historique des passages</string>
+    <string name="fountain_sync_explain">La fontaine garde ses passages jusqu\'à ce que le téléphone les lise en Bluetooth. Restez près d\'elle pendant la synchronisation.</string>
+    <string name="fountain_sync_button">Synchroniser les passages</string>
+    <string name="fountain_sync_permission_reason">Pour trouver la fontaine, l\'application a besoin de l\'autorisation Appareils à proximité.</string>
+    <string name="fountain_sync_location_reason">Pour trouver la fontaine, l\'application a besoin de l\'autorisation de localisation : Android 11 et antérieur la demandent avant toute recherche Bluetooth.</string>
+    <string name="fountain_sync_permission_refused">Autorisation Appareils à proximité refusée : sans elle, la fontaine est introuvable.</string>
+    <string name="fountain_sync_location_refused">Autorisation de localisation refusée : sans elle, Android 11 et antérieur ne peuvent pas chercher la fontaine.</string>
+    <string name="fountain_sync_open_settings">Ouvrir les paramètres</string>
+    <string name="fountain_sync_searching">Recherche de la fontaine…</string>
+    <string name="fountain_sync_connected">Connecté en Bluetooth</string>
+    <plurals name="fountain_sync_reading">
+        <item quantity="one">Lecture de %1$d passage…</item>
+        <item quantity="many">Lecture de %1$d passages…</item>
+        <item quantity="other">Lecture de %1$d passages…</item>
+    </plurals>
+    <plurals name="fountain_sync_uploading">
+        <item quantity="one">Envoi de %1$d passage à petkit-local…</item>
+        <item quantity="many">Envoi de %1$d passages à petkit-local…</item>
+        <item quantity="other">Envoi de %1$d passages à petkit-local…</item>
+    </plurals>
+    <plurals name="fountain_sync_done">
+        <item quantity="one">Terminé : %1$d nouveau passage</item>
+        <item quantity="many">Terminé : %1$d nouveaux passages</item>
+        <item quantity="other">Terminé : %1$d nouveaux passages</item>
+    </plurals>
+    <string name="fountain_sync_done_none">Terminé : aucun nouveau passage</string>
+    <string name="fountain_sync_bluetooth_unavailable">Ce téléphone n\'a pas de Bluetooth basse consommation : il ne peut pas synchroniser la fontaine.</string>
+    <string name="fountain_sync_bluetooth_off">Le Bluetooth est désactivé. Activez-le, puis relancez la synchronisation.</string>
+    <string name="fountain_sync_not_found">Fontaine introuvable. Approchez le téléphone et réessayez.</string>
+    <string name="fountain_sync_secret_refused">La fontaine a refusé la clé d\'appairage fournie par petkit-local. Importez-la de nouveau depuis PetKit dans le panneau.</string>
+    <string name="fountain_sync_clock_refused">La fontaine a refusé l\'heure qui lui a été donnée.</string>
+    <string name="fountain_sync_stream_refused">La fontaine a refusé d\'envoyer ses passages.</string>
+    <string name="fountain_sync_timeout">La fontaine ne répond plus. Réessayez plus près d\'elle.</string>
+    <string name="fountain_sync_connection_lost">La connexion Bluetooth a été perdue. Réessayez.</string>
+    <string name="fountain_sync_secret_unknown">petkit-local n\'a pas de clé d\'appairage pour cette fontaine.</string>
+    <string name="fountain_sync_secret_invalid">La clé d\'appairage que petkit-local détient pour cette fontaine n\'est pas valide.</string>
+    <string name="fountain_sync_secret_hint">Appuyez sur Import from PetKit dans le panneau de petkit-local, puis relancez la synchronisation.</string>
+    <string name="fountain_sync_unsupported">petkit-local ne peut pas synchroniser les passages de cette fontaine.</string>
+    <string name="fountain_sync_server_failed">Échec de la synchronisation : %1$s</string>
+    <string name="fountain_sync_last_today">Dernière synchronisation aujourd\'hui à %1$s</string>
+    <string name="fountain_sync_last_yesterday">Dernière synchronisation hier à %1$s</string>
+    <string name="fountain_sync_last_date">Dernière synchronisation le %1$s à %2$s</string>
+    <string name="fountain_sync_never">Jamais synchronisée depuis ce téléphone</string>
 </resources>
