@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="push_channel_connection">Connexion au serveur</string>
-    <string name="push_channel_connection_help">La notification silencieuse qu\'Android exige tant que Petkit Local reste connecté pour les alertes. Vous pouvez la masquer.</string>
+    <string name="push_channel_connection_help">La notification silencieuse qu\'Android exige tant que Patoune reste connectée pour les alertes. Vous pouvez la masquer.</string>
     <string name="push_channel_toilet">Passages à la litière</string>
     <string name="push_channel_feed_served">Repas servis</string>
     <string name="push_channel_feed_failed">Repas manqués</string>
@@ -12,7 +12,7 @@
     <string name="push_channel_other">Autres alertes</string>
 
     <string name="push_ongoing_connecting">Connexion au serveur…</string>
-    <string name="push_ongoing_connecting_text">Petkit Local se connecte à votre serveur pour les alertes.</string>
+    <string name="push_ongoing_connecting_text">Patoune se connecte à votre serveur pour les alertes.</string>
     <string name="push_ongoing_connected">Notifications activées</string>
     <string name="push_ongoing_connected_text">Les alertes de votre serveur arrivent dès qu\'elles se produisent.</string>
     <string name="push_ongoing_gap_text">Des alertes reçues pendant que le téléphone était hors ligne ont été perdues.</string>
@@ -55,5 +55,5 @@
     <string name="push_liquid_low_title">Liquide désodorisant bas</string>
     <string name="push_liquid_low_text">Remplissez le liquide désodorisant de %1$s.</string>
     <string name="push_other_title">Alerte de votre serveur</string>
-    <string name="push_other_text">%1$s : ouvrez Petkit Local pour la voir.</string>
+    <string name="push_other_text">%1$s : ouvrez Patoune pour la voir.</string>
 </resources>

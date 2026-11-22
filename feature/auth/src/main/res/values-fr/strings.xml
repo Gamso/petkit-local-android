@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="auth_tagline">Les appareils de vos animaux, sur votre propre serveur.</string>
+    <string name="auth_tagline">Les appareils de vos animaux, sur votre propre serveur petkit-local.</string>
 
     <string name="auth_address_label">Adresse du serveur</string>
     <string name="auth_password_label">Mot de passe</string>

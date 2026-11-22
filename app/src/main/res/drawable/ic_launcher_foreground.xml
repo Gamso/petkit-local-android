@@ -1,21 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The project's own mark: a house with a round head in its door. No PetKit artwork. -->
+<!-- Patoune's mark (issue #107): a paw, four rounded toes above a rounded pad, drawn for the project.
+     No PetKit artwork. The paw is drawn in a 130 x 130 tile (pad: ellipse at 65,82, rx 28, ry 23;
+     toes: rx 10, ry 13 at 34,52 / 54,36 / 76,36 / 96,52), its box (24..106, 23..105) centred on
+     the 108 dp canvas at a scale of 0.7, so every point stays within 31 dp of the centre, inside
+     the 66 dp safe zone. White on @color/ic_launcher_background; also the monochrome layer. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path
-        android:fillColor="#00000000"
-        android:pathData="M36,50 L54,35 L72,50 L72,73 L36,73 Z"
-        android:strokeWidth="5"
-        android:strokeColor="#FFFFFFFF"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round" />
-    <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M54,52 m-7,0 a7,7 0,1 1,14 0 a7,7 0,1 1,-14 0" />
-    <path
-        android:fillColor="#FFFFFFFF"
-        android:pathData="M45,73 L45,68 Q54,60 63,68 L63,73 Z" />
+    <group
+        android:scaleX="0.7"
+        android:scaleY="0.7"
+        android:translateX="8.5"
+        android:translateY="9.2">
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M37,82 a28,23 0,1 1,56 0 a28,23 0,1 1,-56 0 Z M24,52 a10,13 0,1 1,20 0 a10,13 0,1 1,-20 0 Z M44,36 a10,13 0,1 1,20 0 a10,13 0,1 1,-20 0 Z M66,36 a10,13 0,1 1,20 0 a10,13 0,1 1,-20 0 Z M86,52 a10,13 0,1 1,20 0 a10,13 0,1 1,-20 0 Z" />
+    </group>
 </vector>

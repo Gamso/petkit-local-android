@@ -2,7 +2,7 @@
 <resources>
     <!-- Channels: one per kind, so each can be muted in Android's settings too. -->
     <string name="push_channel_connection">Connection to the server</string>
-    <string name="push_channel_connection_help">The silent notification Android requires while Petkit Local stays connected for alerts. You can hide it.</string>
+    <string name="push_channel_connection_help">The silent notification Android requires while Patoune stays connected for alerts. You can hide it.</string>
     <string name="push_channel_toilet">Litter box visits</string>
     <string name="push_channel_feed_served">Meals served</string>
     <string name="push_channel_feed_failed">Failed meals</string>
@@ -14,7 +14,7 @@
 
     <!-- The ongoing notification. -->
     <string name="push_ongoing_connecting">Connecting to the server…</string>
-    <string name="push_ongoing_connecting_text">Petkit Local is reaching your server for alerts.</string>
+    <string name="push_ongoing_connecting_text">Patoune is reaching your server for alerts.</string>
     <string name="push_ongoing_connected">Notifications on</string>
     <string name="push_ongoing_connected_text">Alerts from your server arrive as they happen.</string>
     <string name="push_ongoing_gap_text">Some alerts from while the phone was offline were lost.</string>
@@ -58,5 +58,5 @@
     <string name="push_liquid_low_title">Deodorizer liquid low</string>
     <string name="push_liquid_low_text">Refill the deodorizer liquid of %1$s.</string>
     <string name="push_other_title">Alert from your server</string>
-    <string name="push_other_text">%1$s: open Petkit Local to see it.</string>
+    <string name="push_other_text">%1$s: open Patoune to see it.</string>
 </resources>

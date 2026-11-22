@@ -40,7 +40,7 @@ class MediaStoreSnapshotRepositoryTest {
         val inserted = media.inserted.single()
         assertEquals("T5 2026-11-16 20.15.03.jpg", inserted.getAsString(MediaStore.Images.Media.DISPLAY_NAME))
         assertEquals("image/jpeg", inserted.getAsString(MediaStore.Images.Media.MIME_TYPE))
-        assertEquals("Pictures/Petkit Local", inserted.getAsString(MediaStore.Images.Media.RELATIVE_PATH))
+        assertEquals("Pictures/Patoune", inserted.getAsString(MediaStore.Images.Media.RELATIVE_PATH))
         assertEquals(1, inserted.getAsInteger(MediaStore.Images.Media.IS_PENDING))
         assertArrayEquals(jpeg, media.file.readBytes())
         assertEquals(0, media.updated.single().getAsInteger(MediaStore.Images.Media.IS_PENDING))

@@ -87,7 +87,7 @@ class NotificationTextsTest {
         assertEquals("Something to see to", texts.of(notification("consumable", "newPart"), known).title)
         assertEquals("The hopper of Pura Max is empty.", texts.of(notification("food_low", "food3"), known).text)
         assertEquals(
-            NotificationText("Alert from your server", "Pura Max: open Petkit Local to see it."),
+            NotificationText("Alert from your server", "Pura Max: open Patoune to see it."),
             texts.of(notification("a_later_kind"), known),
         )
     }
