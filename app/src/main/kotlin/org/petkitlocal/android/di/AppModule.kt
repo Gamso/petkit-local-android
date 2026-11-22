@@ -11,8 +11,10 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import org.petkitlocal.core.domain.auth.LocalNetworkAccess
+import org.petkitlocal.core.domain.drinksync.BluetoothAccess
 import org.petkitlocal.core.domain.settings.AppVersionProvider
 import org.petkitlocal.core.domain.talk.MicrophoneAccess
+import org.petkitlocal.core.ui.BluetoothPermissions
 
 /** What only the app module can bind: the Android permissions the domain asks about, and its version. */
 @Module
@@ -33,6 +35,11 @@ object AppModule {
         ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) ==
             PackageManager.PERMISSION_GRANTED
     }
+
+    /** A fountain's drink history over Bluetooth: Android 12's nearby devices, or location before it. */
+    @Provides
+    fun bluetoothAccess(@ApplicationContext context: Context): BluetoothAccess =
+        BluetoothAccess { BluetoothPermissions.granted(context) }
 
     /** The installed package's `versionName` (app/build.gradle.kts), for About. */
     @Provides

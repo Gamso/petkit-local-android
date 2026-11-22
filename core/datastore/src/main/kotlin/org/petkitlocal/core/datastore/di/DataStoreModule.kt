@@ -9,6 +9,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
+import org.petkitlocal.core.datastore.DrinkSyncStore
 import org.petkitlocal.core.datastore.KeystoreTokenCipher
 import org.petkitlocal.core.datastore.NotificationStore
 import org.petkitlocal.core.datastore.QuickActionsStore
@@ -26,6 +27,9 @@ object DataStoreModule {
 
     /** Notifications on this phone, and the last one received (`notifications.preferences_pb`). */
     const val NOTIFICATIONS_FILE = "notifications"
+
+    /** When each fountain's drinks were last synced over Bluetooth (`drink_sync.preferences_pb`). */
+    const val DRINK_SYNC_FILE = "drink_sync"
 
     @Provides
     @Singleton
@@ -49,5 +53,11 @@ object DataStoreModule {
     @Singleton
     fun notificationStore(@ApplicationContext context: Context): NotificationStore = NotificationStore(
         PreferenceDataStoreFactory.create { context.preferencesDataStoreFile(NOTIFICATIONS_FILE) },
+    )
+
+    @Provides
+    @Singleton
+    fun drinkSyncStore(@ApplicationContext context: Context): DrinkSyncStore = DrinkSyncStore(
+        PreferenceDataStoreFactory.create { context.preferencesDataStoreFile(DRINK_SYNC_FILE) },
     )
 }

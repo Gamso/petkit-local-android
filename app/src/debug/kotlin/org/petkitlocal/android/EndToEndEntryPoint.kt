@@ -7,7 +7,8 @@ import org.petkitlocal.core.domain.auth.AuthRepository
 
 /**
  * What the end-to-end tests (src/androidTest) reach in the running app, in debug builds only:
- * the session, which they sign out before each test (`PetkitAppUnderTest`, issue #111). Hilt
+ * the session, which they sign out before each test (`PetkitAppUnderTest`, issue #111), and the
+ * Bluetooth a fountain's drinks are synced through, where they put a scripted fountain (issue #104). Hilt
  * builds the app's component from the app's own sources, so an entry point declared in the test
  * APK would not be part of it; this one is, and the release build has none.
  */
@@ -15,4 +16,6 @@ import org.petkitlocal.core.domain.auth.AuthRepository
 @InstallIn(SingletonComponent::class)
 interface EndToEndEntryPoint {
     fun authRepository(): AuthRepository
+
+    fun bleTransport(): EndToEndBleTransport
 }
