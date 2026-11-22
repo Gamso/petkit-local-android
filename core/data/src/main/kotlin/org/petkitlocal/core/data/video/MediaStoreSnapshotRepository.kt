@@ -12,7 +12,7 @@ import kotlinx.coroutines.withContext
 import org.petkitlocal.core.domain.repository.SnapshotRepository
 
 /**
- * Snapshots in the phone's shared pictures, `Pictures/Petkit Local/`, through MediaStore: on
+ * Snapshots in the phone's shared pictures, `Pictures/Patoune/`, through MediaStore: on
  * Android 10 and later (the app's minimum) an app adds its own files there with no storage
  * permission. The entry stays pending, hidden from the gallery, until the whole file is written,
  * and is removed again if writing fails.
@@ -44,6 +44,6 @@ class MediaStoreSnapshotRepository @Inject constructor(@ApplicationContext priva
         const val JPEG = "image/jpeg"
 
         /** The app's own folder among the phone's pictures. */
-        val RELATIVE_PATH = "${Environment.DIRECTORY_PICTURES}/Petkit Local"
+        val RELATIVE_PATH = "${Environment.DIRECTORY_PICTURES}/Patoune"
     }
 }

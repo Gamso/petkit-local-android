@@ -108,6 +108,14 @@ for the project only where no symbol fits. Icon-only controls are `PkIconButton`
 the surface colour) with a TalkBack label; the way back from a screen is `PkBackButton`, a left
 arrow mirrored in right-to-left languages.
 
+### App icon
+
+Patoune's icon is a paw drawn for the project (issue #107): four rounded toes above a rounded pad,
+white on the accent (`#3F51B5`). It is an adaptive icon (`app/src/main/res/mipmap-anydpi/`): a
+vector foreground kept inside the 66 dp safe zone, a solid background, and the same paw as the
+monochrome layer of Android 13's themed icons. The notifications' small icon is the same paw as a
+white silhouette (`push`, `ic_notification`). The 512 px rendering is `docs/icon-512.png`.
+
 ### Shape and spacing
 
 - Radius:

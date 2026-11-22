@@ -1,8 +1,11 @@
-# petkit-local Android
+# Patoune
 
-An Android app for [petkit-local](https://github.com/Gamso/petkit-local), the self-hosted
-replacement for PetKit's cloud. It talks only to your own petkit-local server, through its
-authenticated phone-app API (`/app/v1`): no PetKit cloud and no Home Assistant needed.
+<img src="docs/icon-512.png" alt="Patoune's icon: a white paw on indigo" width="96" align="right">
+
+Patoune is an Android app for [petkit-local](https://github.com/Gamso/petkit-local) servers,
+petkit-local being the self-hosted replacement for PetKit's cloud. It talks only to your own
+petkit-local server, through its authenticated phone-app API (`/app/v1`): no PetKit cloud and no
+Home Assistant needed. Patoune is an independent project, not affiliated with PetKit.
 
 **Status: milestone M0 (foundations).** The project builds and every screen is a placeholder.
 Start with:

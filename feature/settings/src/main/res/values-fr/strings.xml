@@ -14,13 +14,13 @@
 
     <string name="settings_section_notifications">Notifications</string>
     <string name="settings_notifications_on">Notifications sur ce téléphone</string>
-    <string name="settings_notifications_on_help">Petkit Local garde une connexion à votre serveur pour que les alertes arrivent même application fermée. Android affiche une notification silencieuse tant qu\'elles sont activées.</string>
-    <string name="settings_notifications_permission_needed">Android n\'autorise pas encore Petkit Local à afficher des notifications.</string>
+    <string name="settings_notifications_on_help">Patoune garde une connexion à votre serveur pour que les alertes arrivent même application fermée. Android affiche une notification silencieuse tant qu\'elles sont activées.</string>
+    <string name="settings_notifications_permission_needed">Android n\'autorise pas encore Patoune à afficher des notifications.</string>
     <string name="settings_notifications_allow">Autoriser les notifications</string>
     <string name="settings_notifications_battery">L\'optimisation de la batterie peut retarder les alertes quand le téléphone est en veille.</string>
     <string name="settings_notifications_allow_background">Autoriser en arrière-plan</string>
     <string name="settings_battery_title">Recevoir les alertes à temps</string>
-    <string name="settings_battery_message">Pour économiser la batterie, Android coupe le réseau des applications quand le téléphone est en veille, et les alertes arrivent alors en retard. La connexion de Petkit Local est un seul lien discret avec votre serveur, comme celui d\'une messagerie. Android va demander s\'il peut fonctionner en arrière-plan.</string>
+    <string name="settings_battery_message">Pour économiser la batterie, Android coupe le réseau des applications quand le téléphone est en veille, et les alertes arrivent alors en retard. La connexion de Patoune est un seul lien discret avec votre serveur, comme celui d\'une messagerie. Android va demander s\'il peut fonctionner en arrière-plan.</string>
     <string name="settings_battery_continue">Continuer</string>
     <string name="settings_battery_not_now">Plus tard</string>
     <string name="settings_notifications_intro">Ce dont ce téléphone est prévenu. Le serveur garde ce choix pour ce téléphone et n\'envoie rien d\'autre.</string>
@@ -56,14 +56,14 @@
     <string name="settings_sign_out_message">Le serveur oublie la session de ce téléphone, et le téléphone oublie les appareils et l\'historique qu\'il avait gardés. Il faudra le mot de passe pour vous reconnecter.</string>
 
     <string name="settings_section_about">À propos</string>
-    <string name="settings_app_version">Version de Petkit Local</string>
+    <string name="settings_app_version">Version de Patoune</string>
     <string name="settings_app_version_help">Les nouvelles versions sont publiées sur la page des versions du projet sur GitHub.</string>
-    <string name="settings_not_affiliated">Petkit Local est un projet indépendant. Il n\'est ni affilié à PetKit, ni approuvé par PetKit, ni lié à PetKit.</string>
+    <string name="settings_not_affiliated">Patoune est une application indépendante pour les serveurs petkit-local. Elle n\'est ni affiliée à PetKit, ni approuvée par PetKit, ni liée à PetKit.</string>
 
     <string name="settings_licences">Licences open source</string>
     <string name="settings_licences_help">Les bibliothèques, polices et icônes open source de l\'application, et leurs licences.</string>
     <string name="settings_licences_title">Licences open source</string>
-    <string name="settings_licences_intro">Les bibliothèques open source sur lesquelles Petkit Local est fait, par projet, et les polices et icônes qu\'il contient. Touchez-en une pour lire sa licence.</string>
+    <string name="settings_licences_intro">Les bibliothèques open source sur lesquelles repose Patoune, par projet, et les polices et icônes qu\'elle contient. Touchez-en une pour lire sa licence.</string>
     <string name="settings_licences_androidx">AndroidX et Jetpack Compose</string>
     <plurals name="settings_licences_components">
         <item quantity="one">%d composant</item>
@@ -74,7 +74,7 @@
     <string name="settings_licences_collapsed">Replié</string>
     <string name="settings_licence_close">Fermer</string>
     <string name="settings_licence_text_missing">Le texte complet de cette licence n\'est pas fourni.</string>
-    <string name="settings_app_licence">Licence de Petkit Local</string>
+    <string name="settings_app_licence">Licence de Patoune</string>
     <string name="settings_app_licence_help">%1$s : ce que vous pouvez faire de l\'application et de son code source.</string>
-    <string name="settings_app_licence_title">Petkit Local</string>
+    <string name="settings_app_licence_title">Patoune</string>
 </resources>

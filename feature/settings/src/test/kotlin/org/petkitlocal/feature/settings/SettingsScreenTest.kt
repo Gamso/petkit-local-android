@@ -88,7 +88,7 @@ class SettingsScreenTest {
         show(SettingsPreviewData.androidInTheWay)
 
         compose.onNodeWithTag(SettingsTestTags.NOTIFICATIONS_SWITCH).performScrollTo().assertIsOn().performClick()
-        compose.onNodeWithText("does not let Petkit Local show notifications", substring = true).assertExists()
+        compose.onNodeWithText("does not let Patoune show notifications", substring = true).assertExists()
         compose.onNodeWithTag(SettingsTestTags.ALLOW_NOTIFICATIONS).performScrollTo().assertIsEnabled().performClick()
         compose.onNodeWithTag(SettingsTestTags.ALLOW_BACKGROUND).performScrollTo().assertIsEnabled().performClick()
 

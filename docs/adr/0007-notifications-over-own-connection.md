@@ -7,7 +7,7 @@ Status: accepted (2026-11-15; implemented in M5). Supersedes ADR 0006.
 ADR 0006 chose UnifiedPush with the ntfy app as distributor. In practice that needs three things
 besides petkit-local and this app: a self-hosted ntfy server exposed through the user's tunnel,
 the ntfy app installed and pointed at it, and, when ntfy is closed by default, an access rule for
-UnifiedPush topics. The owner wants an all-in-one setup: petkit-local and Petkit Local, nothing
+UnifiedPush topics. The owner wants an all-in-one setup: petkit-local and Patoune, nothing
 else.
 
 The ntfy app itself is a foreground service holding a long-lived connection to its server.

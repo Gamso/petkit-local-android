@@ -69,8 +69,8 @@ class SignInScreenTest {
     @Test
     fun `the welcome names the app, as the screen's heading`() {
         show(SignInUiState())
-        compose.onNode(hasText("Petkit Local") and isHeading()).assertExists()
-        compose.onNodeWithText("Your pets' devices, on your own server.").assertExists()
+        compose.onNode(hasText("Patoune") and isHeading()).assertExists()
+        compose.onNodeWithText("Your pets' devices, on your own petkit-local server.").assertExists()
     }
 
     @Test
@@ -255,7 +255,7 @@ class SignInScreenTest {
     fun `everything is in French, plurals included`() {
         show(filled.copy(failure = SignInFailure.WrongPassword(3.seconds), lockedSeconds = 3))
 
-        compose.onNodeWithText("Les appareils de vos animaux, sur votre propre serveur.").assertExists()
+        compose.onNodeWithText("Les appareils de vos animaux, sur votre propre serveur petkit-local.").assertExists()
         compose.onNodeWithText("Mot de passe incorrect.").assertExists()
         compose.onNodeWithText("Nom du téléphone : Pixel 8").assertExists()
         compose.onNodeWithContentDescription("Afficher le mot de passe").assertExists()

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- PkColors.background (light) and the launcher icon's accent. -->
+    <!-- PkColors.background (light), and PkColors.accent (light) behind the launcher icon's paw. -->
     <color name="window_background">#FFEEF0F7</color>
     <color name="ic_launcher_background">#FF3F51B5</color>
 </resources>

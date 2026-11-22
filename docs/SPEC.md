@@ -297,7 +297,7 @@ screen).
 - English and French string resources; plurals and number/date formats from the locale; weights in
   kg, durations in m:ss.
 - The language is the phone's. The app has no switch of its own; from Android 13 the system's own
-  per-app setting (Settings > Apps > Petkit Local > Language) can still give it the other one,
+  per-app setting (Settings > Apps > Patoune > Language) can still give it the other one,
   because the app declares the two languages it ships (`locales_config.xml`).
 - **Server-provided labels are English** (entity names, event labels). The app translates by
   **stable keys** (entity `key`, event kind and code) and falls back to the server's text for
@@ -326,9 +326,12 @@ screen).
 
 ## 9. Decisions
 
-1. **Name: "Petkit Local".** The app is distributed on GitHub only, not on a store. The README and
-   the app's About screen state that it is not affiliated with PetKit, and no PetKit logo, image
-   or colour is used. If it ever goes to a store, rename it then.
+1. **Name: "Patoune"** (issue #107), the same in every language, with a paw for its icon.
+   "Petkit" is the manufacturer's brand, so the app does not carry it; the server it connects to
+   keeps its own name, petkit-local, and the app says it is for petkit-local servers. The package
+   id stays `org.petkitlocal.android`, so a release still updates an installed v0.1.x. The app is
+   distributed on GitHub only, not on a store. The README and the app's About screen state that it
+   is not affiliated with PetKit, and no PetKit logo, image or colour is used.
 2. **Distribution: GitHub releases.**
    - Signed APKs are attached to each `v*` release; the signing key lives in GitHub Actions
      secrets.

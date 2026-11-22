@@ -29,7 +29,7 @@ data class OpenSourceProject(val name: String, val components: List<OpenSourceCo
 interface OpenSourceLicencesRepository {
     suspend fun components(): List<OpenSourceComponent>
 
-    /** Petkit Local's own licence (the repository's LICENSE, shipped in the APK). */
+    /** Patoune's own licence (the repository's LICENSE, shipped in the APK). */
     suspend fun appLicence(): OpenSourceLicence
 }
 

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- The app's name, the screen's heading: the same in every language (spec decision 1). -->
-    <string name="auth_app_name" translatable="false">Petkit Local</string>
-    <string name="auth_tagline">Your pets\' devices, on your own server.</string>
+    <string name="auth_app_name" translatable="false">Patoune</string>
+    <string name="auth_tagline">Your pets\' devices, on your own petkit-local server.</string>
 
     <string name="auth_address_label">Server address</string>
     <string name="auth_address_placeholder" translatable="false">https://pets.example.com</string>
