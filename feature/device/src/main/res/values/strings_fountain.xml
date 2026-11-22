@@ -98,4 +98,52 @@
         <item quantity="one">%1$d with no known duration, on the axis</item>
         <item quantity="other">%1$d with no known duration, on the axis</item>
     </plurals>
+
+    <!-- A CTW3's drink history, synced over the phone's own Bluetooth (issue #104): its card on the fountain page. -->
+    <string name="fountain_sync_title">Drink history</string>
+    <string name="fountain_sync_explain">The fountain keeps its drinks until the phone reads them over Bluetooth. Stay near it while it syncs.</string>
+    <string name="fountain_sync_button">Sync drinks</string>
+    <!-- While Android asks for the permission, then once it was refused. Android 12+ calls it Nearby devices. -->
+    <string name="fountain_sync_permission_reason">To find the fountain, the app needs the Nearby devices permission.</string>
+    <string name="fountain_sync_location_reason">To find the fountain, the app needs the location permission: Android 11 and older ask for it before any Bluetooth search.</string>
+    <string name="fountain_sync_permission_refused">Nearby devices permission refused: the fountain cannot be found without it.</string>
+    <string name="fountain_sync_location_refused">Location permission refused: Android 11 and older cannot search for the fountain without it.</string>
+    <string name="fountain_sync_open_settings">Open settings</string>
+    <!-- The steps of a sync, in order. -->
+    <string name="fountain_sync_searching">Searching for the fountain…</string>
+    <string name="fountain_sync_connected">Connected over Bluetooth</string>
+    <plurals name="fountain_sync_reading">
+        <item quantity="one">Reading %1$d drink…</item>
+        <item quantity="other">Reading %1$d drinks…</item>
+    </plurals>
+    <plurals name="fountain_sync_uploading">
+        <item quantity="one">Sending %1$d drink to petkit-local…</item>
+        <item quantity="other">Sending %1$d drinks to petkit-local…</item>
+    </plurals>
+    <plurals name="fountain_sync_done">
+        <item quantity="one">Done: %1$d new drink</item>
+        <item quantity="other">Done: %1$d new drinks</item>
+    </plurals>
+    <string name="fountain_sync_done_none">Done: no new drinks</string>
+    <!-- Why a sync failed. -->
+    <string name="fountain_sync_bluetooth_unavailable">This phone has no Bluetooth Low Energy, so it cannot sync the fountain.</string>
+    <string name="fountain_sync_bluetooth_off">Bluetooth is off. Turn it on, then sync again.</string>
+    <string name="fountain_sync_not_found">The fountain was not found. Bring the phone close to it and try again.</string>
+    <string name="fountain_sync_secret_refused">The fountain refused the pairing key petkit-local gave. Import it again from PetKit in the panel.</string>
+    <string name="fountain_sync_clock_refused">The fountain refused the time it was given.</string>
+    <string name="fountain_sync_stream_refused">The fountain refused to send its drinks.</string>
+    <string name="fountain_sync_timeout">The fountain stopped answering. Try again closer to it.</string>
+    <string name="fountain_sync_connection_lost">The Bluetooth connection was lost. Try again.</string>
+    <string name="fountain_sync_secret_unknown">petkit-local has no pairing key for this fountain.</string>
+    <string name="fountain_sync_secret_invalid">The pairing key petkit-local holds for this fountain is not valid.</string>
+    <!-- Under the two above when the server gave no message of its own. "Import from PetKit" is the panel's button, in English there. -->
+    <string name="fountain_sync_secret_hint">Press Import from PetKit in petkit-local\'s panel, then sync again.</string>
+    <string name="fountain_sync_unsupported">petkit-local cannot sync this fountain\'s drinks.</string>
+    <!-- %1$s: why the server could not be reached, or what it refused. -->
+    <string name="fountain_sync_server_failed">Sync failed: %1$s</string>
+    <!-- When a sync last succeeded on this phone. -->
+    <string name="fountain_sync_last_today">Last synced today at %1$s</string>
+    <string name="fountain_sync_last_yesterday">Last synced yesterday at %1$s</string>
+    <string name="fountain_sync_last_date">Last synced on %1$s at %2$s</string>
+    <string name="fountain_sync_never">Never synced from this phone</string>
 </resources>

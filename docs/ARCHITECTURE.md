@@ -19,6 +19,7 @@ per feature. Decisions that are hard to undo are recorded as ADRs in `docs/adr/`
 | Images | Coil 3 with the shared OkHttp client | Media and thumbnails need the `Authorization` header |
 | Video | Media3 ExoPlayer: HLS natively; fMP4-over-WebSocket through a custom `DataSource` | One player, two transports |
 | Charts | Compose `Canvas` | Few, simple charts; no charting dependency |
+| Bluetooth | Android's own `BluetoothGatt` and LE scanner, behind `BleTransport` (core:data) | One fountain's drink history, read as PetKit's app reads it (ADR 0008); no library |
 | Notifications | A foreground service holding the server's notification WebSocket (OkHttp) | No other app, server or Google service required |
 | Navigation | Navigation Compose with type-safe routes | Standard, testable |
 | Open-source licences | AboutLibraries Gradle plugin and core (no UI library): the list is generated into the APK, restricted to the release build's direct dependencies (build-logic `directExternalDependencies`); our own screens group it by project | Apache 2.0 wants the licence to travel with the APK; no Google Play services (so not Google's oss-licenses plugin) |
@@ -77,6 +78,7 @@ in CI fails the build if a feature imports a data-layer package.
   - `VideoRepository`
   - `TalkRepository`
   - `SettingsRepository`
+  - `DrinkSyncRepository` and `FountainBluetooth` (a CTW3's drink history, ADR 0008)
 - **Use cases**: one public `operator fun invoke`, one job each:
   - `SignInUseCase`, `ObserveDevicesUseCase`, `RunDeviceActionUseCase`, `SetEntityValueUseCase`,
     `ObserveTimelineUseCase`, `SaveFeedingPlanUseCase`, `ObservePetUseCase`…
@@ -102,6 +104,18 @@ in CI fails the build if a feature imports a data-layer package.
     trust (a new TLS context, the connection pool emptied), so nothing made under the old one is
     reused. A changed certificate refused while signed in is also kept for the app shell, which
     asks the owner about it over whatever screen is showing.
+- **Bluetooth** (ADR 0008): a CTW3's drink history is read by the phone itself.
+  - `BleTransport` is the radio: a scan filtered on the fountain's address, then GATT over LE on
+    PetKit's service (`0000aaa0-…`, writes on `aaa1`, notifications on `aaa2`, MTU 255 asked).
+    `AndroidBleTransport` binds Android's API; a debug build wraps it in `EndToEndBleTransport`,
+    where an end-to-end test may put a scripted fountain.
+  - `Ctw3Session` runs PetKit's session over it (213, 86, 84, 200, 201, 66, 210, 211, 215, 216, 212,
+    then 80 and the stream), one frame in flight, replies matched by cmd and sequence, frames
+    reassembled across notifications (`PetkitFrames.Assembler`). It is pure Kotlin, replayed in
+    unit tests against a scripted fountain.
+  - `SyncDrinksUseCase` (core:domain) asks the server for the address and secret, runs the session,
+    uploads what is newer than the server's cursor and re-reads those days' timeline. The secret
+    lives for one sync only (`FountainSecret`, zeroed after it, never logged or written).
 - **Repositories**: single source of truth in Room for devices, pets and timeline pages.
   - REST refreshes write to Room.
   - WebSocket messages patch Room (`hello` replaces, `state` patches entity values, `timeline` upserts by id with
@@ -241,3 +255,4 @@ Rules:
 5. Video transport: fMP4 over WebSocket first, HLS fallback, via Media3.
 6. Push through UnifiedPush and ntfy, no Firebase (superseded by 7).
 7. Notifications over the app's own connection to petkit-local.
+8. A CTW3's drink history over the phone's own Bluetooth.
